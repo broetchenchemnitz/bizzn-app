@@ -11,3 +11,4 @@
 - **UI/UX:** Globale Hauptnavigation inkl. dynamischem Auth-Status (Login/Logout) und Bizzn-Branding ausgerollt.
 - **Datenarchitektur:** Serverseitiges Data-Fetching im Dashboard integriert. Typensicheres Datenbank-Schema für Projekte ('projects') etabliert.
 - **Deployment & Payments:** Vercel-Produktionskonfiguration und initialer Stripe-Webhook-Endpoint für die Zahlungsabwicklung erfolgreich eingerichtet.
+- **Monetarisierung:** Stripe-SDK integriert und sichere serverseitige Checkout-API für die Zahlungsabwicklung bereitgestellt.
