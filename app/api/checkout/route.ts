@@ -54,6 +54,10 @@ export async function POST(request: NextRequest) {
       success_url: `${origin}/dashboard?success=true`,
       cancel_url: `${origin}/dashboard?canceled=true`,
       customer_email: user.email,
+      client_reference_id: user.id,
+      metadata: {
+        userId: user.id,
+      },
     })
 
     if (!session.url) {

@@ -5,6 +5,8 @@ import CheckoutButton from '@/components/CheckoutButton'
 
 type ProjectRow = Database['public']['Tables']['projects']['Row']
 
+export const dynamic = 'force-dynamic'
+
 export const metadata = {
   title: 'Dashboard | Bizzn',
 }
