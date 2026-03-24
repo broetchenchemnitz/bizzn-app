@@ -1,7 +1,7 @@
 # Bizzn – Project Board
 
 ## 📋 Todo
-- [ ] Deploy to Production & Verify Webhooks
+- [ ] Implement Stripe Connect Payment Flow
 - [ ] Configure Stripe Connect
 - [ ] Set up Supabase schema & RLS policies
 - [ ] Build authentication flow (Supabase Auth)
@@ -19,3 +19,4 @@
 - [x] Implement Supabase Auth Middleware (Protected Routes)
 - [x] Setup Global Layout & Navigation
 - [x] Implement Dashboard Database Fetching
+- [x] Deploy to Production & Verify Webhooks
