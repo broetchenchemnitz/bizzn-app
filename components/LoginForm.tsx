@@ -1,19 +1,32 @@
 'use client'
 
-import { useActionState, useState } from 'react'
+import { useFormState, useFormStatus } from 'react-dom'
+import { useState } from 'react'
 import { Lock, Mail, Loader2 } from 'lucide-react'
 import { signIn, signUp, type AuthState } from '@/app/auth/actions'
 
 const initialState: AuthState = { error: null }
 
+function SubmitButton({ label }: { label: string }) {
+  const { pending } = useFormStatus()
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="w-full py-2 px-4 bg-brand hover:bg-[#66b300] text-white font-medium rounded-lg transition-colors flex justify-center items-center disabled:opacity-70"
+    >
+      {pending ? <Loader2 className="w-5 h-5 animate-spin" /> : label}
+    </button>
+  )
+}
+
 export default function LoginForm() {
   const [isSignUp, setIsSignUp] = useState(false)
 
-  const [signInState, signInAction, signInPending] = useActionState(signIn, initialState)
-  const [signUpState, signUpAction, signUpPending] = useActionState(signUp, initialState)
+  const [signInState, signInAction] = useFormState(signIn, initialState)
+  const [signUpState, signUpAction] = useFormState(signUp, initialState)
 
   const action = isSignUp ? signUpAction : signInAction
-  const pending = isSignUp ? signUpPending : signInPending
   const state = isSignUp ? signUpState : signInState
 
   return (
@@ -31,10 +44,6 @@ export default function LoginForm() {
         <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg text-center">
           {state.error}
         </div>
-      )}
-
-      {isSignUp && !state.error && signUpState.error === null && signUpPending === false && (
-        <div className="mb-4 p-3 bg-green-50 text-green-700 text-sm rounded-lg text-center hidden" />
       )}
 
       <form action={action} className="space-y-4">
@@ -68,15 +77,7 @@ export default function LoginForm() {
           </div>
         </div>
 
-        <button
-          type="submit"
-          disabled={pending}
-          className="w-full py-2 px-4 bg-brand hover:bg-[#66b300] text-white font-medium rounded-lg transition-colors flex justify-center items-center disabled:opacity-70"
-        >
-          {pending
-            ? <Loader2 className="w-5 h-5 animate-spin" />
-            : (isSignUp ? 'Sign Up' : 'Sign In')}
-        </button>
+        <SubmitButton label={isSignUp ? 'Sign Up' : 'Sign In'} />
       </form>
 
       <div className="mt-6 text-center">
