@@ -1,40 +1,20 @@
-"use client"
+'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
+import { useActionState, useState } from 'react'
 import { Lock, Mail, Loader2 } from 'lucide-react'
+import { signIn, signUp, type AuthState } from '@/app/auth/actions'
+
+const initialState: AuthState = { error: null }
 
 export default function LoginForm() {
-  const router = useRouter()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [isSignUp, setIsSignUp] = useState(false)
 
-  const handleAuth = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError(null)
+  const [signInState, signInAction, signInPending] = useActionState(signIn, initialState)
+  const [signUpState, signUpAction, signUpPending] = useActionState(signUp, initialState)
 
-    try {
-      if (isSignUp) {
-        const { error } = await supabase.auth.signUp({ email, password })
-        if (error) throw error
-        alert('Check your email for the login link!')
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password })
-        if (error) throw error
-        router.push('/dashboard')
-        router.refresh()
-      }
-    } catch (err: unknown) {
-      setError((err as Error).message || 'An error occurred during authentication.')
-    } finally {
-      setLoading(false)
-    }
-  }
+  const action = isSignUp ? signUpAction : signInAction
+  const pending = isSignUp ? signUpPending : signInPending
+  const state = isSignUp ? signUpState : signInState
 
   return (
     <div className="w-full max-w-md p-8 bg-white border border-gray-100 rounded-2xl shadow-sm">
@@ -46,23 +26,27 @@ export default function LoginForm() {
       <h2 className="text-2xl font-bold text-center mb-6 text-gray-900">
         {isSignUp ? 'Create an Account' : 'Welcome Back'}
       </h2>
-      
-      {error && (
+
+      {state.error && (
         <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg text-center">
-          {error}
+          {state.error}
         </div>
       )}
 
-      <form onSubmit={handleAuth} className="space-y-4">
+      {isSignUp && !state.error && signUpState.error === null && signUpPending === false && (
+        <div className="mb-4 p-3 bg-green-50 text-green-700 text-sm rounded-lg text-center hidden" />
+      )}
+
+      <form action={action} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
+              id="email"
+              name="email"
               type="email"
               required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all"
               placeholder="you@example.com"
             />
@@ -70,14 +54,14 @@ export default function LoginForm() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+          <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">Password</label>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
+              id="password"
+              name="password"
               type="password"
               required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all"
               placeholder="••••••••"
             />
@@ -86,15 +70,18 @@ export default function LoginForm() {
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={pending}
           className="w-full py-2 px-4 bg-brand hover:bg-[#66b300] text-white font-medium rounded-lg transition-colors flex justify-center items-center disabled:opacity-70"
         >
-          {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (isSignUp ? 'Sign Up' : 'Sign In')}
+          {pending
+            ? <Loader2 className="w-5 h-5 animate-spin" />
+            : (isSignUp ? 'Sign Up' : 'Sign In')}
         </button>
       </form>
 
       <div className="mt-6 text-center">
         <button
+          type="button"
           onClick={() => setIsSignUp(!isSignUp)}
           className="text-sm text-gray-500 hover:text-brand transition-colors"
         >
