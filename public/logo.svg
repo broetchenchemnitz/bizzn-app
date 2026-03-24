@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 150" fill="none">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@700&amp;display=swap');
+    </style>
+  </defs>
+
+  <!-- Cloche body -->
+  <ellipse cx="80" cy="110" rx="52" ry="8" fill="#77CC00" opacity="0.25"/>
+  <path d="M30 110 Q30 60 80 52 Q130 60 130 110 Z" fill="#77CC00"/>
+
+  <!-- Cloche dome highlight -->
+  <path d="M48 95 Q55 68 80 62 Q105 68 112 95" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" opacity="0.4"/>
+
+  <!-- Cloche handle knob -->
+  <rect x="73" y="44" width="14" height="10" rx="5" fill="#77CC00"/>
+  <ellipse cx="80" cy="44" rx="7" ry="4" fill="#5eaa00"/>
+
+  <!-- Cloche base plate -->
+  <rect x="24" y="108" width="112" height="8" rx="4" fill="#5eaa00"/>
+
+  <!-- Dynamic swoosh lines — right of cloche -->
+  <path d="M138 72 Q165 58 190 68" stroke="#77CC00" stroke-width="4" stroke-linecap="round" fill="none"/>
+  <path d="M138 85 Q170 72 198 80" stroke="#77CC00" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.7"/>
+  <path d="M138 98 Q168 88 196 94" stroke="#77CC00" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.45"/>
+
+  <!-- Wordmark: "bizzn" -->
+  <text
+    x="210"
+    y="107"
+    font-family="Inter, Arial, sans-serif"
+    font-weight="700"
+    font-size="62"
+    letter-spacing="-2"
+    fill="#77CC00"
+  >bizzn</text>
+</svg>
