@@ -1,7 +1,8 @@
 # Bizzn – Project Board
 
 ## 📋 Todo
-- [ ] Init Next.js & Supabase
+- [ ] Setup Next.js App Router (layout/page)
+- [ ] Init Tailwind CSS & TypeScript Config
 - [ ] Configure Stripe Connect
 - [ ] Set up Supabase schema & RLS policies
 - [ ] Build authentication flow (Supabase Auth)
@@ -12,3 +13,4 @@
 
 ## ✅ Done
 - [x] Create Brand Assets (logo.svg, visual identity)
+- [x] Init Next.js & Supabase
