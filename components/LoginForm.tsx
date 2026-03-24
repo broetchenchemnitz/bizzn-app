@@ -1,10 +1,12 @@
 "use client"
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Lock, Mail, Loader2 } from 'lucide-react'
 
 export default function LoginForm() {
+  const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -24,7 +26,8 @@ export default function LoginForm() {
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) throw error
-        window.location.href = '/dashboard' // Redirect after login
+        router.push('/dashboard')
+        router.refresh()
       }
     } catch (err: unknown) {
       setError((err as Error).message || 'An error occurred during authentication.')
