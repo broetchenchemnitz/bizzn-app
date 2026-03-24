@@ -13,3 +13,4 @@
 - **Deployment & Payments:** Vercel-Produktionskonfiguration und initialer Stripe-Webhook-Endpoint für die Zahlungsabwicklung erfolgreich eingerichtet.
 - **Monetarisierung:** Stripe-SDK integriert und sichere serverseitige Checkout-API für die Zahlungsabwicklung bereitgestellt.
 - **Frontend:** Interaktiver Stripe-Checkout-Button im Dashboard integriert. Erfolgs- und Abbruch-Routen für Zahlungen eingerichtet.
+- **Sicherheit & Datenbank:** Supabase 'projects' Tabelle mit strikten Row Level Security (RLS) Policies initialisiert. Nutzerdaten sind nun hart voneinander getrennt.

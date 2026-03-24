@@ -2,8 +2,6 @@
 
 ## 📋 Todo
 - [ ] Final Polish & Production Vercel Deployment
-- [ ] Set up Supabase schema & RLS policies
-- [ ] Build authentication flow (Supabase Auth)
 
 ## 🔄 In Progress
 *(empty)*
@@ -21,3 +19,4 @@
 - [x] Deploy to Production & Verify Webhooks
 - [x] Implement Stripe Connect Payment Flow
 - [x] Build Project Creation UI & Connect Checkout
+- [x] Set up Supabase schema & RLS policies
