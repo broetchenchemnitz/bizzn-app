@@ -12,3 +12,4 @@
 - **Datenarchitektur:** Serverseitiges Data-Fetching im Dashboard integriert. Typensicheres Datenbank-Schema für Projekte ('projects') etabliert.
 - **Deployment & Payments:** Vercel-Produktionskonfiguration und initialer Stripe-Webhook-Endpoint für die Zahlungsabwicklung erfolgreich eingerichtet.
 - **Monetarisierung:** Stripe-SDK integriert und sichere serverseitige Checkout-API für die Zahlungsabwicklung bereitgestellt.
+- **Frontend:** Interaktiver Stripe-Checkout-Button im Dashboard integriert. Erfolgs- und Abbruch-Routen für Zahlungen eingerichtet.

@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase-server'
-import { PlusCircle, FolderGit2 } from 'lucide-react'
+import { FolderGit2 } from 'lucide-react'
 import type { Database } from '@/types/supabase'
+import CheckoutButton from '@/components/CheckoutButton'
 
 type ProjectRow = Database['public']['Tables']['projects']['Row']
 
@@ -8,12 +9,14 @@ export const metadata = {
   title: 'Dashboard | Bizzn',
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: { [key: string]: string | string[] | undefined }
+}) {
   const supabase = await createClient()
-
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Fetch projects securely via RLS (assuming RLS is active on Supabase)
   const { data: projectsRaw, error } = await supabase
     .from('projects')
     .select('*')
@@ -21,9 +24,23 @@ export default async function DashboardPage() {
 
   const projects = projectsRaw as ProjectRow[] | null
 
+  const isSuccess = searchParams?.success === 'true'
+  const isCanceled = searchParams?.canceled === 'true'
+
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-5xl mx-auto space-y-6">
+        {isSuccess && (
+          <div className="p-4 bg-green-50 text-green-700 rounded-lg border border-green-200 text-sm">
+            Payment successful! Your new project workspace is being provisioned.
+          </div>
+        )}
+        {isCanceled && (
+          <div className="p-4 bg-yellow-50 text-yellow-700 rounded-lg border border-yellow-200 text-sm">
+            Checkout canceled. You can try again whenever you are ready.
+          </div>
+        )}
+
         <div className="flex justify-between items-center bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
@@ -31,10 +48,7 @@ export default async function DashboardPage() {
               Welcome back, {user?.email || 'User'}.
             </p>
           </div>
-          <button className="flex items-center gap-2 bg-brand hover:bg-[#66b300] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-            <PlusCircle className="w-4 h-4" />
-            New Project
-          </button>
+          <CheckoutButton />
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">

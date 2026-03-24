@@ -1,7 +1,7 @@
 # Bizzn – Project Board
 
 ## 📋 Todo
-- [ ] Build Project Creation UI & Connect Checkout
+- [ ] Final Polish & Production Vercel Deployment
 - [ ] Set up Supabase schema & RLS policies
 - [ ] Build authentication flow (Supabase Auth)
 
@@ -20,3 +20,4 @@
 - [x] Implement Dashboard Database Fetching
 - [x] Deploy to Production & Verify Webhooks
 - [x] Implement Stripe Connect Payment Flow
+- [x] Build Project Creation UI & Connect Checkout
