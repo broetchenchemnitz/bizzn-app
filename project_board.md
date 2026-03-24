@@ -1,7 +1,7 @@
 # Bizzn – Project Board
 
 ## 📋 Todo
-- [ ] Implement Supabase Auth Middleware (Protected Routes)
+- [ ] Setup Global Layout & Navigation
 - [ ] Configure Stripe Connect
 - [ ] Set up Supabase schema & RLS policies
 - [ ] Build authentication flow (Supabase Auth)
@@ -17,3 +17,4 @@
 - [x] Init Tailwind CSS & TypeScript Config
 - [x] Setup Supabase Client & Env Variables
 - [x] Create Auth Layout & Login Component
+- [x] Implement Supabase Auth Middleware (Protected Routes)
