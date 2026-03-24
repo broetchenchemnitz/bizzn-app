@@ -1,7 +1,7 @@
 # Bizzn – Project Board
 
 ## 📋 Todo
-- [ ] Setup Global Layout & Navigation
+- [ ] Implement Dashboard Database Fetching
 - [ ] Configure Stripe Connect
 - [ ] Set up Supabase schema & RLS policies
 - [ ] Build authentication flow (Supabase Auth)
@@ -18,3 +18,4 @@
 - [x] Setup Supabase Client & Env Variables
 - [x] Create Auth Layout & Login Component
 - [x] Implement Supabase Auth Middleware (Protected Routes)
+- [x] Setup Global Layout & Navigation

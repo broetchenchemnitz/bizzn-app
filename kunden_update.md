@@ -8,3 +8,4 @@
 - **Datenbank:** Supabase-Client initialisiert und Umgebungsvariablen-Template für sichere API-Keys bereitgestellt.
 - **Sicherheit & UI:** Authentifizierungs-Modul (Login/Registrierung) im Bizzn-Design integriert und mit Supabase verbunden.
 - **Infrastruktur:** Edge Middleware eingerichtet, um sichere Routen (z.B. Dashboard) serverseitig vor unberechtigtem Zugriff zu schützen.
+- **UI/UX:** Globale Hauptnavigation inkl. dynamischem Auth-Status (Login/Logout) und Bizzn-Branding ausgerollt.
