@@ -1,11 +1,10 @@
 # Bizzn – Project Board
 
 ## 📋 Todo
-- [ ] Implement Dashboard Database Fetching
+- [ ] Deploy to Production & Verify Webhooks
 - [ ] Configure Stripe Connect
 - [ ] Set up Supabase schema & RLS policies
 - [ ] Build authentication flow (Supabase Auth)
-- [ ] Scaffold core UI layout & navigation
 
 ## 🔄 In Progress
 *(empty)*
@@ -19,3 +18,4 @@
 - [x] Create Auth Layout & Login Component
 - [x] Implement Supabase Auth Middleware (Protected Routes)
 - [x] Setup Global Layout & Navigation
+- [x] Implement Dashboard Database Fetching
