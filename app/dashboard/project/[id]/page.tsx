@@ -59,7 +59,7 @@ export default async function ProjectWorkspacePage({
               Gastro-OS v1
             </span>
           </div>
-          <RestaurantOverview />
+          <RestaurantOverview projectId={project.id} />
         </div>
       </div>
     </div>

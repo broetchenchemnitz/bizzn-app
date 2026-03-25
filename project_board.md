@@ -1,7 +1,7 @@
 # Bizzn – Project Board
 
 ## 📋 Todo
-- [ ] Gastro-OS Phase 2: Live order management with Supabase realtime
+- [ ] Gastro-OS Phase 2: Live order management UI (orders dashboard)
 - [ ] Stripe Connect for daily payouts
 - [ ] Subdomain routing (shopname.bizzn.de)
 
@@ -30,3 +30,4 @@
 - [x] Menu Builder Database Schema & TypeScript Types (menu_categories, menu_items, RLS)
 - [x] Menu Builder UI Phase 1: Category overview, add category form, routing
 - [x] Menu Builder UI Phase 2: Menu items CRUD with price formatting and active toggle
+- [x] Live Orders Database Schema & TypeScript Types (orders, order_items, RLS, union literals)

@@ -23,3 +23,4 @@
 - **Menu-Builder:** Kategorie-Übersicht für die Speisekarte implementiert — neue Kategorien können angelegt und aufgelistet werden. Route `/dashboard/project/[id]/menu` mit Server Actions und Bizzn-Branding.
 - **Menu-Builder Phase 2:** Speisen-CRUD pro Kategorie implementiert. Neues Gericht mit Name, Beschreibung, Preis (€ → Cent-Konvertierung) und Aktiv-Toggle anlegbar. Route `/dashboard/project/[id]/menu/[categoryId]`.
 - **CSS-Fix:** `globals.css` bereinigt — hardcoded `body { background-color: #FFF }` durch Tailwind `@layer base { body { @apply bg-gray-50 text-gray-900; } }` ersetzt. Tailwind-Klassen waren durch die überschreibenden Raw-CSS-Rules blockiert.
+- **Live-Order-Schema:** SQL-Migration für `orders` und `order_items` erstellt (Status-CHECK-Constraints, Preis in Cent, RLS-Chain via `projects.user_id`). TypeScript-Typen mit Union-Literal-Typen für `status` und `order_type` injiziert.

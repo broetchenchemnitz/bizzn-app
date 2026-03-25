@@ -1,6 +1,15 @@
 "use client"
 
+import { useEffect, useState } from 'react'
+import { createBrowserClient } from '@supabase/ssr'
 import { ShoppingBag, TrendingUp, UtensilsCrossed, ArrowUpRight, Clock } from 'lucide-react'
+import type { Database } from '@/types/supabase'
+
+type OrderRow = Database['public']['Tables']['orders']['Row']
+
+// ---------------------------------------------------------------------------
+// Sub-components
+// ---------------------------------------------------------------------------
 
 interface KpiCardProps {
   icon: React.ReactNode
@@ -27,9 +36,7 @@ function KpiCard({ icon, label, value, sub, accent = false }: KpiCardProps) {
         >
           <span className={accent ? 'text-white' : 'text-[#77CC00]'}>{icon}</span>
         </div>
-        <ArrowUpRight
-          className={`w-4 h-4 ${accent ? 'text-white/70' : 'text-gray-300'}`}
-        />
+        <ArrowUpRight className={`w-4 h-4 ${accent ? 'text-white/70' : 'text-gray-300'}`} />
       </div>
       <div>
         <p className={`text-sm font-medium ${accent ? 'text-white/80' : 'text-gray-500'}`}>
@@ -54,9 +61,7 @@ function StatusBadge({ label, active }: StatusBadgeProps) {
     <div className="flex items-center justify-between px-4 py-3 bg-white rounded-xl border border-gray-100 hover:border-[#77CC00]/40 transition-colors cursor-pointer">
       <span className="text-sm font-medium text-gray-700">{label}</span>
       <div className="flex items-center gap-2">
-        <span
-          className={`w-2.5 h-2.5 rounded-full ${active ? 'bg-[#77CC00]' : 'bg-gray-300'}`}
-        />
+        <span className={`w-2.5 h-2.5 rounded-full ${active ? 'bg-[#77CC00]' : 'bg-gray-300'}`} />
         <span className={`text-xs font-medium ${active ? 'text-[#77CC00]' : 'text-gray-400'}`}>
           {active ? 'Aktiv' : 'Inaktiv'}
         </span>
@@ -65,7 +70,131 @@ function StatusBadge({ label, active }: StatusBadgeProps) {
   )
 }
 
-export default function RestaurantOverview() {
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+interface Metrics {
+  liveOrdersCount: number
+  inPrepCount: number
+  inDeliveryCount: number
+  todayRevenueCents: number
+}
+
+function computeMetrics(orders: OrderRow[]): Metrics {
+  const todayStart = new Date()
+  todayStart.setHours(0, 0, 0, 0)
+
+  const todayOrders = orders.filter(
+    (o) => new Date(o.created_at) >= todayStart
+  )
+
+  const active = todayOrders.filter(
+    (o) => o.status === 'pending' || o.status === 'preparing' || o.status === 'ready'
+  )
+  const inPrepCount = todayOrders.filter((o) => o.status === 'preparing').length
+  const inDeliveryCount = todayOrders.filter((o) => o.status === 'ready').length
+
+  const todayRevenueCents = todayOrders
+    .filter((o) => o.status === 'delivered')
+    .reduce((sum, o) => sum + o.total_amount, 0)
+
+  return {
+    liveOrdersCount: active.length,
+    inPrepCount,
+    inDeliveryCount,
+    todayRevenueCents,
+  }
+}
+
+function formatEur(cents: number): string {
+  return `€ ${(cents / 100).toLocaleString('de-DE', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`
+}
+
+// ---------------------------------------------------------------------------
+// Main component
+// ---------------------------------------------------------------------------
+
+interface RestaurantOverviewProps {
+  projectId: string
+}
+
+export default function RestaurantOverview({ projectId }: RestaurantOverviewProps) {
+  const [metrics, setMetrics] = useState<Metrics>({
+    liveOrdersCount: 0,
+    inPrepCount: 0,
+    inDeliveryCount: 0,
+    todayRevenueCents: 0,
+  })
+  const [allOrders, setAllOrders] = useState<OrderRow[]>([])
+
+  useEffect(() => {
+    const supabase = createBrowserClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+
+    // Initial fetch — today's orders
+    const fetchInitial = async () => {
+      const todayStart = new Date()
+      todayStart.setHours(0, 0, 0, 0)
+
+      const { data } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('project_id', projectId)
+        .gte('created_at', todayStart.toISOString())
+        .order('created_at', { ascending: false })
+
+      const rows: OrderRow[] = data ?? []
+      setAllOrders(rows)
+      setMetrics(computeMetrics(rows))
+    }
+
+    void fetchInitial()
+
+    // Realtime subscription
+    const channel = supabase
+      .channel(`orders-${projectId}`)
+      .on<OrderRow>(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'orders',
+          filter: `project_id=eq.${projectId}`,
+        },
+        (payload) => {
+          setAllOrders((prev) => {
+            let updated: OrderRow[]
+
+            if (payload.eventType === 'INSERT') {
+              updated = [payload.new, ...prev]
+            } else if (payload.eventType === 'UPDATE') {
+              updated = prev.map((o) => (o.id === payload.new.id ? payload.new : o))
+            } else {
+              // DELETE
+              updated = prev.filter((o) => o.id !== payload.old.id)
+            }
+
+            setMetrics(computeMetrics(updated))
+            return updated
+          })
+        }
+      )
+      .subscribe()
+
+    return () => {
+      void supabase.removeChannel(channel)
+    }
+  }, [projectId])
+
+  // Suppress unused variable lint — allOrders drives metrics via setAllOrders callback
+  void allOrders
+
   return (
     <div className="space-y-6">
       {/* Live Status Bar */}
@@ -77,7 +206,7 @@ export default function RestaurantOverview() {
         <span className="text-sm font-semibold text-[#4a8500]">Restaurant live</span>
         <span className="text-xs text-[#4a8500]/70 ml-auto flex items-center gap-1">
           <Clock className="w-3.5 h-3.5" />
-          Daten werden live aktualisiert
+          Echtzeit-Daten aktiv
         </span>
       </div>
 
@@ -86,21 +215,21 @@ export default function RestaurantOverview() {
         <KpiCard
           icon={<ShoppingBag className="w-6 h-6" />}
           label="Live Bestellungen"
-          value="12"
-          sub="3 in Zubereitung · 9 in Lieferung"
+          value={String(metrics.liveOrdersCount)}
+          sub={`${metrics.inPrepCount} in Zubereitung · ${metrics.inDeliveryCount} bereit`}
           accent
         />
         <KpiCard
           icon={<TrendingUp className="w-6 h-6" />}
           label="Tagesumsatz"
-          value="€ 847"
-          sub="+18% gegenüber gestern"
+          value={formatEur(metrics.todayRevenueCents)}
+          sub="Ausgelieferte Bestellungen heute"
         />
         <KpiCard
           icon={<UtensilsCrossed className="w-6 h-6" />}
           label="Aktive Speisen"
-          value="34"
-          sub="6 in Speisekarte pausiert"
+          value="—"
+          sub="Speisekarte öffnen um zu verwalten"
         />
       </div>
 
