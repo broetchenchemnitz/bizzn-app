@@ -28,3 +28,4 @@
 - **Kitchen Display System (KDS):** Echtzeit-Kanban-Board für Bestellmanagement implementiert. Drei Spalten (Neu / In Zubereitung / Bereit) mit großen Touch-freundlichen Buttons zum Statuswechsel via `useTransition`. Route `/dashboard/project/[id]/orders`.
 - **Navigation-Fix:** Quick-Action-Buttons im Dashboard (`Bestellungen verwalten` + `Speisekarte bearbeiten`) auf echte Routen verlinkt (`/orders` und `/menu`).
 - **Multi-Tenant-Subdomain-Routing:** Middleware erkennt Subdomain-Anfragen (z.B. `marios.localhost:3000`) und rewritet sie transparent auf `app/[domain]/page.tsx`. Storefront-Placeholder mit Bizzn-Branding erstellt. Routing-Architektur für `shopname.bizzn.de` steht.
+- **Stripe-Connect-Schema:** `projects`-Tabelle um `stripe_account_id` (unique, nullable), `stripe_charges_enabled` und `stripe_payouts_enabled` erweitert. SQL-Migration (003) + TypeScript-Typen aktualisiert.

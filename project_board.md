@@ -1,7 +1,8 @@
 # Bizzn – Project Board
 
 ## 📋 Todo
-- [ ] Stripe Connect for daily payouts
+- [ ] Stripe Connect: OAuth onboarding flow (connect existing Stripe account)
+- [ ] Stripe Connect: Daily payout trigger via connected account
 
 ## 🔄 In Progress
 *(empty)*
@@ -33,3 +34,4 @@
 - [x] Kitchen Display System (KDS): Realtime Kanban, 3-column order management, advance-status buttons
 - [x] Fix: Wire Quick Action buttons to /orders and /menu routes
 - [x] Multi-Tenant Subdomain Routing: middleware rewrite + app/[domain]/page.tsx storefront placeholder
+- [x] Stripe Connect Schema: stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled added to projects

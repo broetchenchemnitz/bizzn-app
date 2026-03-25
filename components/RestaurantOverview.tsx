@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createBrowserClient } from '@supabase/ssr'
-import { ShoppingBag, TrendingUp, UtensilsCrossed, ArrowUpRight, Clock } from 'lucide-react'
+import { ShoppingBag, TrendingUp, UtensilsCrossed, ArrowUpRight, Clock, AlertTriangle } from 'lucide-react'
 import type { Database } from '@/types/supabase'
 
 type OrderRow = Database['public']['Tables']['orders']['Row']
+type ProjectRow = Database['public']['Tables']['projects']['Row']
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -131,12 +132,23 @@ export default function RestaurantOverview({ projectId }: RestaurantOverviewProp
     todayRevenueCents: 0,
   })
   const [allOrders, setAllOrders] = useState<OrderRow[]>([])
+  const [stripePayoutsEnabled, setStripePayoutsEnabled] = useState<boolean | null>(null)
 
   useEffect(() => {
     const supabase = createBrowserClient<Database>(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
+
+    // Fetch Stripe payout status
+    const fetchStripeStatus = async () => {
+      const { data: proj } = await supabase
+        .from('projects')
+        .select('stripe_payouts_enabled')
+        .eq('id', projectId)
+        .single<Pick<ProjectRow, 'stripe_payouts_enabled'>>()
+      setStripePayoutsEnabled(proj?.stripe_payouts_enabled ?? false)
+    }
 
     // Initial fetch — today's orders
     const fetchInitial = async () => {
@@ -155,6 +167,7 @@ export default function RestaurantOverview({ projectId }: RestaurantOverviewProp
       setMetrics(computeMetrics(rows))
     }
 
+    void fetchStripeStatus()
     void fetchInitial()
 
     // Realtime subscription
@@ -198,6 +211,24 @@ export default function RestaurantOverview({ projectId }: RestaurantOverviewProp
 
   return (
     <div className="space-y-6">
+      {/* Stripe Payout Warning Banner */}
+      {stripePayoutsEnabled === false && (
+        <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3.5">
+          <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-amber-800">Auszahlungen noch nicht aktiviert</p>
+            <p className="text-xs text-amber-600 mt-0.5">
+              Verbinde dein Stripe-Konto, um Auszahlungen zu empfangen.
+            </p>
+          </div>
+          <Link
+            href={`/api/stripe/connect?projectId=${projectId}`}
+            className="shrink-0 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
+          >
+            Jetzt aktivieren →
+          </Link>
+        </div>
+      )}
       {/* Live Status Bar */}
       <div className="flex items-center gap-2 bg-[#F0FBD8] border border-[#77CC00]/30 rounded-xl px-4 py-3">
         <span className="relative flex h-2.5 w-2.5">
