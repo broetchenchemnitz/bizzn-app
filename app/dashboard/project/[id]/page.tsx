@@ -1,8 +1,9 @@
 import Link from 'next/link'
-import { ArrowLeft, Layout } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase-server'
 import { notFound, redirect } from 'next/navigation'
 import ProjectSettingsBlock from '@/components/ProjectSettingsBlock'
+import TaskBoard from '@/components/TaskBoard'
 import type { Database } from '@/types/supabase'
 
 type ProjectRow = Database['public']['Tables']['projects']['Row']
@@ -49,16 +50,11 @@ export default async function ProjectWorkspacePage({
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
           <ProjectSettingsBlock projectId={project.id} initialName={project.name} />
+        </div>
 
-          <div className="py-20 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center bg-gray-50/50 mt-8">
-            <div className="w-16 h-16 bg-white shadow-sm border border-gray-100 rounded-2xl flex items-center justify-center mb-6">
-              <Layout className="w-8 h-8 text-gray-400" />
-            </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-3">Workspace in Vorbereitung</h3>
-            <p className="text-gray-500 text-center max-w-md">
-              Hier entsteht bald der interaktive Workspace für dein Projekt. Du wirst hier alle Details zu deinem Projekt bequem verwalten und bearbeiten können.
-            </p>
-          </div>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
+          <h2 className="text-lg font-semibold text-gray-900 mb-6">Aufgaben</h2>
+          <TaskBoard projectId={project.id} />
         </div>
       </div>
     </div>

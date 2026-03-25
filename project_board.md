@@ -22,3 +22,4 @@
 - [x] Set up Supabase schema & RLS policies
 - [x] Implement Project Rename & Delete Functionality
 - [x] Enforce strict TypeScript typing (remove all any/ts-ignore bypasses)
+- [x] Implement User Profile Settings & Personalized Dashboard Greeting

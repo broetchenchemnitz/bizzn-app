@@ -16,3 +16,4 @@
 - **Sicherheit & Datenbank:** Supabase 'projects' Tabelle mit strikten Row Level Security (RLS) Policies initialisiert. Nutzerdaten sind nun hart voneinander getrennt.
 - **Projekt-Management:** Umbenennen und Löschen von Projekten (inklusive Sicherheitsabfrage) im Workspace-Bereich umgesetzt (abgesichert über Server Actions).
 - **TypeScript:** Alle `any`-Casts und `@ts-expect-error`-Direktiven entfernt. `Database`-Typ mit vollständigem supabase-js-Schema (`Relationships`, `Views`, `Functions`, `Enums`, `CompositeTypes`) erwänltert — streng typisierter Build läuft ohne Fehler.
+- **Benutzerprofil:** Einstellungsseite mit Anzeigenamen-Editor implementiert. Dashboard-Begrüßung nutzt nun den gespeicherten Namen (`full_name` aus Auth-Metadata), mit E-Mail-Fallback.
