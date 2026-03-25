@@ -20,3 +20,4 @@
 - **Workspace UI:** Interaktives Kanban-Board (To Do / In Progress / Done) im Projekt-Workspace implementiert; Aufgaben können erstellt, zwischen Spalten verschoben und gelöscht werden.
 - **Gastro-OS Phase 1:** Workspace-Platzhalter durch echtes Restaurant-Dashboard ersetzt. KPI-Karten (Live Bestellungen, Tagesumsatz, Aktive Speisen), Live-Status-Indikator, Bestellkanal-Badges und Schnellaktion-Buttons im Bizzn-Limettengrün (#77CC00) umgesetzt.
 - **Datenbankschema:** SQL-Migration für `menu_categories` und `menu_items` erstellt (mit RLS-Policies). TypeScript-Typen in `types/supabase.ts` um beide Tabellen inklusive `Relationships`-Arrays erweitert.
+- **Menu-Builder:** Kategorie-Übersicht für die Speisekarte implementiert — neue Kategorien können angelegt und aufgelistet werden. Route `/dashboard/project/[id]/menu` mit Server Actions und Bizzn-Branding.

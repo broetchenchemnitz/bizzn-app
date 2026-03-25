@@ -2,7 +2,7 @@
 
 ## 📋 Todo
 - [ ] Gastro-OS Phase 2: Live order management with Supabase realtime
-- [ ] Menu Builder UI (CRUD frontend for menu_categories & menu_items)
+- [ ] Menu Builder UI Phase 2: Menu items CRUD per category
 - [ ] Stripe Connect for daily payouts
 - [ ] Subdomain routing (shopname.bizzn.de)
 
@@ -29,3 +29,4 @@
 - [x] Implement Interactive Task Board (Kanban) in Project Workspace
 - [x] Gastro-OS Phase 1: Restaurant Dashboard with Bizzn Branding & KPI Cards
 - [x] Menu Builder Database Schema & TypeScript Types (menu_categories, menu_items, RLS)
+- [x] Menu Builder UI Phase 1: Category overview, add category form, routing
