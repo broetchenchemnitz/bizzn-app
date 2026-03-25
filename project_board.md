@@ -1,7 +1,10 @@
 # Bizzn – Project Board
 
 ## 📋 Todo
-- [ ] Final Polish & Production Vercel Deployment
+- [ ] Gastro-OS Phase 2: Live order management with Supabase realtime
+- [ ] Menu Builder (CRUD for menu_items table)
+- [ ] Stripe Connect for daily payouts
+- [ ] Subdomain routing (shopname.bizzn.de)
 
 ## 🔄 In Progress
 *(empty)*
@@ -24,3 +27,4 @@
 - [x] Enforce strict TypeScript typing (remove all any/ts-ignore bypasses)
 - [x] Implement User Profile Settings & Personalized Dashboard Greeting
 - [x] Implement Interactive Task Board (Kanban) in Project Workspace
+- [x] Gastro-OS Phase 1: Restaurant Dashboard with Bizzn Branding & KPI Cards
