@@ -9,6 +9,7 @@ const MAIN_DOMAINS = new Set([
   'localhost:3000',
   'bizzn.de',
   'www.bizzn.de',
+  'bizzn-chemnitz.vercel.app', // <-- Hier ist das VIP-Ticket für Vercel!
 ])
 
 export async function middleware(request: NextRequest) {
