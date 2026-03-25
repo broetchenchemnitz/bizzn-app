@@ -21,3 +21,4 @@
 - [x] Build Project Creation UI & Connect Checkout
 - [x] Set up Supabase schema & RLS policies
 - [x] Implement Project Rename & Delete Functionality
+- [x] Enforce strict TypeScript typing (remove all any/ts-ignore bypasses)

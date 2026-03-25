@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase-server'
-import { FolderGit2 } from 'lucide-react'
+import { FolderGit2, Settings } from 'lucide-react'
 import Link from 'next/link'
 import type { Database } from '@/types/supabase'
 import CheckoutButton from '@/components/CheckoutButton'
@@ -49,10 +49,17 @@ export default async function DashboardPage({
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
             <p className="text-gray-500 text-sm mt-1">
-              Welcome back, {user?.email || 'User'}.
+              Welcome back, {(user?.user_metadata?.full_name as string | undefined) || user?.email || 'User'}.
             </p>
           </div>
           <div className="flex items-start gap-3">
+            <Link
+              href="/dashboard/settings"
+              className="flex items-center gap-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm"
+            >
+              <Settings className="w-4 h-4 text-gray-500" />
+              Einstellungen
+            </Link>
             <ManageSubscriptionButton />
             <CheckoutButton />
           </div>
