@@ -101,6 +101,86 @@ export interface Database {
           }
         ]
       }
+      orders: {
+        Row: {
+          id: string
+          project_id: string
+          status: 'pending' | 'preparing' | 'ready' | 'delivered' | 'cancelled'
+          total_amount: number
+          customer_name: string
+          customer_contact: string
+          order_type: 'delivery' | 'takeaway' | 'in-store'
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          status?: 'pending' | 'preparing' | 'ready' | 'delivered' | 'cancelled'
+          total_amount: number
+          customer_name?: string
+          customer_contact?: string
+          order_type?: 'delivery' | 'takeaway' | 'in-store'
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          status?: 'pending' | 'preparing' | 'ready' | 'delivered' | 'cancelled'
+          total_amount?: number
+          customer_name?: string
+          customer_contact?: string
+          order_type?: 'delivery' | 'takeaway' | 'in-store'
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'orders_project_id_fkey'
+            columns: ['project_id']
+            referencedRelation: 'projects'
+            referencedColumns: ['id']
+          }
+        ]
+      }
+      order_items: {
+        Row: {
+          id: string
+          order_id: string
+          menu_item_id: string | null
+          quantity: number
+          price_at_time: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          order_id: string
+          menu_item_id?: string | null
+          quantity: number
+          price_at_time: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          order_id?: string
+          menu_item_id?: string | null
+          quantity?: number
+          price_at_time?: number
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'order_items_order_id_fkey'
+            columns: ['order_id']
+            referencedRelation: 'orders'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'order_items_menu_item_id_fkey'
+            columns: ['menu_item_id']
+            referencedRelation: 'menu_items'
+            referencedColumns: ['id']
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
