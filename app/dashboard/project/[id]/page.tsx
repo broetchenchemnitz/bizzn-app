@@ -3,13 +3,13 @@ import { ArrowLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase-server'
 import { notFound, redirect } from 'next/navigation'
 import ProjectSettingsBlock from '@/components/ProjectSettingsBlock'
-import TaskBoard from '@/components/TaskBoard'
+import RestaurantOverview from '@/components/RestaurantOverview'
 import type { Database } from '@/types/supabase'
 
 type ProjectRow = Database['public']['Tables']['projects']['Row']
 
 export const metadata = {
-  title: 'Project Workspace | Bizzn',
+  title: 'Restaurant Dashboard | Bizzn',
 }
 
 export default async function ProjectWorkspacePage({
@@ -53,8 +53,13 @@ export default async function ProjectWorkspacePage({
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-6">Aufgaben</h2>
-          <TaskBoard projectId={project.id} />
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-semibold text-gray-900">Restaurant Übersicht</h2>
+            <span className="text-xs font-semibold text-[#77CC00] bg-[#F0FBD8] px-3 py-1 rounded-full border border-[#77CC00]/20">
+              Gastro-OS v1
+            </span>
+          </div>
+          <RestaurantOverview />
         </div>
       </div>
     </div>

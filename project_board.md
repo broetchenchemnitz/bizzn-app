@@ -23,3 +23,4 @@
 - [x] Implement Project Rename & Delete Functionality
 - [x] Enforce strict TypeScript typing (remove all any/ts-ignore bypasses)
 - [x] Implement User Profile Settings & Personalized Dashboard Greeting
+- [x] Implement Interactive Task Board (Kanban) in Project Workspace
