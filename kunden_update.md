@@ -26,3 +26,4 @@
 - **Live-Order-Schema:** SQL-Migration für `orders` und `order_items` erstellt (Status-CHECK-Constraints, Preis in Cent, RLS-Chain via `projects.user_id`). TypeScript-Typen mit Union-Literal-Typen für `status` und `order_type` injiziert.
 - **Echtzeit-KPI-Dashboard:** `RestaurantOverview` auf Supabase Realtime umgestellt. Initialer Fetch heutiger Orders + `postgres_changes`-Subscription für INSERT/UPDATE/DELETE. KPI-Karten zeigen jetzt Live-Bestellzähler und Tagesumsatz.
 - **Kitchen Display System (KDS):** Echtzeit-Kanban-Board für Bestellmanagement implementiert. Drei Spalten (Neu / In Zubereitung / Bereit) mit großen Touch-freundlichen Buttons zum Statuswechsel via `useTransition`. Route `/dashboard/project/[id]/orders`.
+- **Navigation-Fix:** Quick-Action-Buttons im Dashboard (`Bestellungen verwalten` + `Speisekarte bearbeiten`) auf echte Routen verlinkt (`/orders` und `/menu`).

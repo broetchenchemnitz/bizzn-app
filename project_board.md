@@ -32,3 +32,4 @@
 - [x] Live Orders Database Schema & TypeScript Types (orders, order_items, RLS, union literals)
 - [x] Realtime KPI Dashboard (Supabase Realtime subscription, live order counts & revenue)
 - [x] Kitchen Display System (KDS): Realtime Kanban, 3-column order management, advance-status buttons
+- [x] Fix: Wire Quick Action buttons to /orders and /menu routes
