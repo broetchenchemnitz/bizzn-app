@@ -20,3 +20,4 @@
 - [x] Implement Stripe Connect Payment Flow
 - [x] Build Project Creation UI & Connect Checkout
 - [x] Set up Supabase schema & RLS policies
+- [x] Implement Project Rename & Delete Functionality

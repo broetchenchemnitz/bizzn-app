@@ -2,23 +2,27 @@
 
 import { createClient } from '@/lib/supabase-server'
 import { revalidatePath } from 'next/cache'
+import type { Database } from '@/types/supabase'
+
+type ProjectUpdate = Database['public']['Tables']['projects']['Update']
 
 export async function updateProjectName(projectId: string, newName: string) {
   if (!projectId || !newName || newName.trim() === '') {
     return { error: 'Invalid project ID or name.' }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
     return { error: 'Not authenticated.' }
   }
 
+  const update: ProjectUpdate = { name: newName.trim() }
+
   const { error } = await supabase
     .from('projects')
-    .update({ name: newName.trim() })
+    .update(update)
     .eq('id', projectId)
     .eq('user_id', user.id)
 
@@ -37,8 +41,7 @@ export async function deleteProject(projectId: string) {
     return { error: 'Invalid project ID.' }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) {

@@ -52,7 +52,6 @@ export async function POST(request: NextRequest) {
       status: 'active',
     }
 
-    // @ts-expect-error — Supabase admin client generic inference returns `never` for typed DB; data shape is correct
     const { error } = await supabase.from('projects').insert(insertData)
 
     if (error) {

@@ -3,6 +3,9 @@ import { ArrowLeft, Layout } from 'lucide-react'
 import { createClient } from '@/lib/supabase-server'
 import { notFound, redirect } from 'next/navigation'
 import ProjectSettingsBlock from '@/components/ProjectSettingsBlock'
+import type { Database } from '@/types/supabase'
+
+type ProjectRow = Database['public']['Tables']['projects']['Row']
 
 export const metadata = {
   title: 'Project Workspace | Bizzn',
@@ -13,10 +16,9 @@ export default async function ProjectWorkspacePage({
 }: {
   params: { id: string }
 }) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  
+
   if (!user) {
     redirect('/login')
   }
@@ -26,7 +28,7 @@ export default async function ProjectWorkspacePage({
     .select('*')
     .eq('id', params.id)
     .eq('user_id', user.id)
-    .single()
+    .single<ProjectRow>()
 
   if (!project) {
     notFound()
@@ -36,7 +38,7 @@ export default async function ProjectWorkspacePage({
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-5xl mx-auto space-y-6">
         <div>
-          <Link 
+          <Link
             href="/dashboard"
             className="inline-flex items-center text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors bg-white px-4 py-2 rounded-lg border border-gray-200 shadow-sm hover:bg-gray-50 group"
           >
@@ -44,10 +46,10 @@ export default async function ProjectWorkspacePage({
             Zurück zum Dashboard
           </Link>
         </div>
-        
+
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
           <ProjectSettingsBlock projectId={project.id} initialName={project.name} />
-          
+
           <div className="py-20 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center bg-gray-50/50 mt-8">
             <div className="w-16 h-16 bg-white shadow-sm border border-gray-100 rounded-2xl flex items-center justify-center mb-6">
               <Layout className="w-8 h-8 text-gray-400" />
