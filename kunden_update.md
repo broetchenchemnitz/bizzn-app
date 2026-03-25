@@ -27,3 +27,4 @@
 - **Echtzeit-KPI-Dashboard:** `RestaurantOverview` auf Supabase Realtime umgestellt. Initialer Fetch heutiger Orders + `postgres_changes`-Subscription für INSERT/UPDATE/DELETE. KPI-Karten zeigen jetzt Live-Bestellzähler und Tagesumsatz.
 - **Kitchen Display System (KDS):** Echtzeit-Kanban-Board für Bestellmanagement implementiert. Drei Spalten (Neu / In Zubereitung / Bereit) mit großen Touch-freundlichen Buttons zum Statuswechsel via `useTransition`. Route `/dashboard/project/[id]/orders`.
 - **Navigation-Fix:** Quick-Action-Buttons im Dashboard (`Bestellungen verwalten` + `Speisekarte bearbeiten`) auf echte Routen verlinkt (`/orders` und `/menu`).
+- **Multi-Tenant-Subdomain-Routing:** Middleware erkennt Subdomain-Anfragen (z.B. `marios.localhost:3000`) und rewritet sie transparent auf `app/[domain]/page.tsx`. Storefront-Placeholder mit Bizzn-Branding erstellt. Routing-Architektur für `shopname.bizzn.de` steht.

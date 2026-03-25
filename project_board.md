@@ -2,7 +2,6 @@
 
 ## 📋 Todo
 - [ ] Stripe Connect for daily payouts
-- [ ] Subdomain routing (shopname.bizzn.de)
 
 ## 🔄 In Progress
 *(empty)*
@@ -33,3 +32,4 @@
 - [x] Realtime KPI Dashboard (Supabase Realtime subscription, live order counts & revenue)
 - [x] Kitchen Display System (KDS): Realtime Kanban, 3-column order management, advance-status buttons
 - [x] Fix: Wire Quick Action buttons to /orders and /menu routes
+- [x] Multi-Tenant Subdomain Routing: middleware rewrite + app/[domain]/page.tsx storefront placeholder

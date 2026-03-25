@@ -16,6 +16,9 @@ export interface Database {
           name: string
           status: string
           user_id: string
+          stripe_account_id: string | null
+          stripe_charges_enabled: boolean | null
+          stripe_payouts_enabled: boolean | null
         }
         Insert: {
           id?: string
@@ -23,6 +26,9 @@ export interface Database {
           name: string
           status?: string
           user_id: string
+          stripe_account_id?: string | null
+          stripe_charges_enabled?: boolean | null
+          stripe_payouts_enabled?: boolean | null
         }
         Update: {
           id?: string
@@ -30,6 +36,9 @@ export interface Database {
           name?: string
           status?: string
           user_id?: string
+          stripe_account_id?: string | null
+          stripe_charges_enabled?: boolean | null
+          stripe_payouts_enabled?: boolean | null
         }
         Relationships: []
       }
