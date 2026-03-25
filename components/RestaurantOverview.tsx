@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { createBrowserClient } from '@supabase/ssr'
 import { ShoppingBag, TrendingUp, UtensilsCrossed, ArrowUpRight, Clock } from 'lucide-react'
 import type { Database } from '@/types/supabase'
@@ -247,14 +248,20 @@ export default function RestaurantOverview({ projectId }: RestaurantOverviewProp
 
       {/* Quick Actions */}
       <div className="grid grid-cols-2 gap-3 pt-2">
-        <button className="flex items-center justify-center gap-2 bg-[#77CC00] hover:bg-[#66b300] text-white font-semibold px-5 py-3.5 rounded-xl text-sm transition-colors shadow-sm">
+        <Link
+          href={`/dashboard/project/${projectId}/orders`}
+          className="flex items-center justify-center gap-2 bg-[#77CC00] hover:bg-[#66b300] text-white font-semibold px-5 py-3.5 rounded-xl text-sm transition-colors shadow-sm"
+        >
           <ShoppingBag className="w-4 h-4" />
           Bestellungen verwalten
-        </button>
-        <button className="flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-gray-700 font-semibold px-5 py-3.5 rounded-xl text-sm border border-gray-200 transition-colors shadow-sm">
+        </Link>
+        <Link
+          href={`/dashboard/project/${projectId}/menu`}
+          className="flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-gray-700 font-semibold px-5 py-3.5 rounded-xl text-sm border border-gray-200 transition-colors shadow-sm"
+        >
           <UtensilsCrossed className="w-4 h-4" />
           Speisekarte bearbeiten
-        </button>
+        </Link>
       </div>
     </div>
   )
