@@ -1,7 +1,9 @@
 import { createClient } from '@/lib/supabase-server'
 import { FolderGit2 } from 'lucide-react'
+import Link from 'next/link'
 import type { Database } from '@/types/supabase'
 import CheckoutButton from '@/components/CheckoutButton'
+import ManageSubscriptionButton from '@/components/ManageSubscriptionButton'
 
 type ProjectRow = Database['public']['Tables']['projects']['Row']
 
@@ -50,7 +52,10 @@ export default async function DashboardPage({
               Welcome back, {user?.email || 'User'}.
             </p>
           </div>
-          <CheckoutButton />
+          <div className="flex items-start gap-3">
+            <ManageSubscriptionButton />
+            <CheckoutButton />
+          </div>
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
@@ -70,7 +75,7 @@ export default async function DashboardPage({
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {projects.map((project) => (
-                <div key={project.id} className="p-4 border border-gray-100 rounded-lg hover:border-brand transition-colors cursor-pointer group">
+                <Link href={`/dashboard/project/${project.id}`} key={project.id} className="block p-4 border border-gray-100 rounded-lg hover:border-brand transition-colors cursor-pointer group">
                   <h3 className="font-medium text-gray-900 group-hover:text-brand transition-colors">{project.name}</h3>
                   <div className="flex justify-between items-center mt-4">
                     <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full">
@@ -80,7 +85,7 @@ export default async function DashboardPage({
                       {new Date(project.created_at).toLocaleDateString()}
                     </span>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           )}

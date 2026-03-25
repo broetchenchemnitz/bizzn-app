@@ -51,6 +51,7 @@ export async function POST(request: NextRequest) {
         },
       ],
       mode: 'payment',
+      customer_creation: 'always',
       success_url: `${origin}/dashboard?success=true`,
       cancel_url: `${origin}/dashboard?canceled=true`,
       customer_email: user.email,
