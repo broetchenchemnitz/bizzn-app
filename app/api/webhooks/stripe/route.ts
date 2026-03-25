@@ -62,5 +62,28 @@ export async function POST(request: NextRequest) {
     console.log('Webhook: project inserted successfully for userId:', userId)
   }
 
+  if (event.type === 'account.updated') {
+    const account = event.data.object as Stripe.Account
+
+    console.log('Webhook: account.updated for Stripe account:', account.id)
+
+    const supabase = createAdminClient()
+
+    const { error } = await supabase
+      .from('projects')
+      .update({
+        stripe_charges_enabled: account.charges_enabled ?? false,
+        stripe_payouts_enabled: account.payouts_enabled ?? false,
+      })
+      .eq('stripe_account_id', account.id)
+
+    if (error) {
+      console.error('Webhook: failed to update Stripe account status:', error.message)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    console.log('Webhook: stripe account status synced for:', account.id)
+  }
+
   return NextResponse.json({ received: true })
 }

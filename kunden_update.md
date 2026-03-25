@@ -29,3 +29,4 @@
 - **Navigation-Fix:** Quick-Action-Buttons im Dashboard (`Bestellungen verwalten` + `Speisekarte bearbeiten`) auf echte Routen verlinkt (`/orders` und `/menu`).
 - **Multi-Tenant-Subdomain-Routing:** Middleware erkennt Subdomain-Anfragen (z.B. `marios.localhost:3000`) und rewritet sie transparent auf `app/[domain]/page.tsx`. Storefront-Placeholder mit Bizzn-Branding erstellt. Routing-Architektur für `shopname.bizzn.de` steht.
 - **Stripe-Connect-Schema:** `projects`-Tabelle um `stripe_account_id` (unique, nullable), `stripe_charges_enabled` und `stripe_payouts_enabled` erweitert. SQL-Migration (003) + TypeScript-Typen aktualisiert.
+- **Stripe-Connect-Onboarding:** API-Route `/api/stripe/connect` implementiert — erstellt Standard-Account, speichert ID in `projects`, leitet auf Stripe-Onboarding-Link um. Dashboard zeigt Amber-Banner wenn `stripe_payouts_enabled` false ist.

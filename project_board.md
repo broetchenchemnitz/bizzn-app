@@ -1,8 +1,8 @@
 # Bizzn – Project Board
 
 ## 📋 Todo
-- [ ] Stripe Connect: OAuth onboarding flow (connect existing Stripe account)
 - [ ] Stripe Connect: Daily payout trigger via connected account
+- [ ] Stripe webhook: update stripe_charges_enabled / stripe_payouts_enabled on account.updated event
 
 ## 🔄 In Progress
 *(empty)*
@@ -35,3 +35,4 @@
 - [x] Fix: Wire Quick Action buttons to /orders and /menu routes
 - [x] Multi-Tenant Subdomain Routing: middleware rewrite + app/[domain]/page.tsx storefront placeholder
 - [x] Stripe Connect Schema: stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled added to projects
+- [x] Stripe Connect Onboarding: /api/stripe/connect route + dashboard payout warning banner
