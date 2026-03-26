@@ -25,13 +25,14 @@ export interface PlaceOrderInput {
   customerName: string
   customerContact: string
   orderType: 'delivery' | 'takeaway' | 'in-store'
+  tableNumber?: string
   items: CartItem[]
 }
 
 export async function placeOrder(
   input: PlaceOrderInput
 ): Promise<{ orderId: string | null; error: string | null }> {
-  const { projectId, customerName, customerContact, orderType, items } = input
+  const { projectId, customerName, customerContact, orderType, tableNumber, items } = input
 
   if (!items.length) return { orderId: null, error: 'Warenkorb ist leer.' }
 
@@ -50,6 +51,7 @@ export async function placeOrder(
     customer_name: customerName,
     customer_contact: customerContact,
     order_type: orderType,
+    table_number: tableNumber ?? null,
   }
 
   const { data: order, error: orderError } = await supabase

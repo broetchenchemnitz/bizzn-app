@@ -59,8 +59,10 @@ export async function generateMetadata({
 
 export default async function StorefrontPage({
   params,
+  searchParams,
 }: {
   params: { domain: string }
+  searchParams?: { table?: string; mode?: string }
 }) {
   const data = await getStorefrontData(params.domain)
 
@@ -69,6 +71,8 @@ export default async function StorefrontPage({
   }
 
   const { project, categories } = data
+  const tableNumber = searchParams?.table ?? null
+  const isKiosk = searchParams?.mode === 'kiosk' || Boolean(tableNumber)
 
   return (
     <MenuBoard
@@ -76,6 +80,8 @@ export default async function StorefrontPage({
       projectName={project.name}
       domain={params.domain}
       categories={categories}
+      initialTableNumber={tableNumber}
+      kioskMode={isKiosk}
     />
   )
 }

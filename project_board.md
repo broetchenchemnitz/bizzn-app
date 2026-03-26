@@ -1,7 +1,7 @@
 # Bizzn – Project Board
 
 ## 📋 Todo
-- [ ] Customer-facing order tracking page
+- [ ] Kiosk / QR-Code in-store ordering mode
 
 ## 🔄 In Progress
 *(empty)*
@@ -41,3 +41,4 @@
 - [x] DEPLOYED TO PRODUCTION: git push origin main → Vercel auto-deploy triggered (3ecd9a1..df69b4f)
 - [x] Public Storefront: app/[domain]/page.tsx + MenuBoard cart UI + placeOrder server action (deployed df69b4f..8cd0ab0)
 - [x] Project Slug: 004_add_project_slug.sql (unique, backfill) + .eq('slug') routing (deployed 8cd0ab0..e35f8d1)
+- [x] Customer Order Tracking: /[domain]/order/[orderId] with Supabase Realtime + progress stepper (deployed e35f8d1..1817f3d)

@@ -14,6 +14,8 @@ interface MenuBoardProps {
   projectName: string
   domain: string
   categories: (MenuCategory & { menu_items: MenuItem[] })[]
+  kioskMode?: boolean
+  initialTableNumber?: string | null
 }
 
 function formatEur(cents: number): string {
@@ -23,11 +25,15 @@ function formatEur(cents: number): string {
   })
 }
 
-export default function MenuBoard({ projectId, projectName, domain, categories }: MenuBoardProps) {
+export default function MenuBoard({ projectId, projectName, domain, categories, kioskMode = false, initialTableNumber }: MenuBoardProps) {
   const router = useRouter()
   const [cart, setCart] = useState<CartItem[]>([])
   const [showCart, setShowCart] = useState(false)
-  const [orderType, setOrderType] = useState<'takeaway' | 'delivery' | 'in-store'>('takeaway')
+  // Kiosk mode locks order type to in-store
+  const [orderType, setOrderType] = useState<'takeaway' | 'delivery' | 'in-store'>(
+    kioskMode ? 'in-store' : 'takeaway'
+  )
+  const [tableNumber, setTableNumber] = useState(initialTableNumber ?? '')
   const [customerName, setCustomerName] = useState('')
   const [customerContact, setCustomerContact] = useState('')
   const [isPending, startTransition] = useTransition()
@@ -79,6 +85,7 @@ export default function MenuBoard({ projectId, projectName, domain, categories }
         customerName: customerName.trim(),
         customerContact: customerContact.trim(),
         orderType,
+        tableNumber: tableNumber.trim() || undefined,
         items: cart,
       })
       if (result.error) {
@@ -216,23 +223,47 @@ export default function MenuBoard({ projectId, projectName, domain, categories }
 
             {/* Checkout form */}
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Order type */}
-              <div className="grid grid-cols-3 gap-2">
-                {(['takeaway', 'delivery', 'in-store'] as const).map((type) => (
-                  <button
-                    key={type}
-                    type="button"
-                    onClick={() => setOrderType(type)}
-                    className={`py-2 rounded-xl text-xs font-bold border transition-colors ${
-                      orderType === type
-                        ? 'bg-[#77CC00] border-[#66b300] text-white'
-                        : 'bg-white border-gray-200 text-gray-600 hover:border-[#77CC00]'
-                    }`}
-                  >
-                    {type === 'takeaway' ? '🛍️ Abholung' : type === 'delivery' ? '🛵 Lieferung' : '📱 Vor Ort'}
-                  </button>
-                ))}
-              </div>
+              {/* Order type selector — hidden in kiosk mode */}
+              {kioskMode ? (
+                <div className="flex items-center gap-2 bg-[#F0FBD8] border border-[#77CC00]/30 rounded-xl px-4 py-3">
+                  <span className="text-lg">📱</span>
+                  <span className="text-sm font-bold text-[#4a8500]">Vor Ort bestellen</span>
+                  {tableNumber && (
+                    <span className="ml-auto text-xs bg-[#77CC00] text-white font-bold px-3 py-1 rounded-full">
+                      Tisch {tableNumber}
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 gap-2">
+                  {(['takeaway', 'delivery', 'in-store'] as const).map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => setOrderType(type)}
+                      className={`py-2 rounded-xl text-xs font-bold border transition-colors ${
+                        orderType === type
+                          ? 'bg-[#77CC00] border-[#66b300] text-white'
+                          : 'bg-white border-gray-200 text-gray-600 hover:border-[#77CC00]'
+                      }`}
+                    >
+                      {type === 'takeaway' ? '🛍️ Abholung' : type === 'delivery' ? '🛵 Lieferung' : '📱 Vor Ort'}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Table number — only editable if not pre-filled from URL */}
+              {kioskMode && (
+                <input
+                  type="text"
+                  placeholder="Tischnummer *"
+                  value={tableNumber}
+                  onChange={(e) => setTableNumber(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#77CC00]"
+                  required
+                />
+              )}
 
               <input
                 type="text"
