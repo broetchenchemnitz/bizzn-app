@@ -3,6 +3,9 @@
 ## 📋 Todo
 *(all core features complete)*
 
+## ✨ Phase 1 — Polish
+- [x] Self-Service Slug Management UI (dashboard/project/[id] → SlugSettingsBlock, updateProjectSlug action, unique constraint handling, deployed 6b8a741..42f066d)
+
 ## 🔄 In Progress
 *(empty)*
 
