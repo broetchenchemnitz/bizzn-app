@@ -2,7 +2,6 @@
 
 ## 📋 Todo
 - [ ] Stripe Connect: Daily payout trigger via connected account
-- [ ] Stripe webhook: update stripe_charges_enabled / stripe_payouts_enabled on account.updated event
 
 ## 🔄 In Progress
 *(empty)*
@@ -36,3 +35,4 @@
 - [x] Multi-Tenant Subdomain Routing: middleware rewrite + app/[domain]/page.tsx storefront placeholder
 - [x] Stripe Connect Schema: stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled added to projects
 - [x] Stripe Connect Onboarding: /api/stripe/connect route + dashboard payout warning banner
+- [x] Stripe Webhook account.updated: syncs charges_enabled + payouts_enabled to projects table
