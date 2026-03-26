@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createBrowserClient } from '@supabase/ssr'
-import { ShoppingBag, TrendingUp, UtensilsCrossed, ArrowUpRight, Clock, AlertTriangle } from 'lucide-react'
+import { ShoppingBag, TrendingUp, UtensilsCrossed, ArrowUpRight, AlertTriangle } from 'lucide-react'
 import type { Database } from '@/types/supabase'
 
 type OrderRow = Database['public']['Tables']['orders']['Row']
@@ -57,29 +57,7 @@ function KpiCard({ icon, label, value, sub, accent = false }: KpiCardProps) {
   )
 }
 
-interface StatusBadgeProps {
-  label: string
-  active: boolean
-}
 
-function StatusBadge({ label, active }: StatusBadgeProps) {
-  return (
-    <div className="flex items-center justify-between px-4 py-3 bg-white rounded-xl border border-gray-100 shadow-sm hover:border-[#77CC00]/40 hover:shadow-md transition-all cursor-pointer">
-      <span className="text-sm font-medium text-gray-700">{label}</span>
-      <div className="flex items-center gap-2">
-        <span className="relative flex h-2 w-2">
-          {active && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#77CC00] opacity-60" />}
-          <span className={`relative inline-flex rounded-full h-2 w-2 ${active ? 'bg-[#77CC00]' : 'bg-gray-300'}`} />
-        </span>
-        <span className={`text-xs font-semibold ${
-          active ? 'text-[#4a8500]' : 'text-gray-400'
-        }`}>
-          {active ? 'Aktiv' : 'Inaktiv'}
-        </span>
-      </div>
-    </div>
-  )
-}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -238,18 +216,6 @@ export default function RestaurantOverview({ projectId }: RestaurantOverviewProp
           </Link>
         </div>
       )}
-      {/* Live Status Bar */}
-      <div className="flex items-center gap-2 bg-[#F0FBD8] border border-[#77CC00]/30 rounded-xl px-4 py-3">
-        <span className="relative flex h-2.5 w-2.5">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#77CC00] opacity-75" />
-          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#77CC00]" />
-        </span>
-        <span className="text-sm font-semibold text-[#4a8500]">Restaurant live</span>
-        <span className="text-xs text-[#4a8500]/70 ml-auto flex items-center gap-1">
-          <Clock className="w-3.5 h-3.5" />
-          Echtzeit-Daten aktiv
-        </span>
-      </div>
 
       {/* KPI Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -274,17 +240,6 @@ export default function RestaurantOverview({ projectId }: RestaurantOverviewProp
         />
       </div>
 
-      {/* Channel Status */}
-      <div className="space-y-2">
-        <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">
-          Bestellkanäle
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <StatusBadge label="🛵  Lieferung" active={true} />
-          <StatusBadge label="🛍️  Abholung (Takeaway)" active={true} />
-          <StatusBadge label="📱  In-Store / QR-Code" active={false} />
-        </div>
-      </div>
 
       {/* Quick Actions */}
       <div className="grid grid-cols-2 gap-3 pt-2">
