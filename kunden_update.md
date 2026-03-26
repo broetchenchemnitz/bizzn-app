@@ -31,3 +31,6 @@
 - **Stripe-Connect-Schema:** `projects`-Tabelle um `stripe_account_id` (unique, nullable), `stripe_charges_enabled` und `stripe_payouts_enabled` erweitert. SQL-Migration (003) + TypeScript-Typen aktualisiert.
 - **Stripe-Connect-Onboarding:** API-Route `/api/stripe/connect` implementiert — erstellt Standard-Account, speichert ID in `projects`, leitet auf Stripe-Onboarding-Link um. Dashboard zeigt Amber-Banner wenn `stripe_payouts_enabled` false ist.
 - **Stripe-Webhook `account.updated`:** Bestehende Webhook-Route um `account.updated`-Handler erweitert. Synct `stripe_charges_enabled` und `stripe_payouts_enabled` via Service-Role-Client direkt in `projects`-Tabelle.
+- **Daily Payout Cronjob:** Route `/api/cron/payouts` implementiert (Bearer-Token-Auth via `CRON_SECRET`, Admin-Client, kommentierter Stripe-Transfer-Placeholder). Zeitplan in `vercel.json`: täglich 23:00 UTC. `CRON_SECRET` in `.env.local` hinterlegt.
+- **Vercel-Domain-Fix:** `bizzn-chemnitz.vercel.app` zur `MAIN_DOMAINS`-Whitelist in `middleware.ts` hinzugefügt (verhindert Subdomain-Routing auf Vercel Preview-Deployments).
+- **Deployment:** Alle Änderungen per `git push origin main` nach GitHub übertragen. Vercel-Auto-Deployment ausgelöst. Der automatisierte nächtliche Cashflow-Engine (`/api/cron/payouts`, 23:00 UTC) ist ab sofort in Produktion aktiv.

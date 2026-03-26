@@ -1,7 +1,8 @@
 # Bizzn – Project Board
 
 ## 📋 Todo
-- [ ] Stripe Connect: Daily payout trigger via connected account
+- [ ] Run Supabase migrations 002 + 003 in SQL Editor
+- [ ] Register CRON_SECRET + SUPABASE_SERVICE_ROLE_KEY in Vercel environment variables
 
 ## 🔄 In Progress
 *(empty)*
@@ -36,3 +37,6 @@
 - [x] Stripe Connect Schema: stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled added to projects
 - [x] Stripe Connect Onboarding: /api/stripe/connect route + dashboard payout warning banner
 - [x] Stripe Webhook account.updated: syncs charges_enabled + payouts_enabled to projects table
+- [x] Daily Payout Cron: /api/cron/payouts + vercel.json 23:00 UTC schedule + CRON_SECRET
+- [x] Middleware: added bizzn-chemnitz.vercel.app to MAIN_DOMAINS whitelist
+- [x] DEPLOYED TO PRODUCTION: git push origin main → Vercel auto-deploy triggered (3ecd9a1..df69b4f)
