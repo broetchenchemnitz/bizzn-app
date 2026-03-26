@@ -49,18 +49,18 @@ export default async function ProjectWorkspacePage({
           </Link>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <ProjectSettingsBlock projectId={project.id} initialName={project.name} />
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-6 py-5">
           <SlugSettingsBlock projectId={project.id} initialSlug={project.slug ?? null} />
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-gray-900">Restaurant Übersicht</h2>
-            <span className="text-xs font-semibold text-[#77CC00] bg-[#F0FBD8] px-3 py-1 rounded-full border border-[#77CC00]/20">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-base font-bold text-gray-900">Restaurant Übersicht</h2>
+            <span className="text-[10px] font-bold text-[#77CC00] bg-[#F0FBD8] px-2.5 py-1 rounded-full border border-[#77CC00]/20 tracking-wide uppercase">
               Gastro-OS v1
             </span>
           </div>

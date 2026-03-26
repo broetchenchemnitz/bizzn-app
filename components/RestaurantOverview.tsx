@@ -24,30 +24,34 @@ interface KpiCardProps {
 function KpiCard({ icon, label, value, sub, accent = false }: KpiCardProps) {
   return (
     <div
-      className={`rounded-2xl p-6 flex flex-col gap-4 border transition-shadow hover:shadow-md ${
+      className={`rounded-2xl p-5 flex flex-col gap-3 border transition-all hover:shadow-md ${
         accent
-          ? 'bg-[#77CC00] border-[#66b300] text-white'
-          : 'bg-white border-gray-100 text-gray-900'
+          ? 'bg-[#77CC00] border-[#5eaa00] shadow-[0_4px_16px_rgba(119,204,0,0.30)] text-white'
+          : 'bg-white border-gray-100 shadow-sm text-gray-900'
       }`}
     >
       <div className="flex items-start justify-between">
         <div
-          className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+          className={`w-10 h-10 rounded-xl flex items-center justify-center ${
             accent ? 'bg-white/20' : 'bg-[#F0FBD8]'
           }`}
         >
-          <span className={accent ? 'text-white' : 'text-[#77CC00]'}>{icon}</span>
+          <span className={`${accent ? 'text-white' : 'text-[#77CC00]'} [&>svg]:w-5 [&>svg]:h-5`}>{icon}</span>
         </div>
-        <ArrowUpRight className={`w-4 h-4 ${accent ? 'text-white/70' : 'text-gray-300'}`} />
+        <ArrowUpRight className={`w-3.5 h-3.5 ${accent ? 'text-white/50' : 'text-gray-200'}`} />
       </div>
       <div>
-        <p className={`text-sm font-medium ${accent ? 'text-white/80' : 'text-gray-500'}`}>
+        <p className={`text-xs font-semibold uppercase tracking-wider ${
+          accent ? 'text-white/75' : 'text-gray-400'
+        }`}>
           {label}
         </p>
-        <p className={`text-3xl font-bold tracking-tight mt-0.5 ${accent ? 'text-white' : 'text-gray-900'}`}>
+        <p className={`text-4xl font-extrabold tracking-tight mt-1 leading-none ${
+          accent ? 'text-white' : 'text-gray-900'
+        }`}>
           {value}
         </p>
-        <p className={`text-xs mt-1 ${accent ? 'text-white/70' : 'text-gray-400'}`}>{sub}</p>
+        <p className={`text-xs mt-1.5 ${accent ? 'text-white/65' : 'text-gray-400'}`}>{sub}</p>
       </div>
     </div>
   )
@@ -60,11 +64,16 @@ interface StatusBadgeProps {
 
 function StatusBadge({ label, active }: StatusBadgeProps) {
   return (
-    <div className="flex items-center justify-between px-4 py-3 bg-white rounded-xl border border-gray-100 hover:border-[#77CC00]/40 transition-colors cursor-pointer">
+    <div className="flex items-center justify-between px-4 py-3 bg-white rounded-xl border border-gray-100 shadow-sm hover:border-[#77CC00]/40 hover:shadow-md transition-all cursor-pointer">
       <span className="text-sm font-medium text-gray-700">{label}</span>
       <div className="flex items-center gap-2">
-        <span className={`w-2.5 h-2.5 rounded-full ${active ? 'bg-[#77CC00]' : 'bg-gray-300'}`} />
-        <span className={`text-xs font-medium ${active ? 'text-[#77CC00]' : 'text-gray-400'}`}>
+        <span className="relative flex h-2 w-2">
+          {active && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#77CC00] opacity-60" />}
+          <span className={`relative inline-flex rounded-full h-2 w-2 ${active ? 'bg-[#77CC00]' : 'bg-gray-300'}`} />
+        </span>
+        <span className={`text-xs font-semibold ${
+          active ? 'text-[#4a8500]' : 'text-gray-400'
+        }`}>
           {active ? 'Aktiv' : 'Inaktiv'}
         </span>
       </div>
@@ -267,7 +276,7 @@ export default function RestaurantOverview({ projectId }: RestaurantOverviewProp
 
       {/* Channel Status */}
       <div className="space-y-2">
-        <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide px-1">
+        <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">
           Bestellkanäle
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

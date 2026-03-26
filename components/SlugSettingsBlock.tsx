@@ -12,9 +12,9 @@ interface SlugSettingsBlockProps {
 function sanitize(raw: string): string {
   return raw
     .toLowerCase()
-    .replace(/\s+/g, '-')       // spaces → hyphens
-    .replace(/[^a-z0-9-]/g, '') // strip invalid chars
-    .replace(/^-+|-+$/g, '')    // trim leading/trailing hyphens
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '')
+    .replace(/^-+|-+$/g, '')
 }
 
 export default function SlugSettingsBlock({ projectId, initialSlug }: SlugSettingsBlockProps) {
@@ -46,83 +46,68 @@ export default function SlugSettingsBlock({ projectId, initialSlug }: SlugSettin
     })
   }
 
-  const previewUrl = slug ? `${slug}.bizzn.de` : 'dein-name.bizzn.de'
-
   return (
-    <div className="w-full">
-      <div className="flex items-center gap-3 mb-5">
-        <div className="w-9 h-9 rounded-xl bg-[#F0FBD8] flex items-center justify-center">
-          <Globe className="w-5 h-5 text-[#77CC00]" />
-        </div>
-        <div>
-          <h2 className="text-base font-semibold text-gray-900">Storefront Web-Adresse</h2>
-          <p className="text-xs text-gray-500">Deine öffentliche Bestell-URL für Kunden</p>
-        </div>
-      </div>
-
-      {/* Input row */}
-      <div className="flex items-stretch gap-2">
-        <div className="flex-1 flex items-center border border-gray-200 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-[#77CC00] focus-within:border-[#77CC00] transition-all bg-white">
-          <span className="pl-4 pr-1 text-sm text-gray-400 shrink-0 select-none">bizzn.de/</span>
-          <input
-            type="text"
-            value={slug}
-            onChange={(e) => handleChange(e.target.value)}
-            placeholder="dein-restaurant"
-            className="flex-1 py-3 pr-4 text-sm text-gray-900 bg-transparent outline-none"
-            disabled={isPending}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleSave() }}
-          />
-        </div>
-        <button
-          onClick={handleSave}
-          disabled={isPending || !isDirty || !slug}
-          className="px-5 py-3 bg-[#77CC00] hover:bg-[#66b300] disabled:opacity-40 text-white font-semibold text-sm rounded-xl transition-colors flex items-center gap-2 shrink-0"
-        >
-          {isPending
-            ? <Loader2 className="w-4 h-4 animate-spin" />
-            : success
-            ? <Check className="w-4 h-4" />
-            : 'Speichern'
-          }
-        </button>
-      </div>
-
-      {/* Live URL preview */}
-      <div className="mt-3 flex items-center gap-2">
-        <span className="text-xs text-gray-400">Vorschau:</span>
-        {savedSlug ? (
+    <div className="w-full space-y-3">
+      {/* Header */}
+      <div className="flex items-center gap-2 mb-1">
+        <Globe className="w-4 h-4 text-[#77CC00]" />
+        <span className="text-sm font-semibold text-gray-900">Storefront Web-Adresse</span>
+        {savedSlug && (
           <a
             href={`https://${savedSlug}.bizzn.de`}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs font-mono text-[#77CC00] hover:underline flex items-center gap-1"
+            className="ml-auto flex items-center gap-1 text-xs text-[#77CC00] hover:underline font-mono"
           >
-            {previewUrl}
+            {savedSlug}.bizzn.de
             <ExternalLink className="w-3 h-3" />
           </a>
-        ) : (
-          <span className="text-xs font-mono text-gray-400">{previewUrl}</span>
         )}
+      </div>
+
+      {/* Single-line inline input group */}
+      <div className="flex items-stretch h-11 rounded-xl border border-gray-200 bg-white overflow-hidden shadow-sm focus-within:ring-2 focus-within:ring-[#77CC00] focus-within:border-[#77CC00] transition-all">
+        {/* Fixed prefix */}
+        <span className="flex items-center pl-3.5 pr-2 text-sm text-gray-400 bg-gray-50 border-r border-gray-200 shrink-0 select-none font-mono">
+          bizzn.de/
+        </span>
+        {/* Slug input */}
+        <input
+          type="text"
+          value={slug}
+          onChange={(e) => handleChange(e.target.value)}
+          placeholder="dein-restaurant"
+          className="flex-1 px-3 text-sm text-gray-900 bg-transparent outline-none font-mono placeholder:text-gray-300"
+          disabled={isPending}
+          onKeyDown={(e) => { if (e.key === 'Enter') handleSave() }}
+        />
+        {/* Inline save button */}
+        <button
+          onClick={handleSave}
+          disabled={isPending || !isDirty || !slug}
+          className="px-4 bg-[#77CC00] hover:bg-[#66b300] disabled:opacity-40 text-white text-xs font-bold transition-colors flex items-center gap-1.5 shrink-0 border-l border-[#5eaa00]"
+        >
+          {isPending ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : success ? (
+            <><Check className="w-3.5 h-3.5" /> Gespeichert</>
+          ) : (
+            'Speichern'
+          )}
+        </button>
       </div>
 
       {/* Feedback */}
       {error && (
-        <p className="mt-3 text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+        <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-1.5">
           {error}
         </p>
       )}
-      {success && (
-        <p className="mt-3 text-sm text-[#4a8500] bg-[#F0FBD8] border border-[#77CC00]/30 rounded-lg px-3 py-2 flex items-center gap-2">
-          <Check className="w-4 h-4" />
-          Web-Adresse erfolgreich gespeichert.
+      {!error && (
+        <p className="text-[11px] text-gray-400">
+          Nur Kleinbuchstaben, Zahlen und Bindestriche · min. 3 Zeichen
         </p>
       )}
-
-      {/* Format hint */}
-      <p className="mt-3 text-xs text-gray-400">
-        Nur Kleinbuchstaben, Zahlen und Bindestriche · Mindestens 3 Zeichen · z. B. <span className="font-mono">mein-restaurant</span>
-      </p>
     </div>
   )
 }

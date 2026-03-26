@@ -5,6 +5,7 @@
 
 ## ✨ Phase 1 — Polish
 - [x] Self-Service Slug Management UI (dashboard/project/[id] → SlugSettingsBlock, updateProjectSlug action, unique constraint handling, deployed 6b8a741..42f066d)
+- [x] KDS Payout Transparency: 4th 'Ausgeliefert' column, PayoutBadge (green=paid/amber=pending), payout summary in live bar, realtime payout_status updates (deployed 42f066d..c0fe6cc)
 
 ## 🔄 In Progress
 *(empty)*
