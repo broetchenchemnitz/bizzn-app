@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useTransition } from 'react'
-import { ShoppingCart, Plus, Minus, Trash2, Loader2, CheckCircle2, ChefHat } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { ShoppingCart, Plus, Minus, Trash2, Loader2, ChefHat } from 'lucide-react'
 import { placeOrder, type CartItem } from '@/app/[domain]/actions'
 import type { Database } from '@/types/supabase'
 
@@ -11,6 +12,7 @@ type MenuItem = Database['public']['Tables']['menu_items']['Row']
 interface MenuBoardProps {
   projectId: string
   projectName: string
+  domain: string
   categories: (MenuCategory & { menu_items: MenuItem[] })[]
 }
 
@@ -21,14 +23,14 @@ function formatEur(cents: number): string {
   })
 }
 
-export default function MenuBoard({ projectId, projectName, categories }: MenuBoardProps) {
+export default function MenuBoard({ projectId, projectName, domain, categories }: MenuBoardProps) {
+  const router = useRouter()
   const [cart, setCart] = useState<CartItem[]>([])
   const [showCart, setShowCart] = useState(false)
   const [orderType, setOrderType] = useState<'takeaway' | 'delivery' | 'in-store'>('takeaway')
   const [customerName, setCustomerName] = useState('')
   const [customerContact, setCustomerContact] = useState('')
   const [isPending, startTransition] = useTransition()
-  const [orderId, setOrderId] = useState<string | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
 
   const totalItems = cart.reduce((s, i) => s + i.quantity, 0)
@@ -81,31 +83,11 @@ export default function MenuBoard({ projectId, projectName, categories }: MenuBo
       })
       if (result.error) {
         setFormError(result.error)
-      } else {
-        setOrderId(result.orderId)
-        setCart([])
+      } else if (result.orderId) {
+        // Redirect to realtime tracking page
+        router.push(`/${domain}/order/${result.orderId}`)
       }
     })
-  }
-
-  // --- Order confirmed screen ---
-  if (orderId) {
-    return (
-      <div className="min-h-screen bg-[#F0FBD8] flex flex-col items-center justify-center px-6 text-center">
-        <CheckCircle2 className="w-16 h-16 text-[#77CC00] mb-6" />
-        <h1 className="text-3xl font-extrabold text-[#1A1A1A] mb-2">Bestellung eingegangen!</h1>
-        <p className="text-gray-600 mb-4">Wir bereiten deine Bestellung vor.</p>
-        <p className="text-xs text-gray-400 font-mono bg-white px-4 py-2 rounded-lg border border-gray-200">
-          #{orderId.slice(0, 8).toUpperCase()}
-        </p>
-        <button
-          onClick={() => setOrderId(null)}
-          className="mt-8 text-sm text-[#4a8500] underline"
-        >
-          Neue Bestellung aufgeben
-        </button>
-      </div>
-    )
   }
 
   return (

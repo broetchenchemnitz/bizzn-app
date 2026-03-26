@@ -74,6 +74,7 @@ export default async function StorefrontPage({
     <MenuBoard
       projectId={project.id}
       projectName={project.name}
+      domain={params.domain}
       categories={categories}
     />
   )

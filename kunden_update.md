@@ -35,3 +35,4 @@
 - **Vercel-Domain-Fix:** `bizzn-chemnitz.vercel.app` zur `MAIN_DOMAINS`-Whitelist in `middleware.ts` hinzugefügt (verhindert Subdomain-Routing auf Vercel Preview-Deployments).
 - **Deployment:** Alle Änderungen per `git push origin main` nach GitHub übertragen. Vercel-Auto-Deployment ausgelöst. Der automatisierte nächtliche Cashflow-Engine (`/api/cron/payouts`, 23:00 UTC) ist ab sofort in Produktion aktiv.
 - **Öffentliche Speisekarte & Bestellflow:** Storefront unter `[slug].bizzn.de` vollständig implementiert. Kunden können die Speisekarte nach Kategorien durchblättern, Artikel in den Warenkorb legen und direkt bestellen (Abholung / Lieferung / Vor Ort). Bestellungen landen sofort im Kitchen Display System für den Wirt.
+- **Slug-Routing:** `slug`-Spalte (unique, NOT NULL) in `projects` eingeführt. Subdomain-Matching von fragiler `ilike`-Suche auf stabiles `.eq('slug', domain)` umgestellt. SQL-Migration mit automatischem Backfill aus `name`-Spalte.

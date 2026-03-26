@@ -1,7 +1,6 @@
 # Bizzn – Project Board
 
 ## 📋 Todo
-- [ ] Add `slug` column to `projects` table for clean subdomain matching
 - [ ] Customer-facing order tracking page
 
 ## 🔄 In Progress
@@ -41,3 +40,4 @@
 - [x] Middleware: added bizzn-chemnitz.vercel.app to MAIN_DOMAINS whitelist
 - [x] DEPLOYED TO PRODUCTION: git push origin main → Vercel auto-deploy triggered (3ecd9a1..df69b4f)
 - [x] Public Storefront: app/[domain]/page.tsx + MenuBoard cart UI + placeOrder server action (deployed df69b4f..8cd0ab0)
+- [x] Project Slug: 004_add_project_slug.sql (unique, backfill) + .eq('slug') routing (deployed 8cd0ab0..e35f8d1)
