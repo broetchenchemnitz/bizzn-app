@@ -1,7 +1,7 @@
 # Bizzn – Project Board
 
 ## 📋 Todo
-- [ ] Stripe: Activation of live payouts (go-live checklist)
+*(all core features complete)*
 
 ## 🔄 In Progress
 *(empty)*
@@ -43,3 +43,4 @@
 - [x] Project Slug: 004_add_project_slug.sql (unique, backfill) + .eq('slug') routing (deployed 8cd0ab0..e35f8d1)
 - [x] Customer Order Tracking: /[domain]/order/[orderId] with Supabase Realtime + progress stepper (deployed e35f8d1..1817f3d)
 - [x] In-Store Kiosk/QR: ?table=&mode=kiosk URL params, table_number DB column (migration 005), locked order type (deployed 1817f3d..8618e98)
+- [x] Stripe Live Payouts: real stripe.transfers.create activated, payout_status idempotency guard (migration 006), deployed 8618e98..6b8a741

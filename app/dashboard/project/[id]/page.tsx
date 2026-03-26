@@ -3,6 +3,7 @@ import { ArrowLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase-server'
 import { notFound, redirect } from 'next/navigation'
 import ProjectSettingsBlock from '@/components/ProjectSettingsBlock'
+import SlugSettingsBlock from '@/components/SlugSettingsBlock'
 import RestaurantOverview from '@/components/RestaurantOverview'
 import type { Database } from '@/types/supabase'
 
@@ -50,6 +51,10 @@ export default async function ProjectWorkspacePage({
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
           <ProjectSettingsBlock projectId={project.id} initialName={project.name} />
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
+          <SlugSettingsBlock projectId={project.id} initialSlug={project.slug ?? null} />
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
