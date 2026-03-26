@@ -20,11 +20,11 @@ function createAnonSupabase() {
 async function getStorefrontData(slug: string) {
   const supabase = createAnonSupabase()
 
-  // Look up the project by case-insensitive name match on the subdomain slug
+  // Look up project by exact slug match (unique index — fast and deterministic)
   const { data: project } = await supabase
     .from('projects')
     .select('*')
-    .ilike('name', slug)
+    .eq('slug', slug)
     .eq('status', 'active')
     .single<ProjectRow>()
 

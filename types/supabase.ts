@@ -16,6 +16,7 @@ export interface Database {
           name: string
           status: string
           user_id: string
+          slug: string
           stripe_account_id: string | null
           stripe_charges_enabled: boolean | null
           stripe_payouts_enabled: boolean | null
@@ -26,6 +27,7 @@ export interface Database {
           name: string
           status?: string
           user_id: string
+          slug?: string
           stripe_account_id?: string | null
           stripe_charges_enabled?: boolean | null
           stripe_payouts_enabled?: boolean | null
@@ -36,6 +38,7 @@ export interface Database {
           name?: string
           status?: string
           user_id?: string
+          slug?: string
           stripe_account_id?: string | null
           stripe_charges_enabled?: boolean | null
           stripe_payouts_enabled?: boolean | null
