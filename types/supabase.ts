@@ -123,6 +123,7 @@ export interface Database {
           customer_contact: string
           order_type: 'delivery' | 'takeaway' | 'in-store'
           table_number: string | null
+          payout_status: 'pending' | 'paid'
           created_at: string
         }
         Insert: {
@@ -134,6 +135,7 @@ export interface Database {
           customer_contact?: string
           order_type?: 'delivery' | 'takeaway' | 'in-store'
           table_number?: string | null
+          payout_status?: 'pending' | 'paid'
           created_at?: string
         }
         Update: {
@@ -145,6 +147,7 @@ export interface Database {
           customer_contact?: string
           order_type?: 'delivery' | 'takeaway' | 'in-store'
           table_number?: string | null
+          payout_status?: 'pending' | 'paid'
           created_at?: string
         }
         Relationships: [
