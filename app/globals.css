@@ -2,6 +2,32 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * @supports (POSITIVE) — Backdrop-Filter Clipping Fix
+ * ─────────────────────────────────────────────────────────────────────────
+ * Safari Bug: nested containers inside a backdrop-filter parent can "clip"
+ * the blur if their background is fully transparent (alpha = 0). Safari's
+ * compositor skips the blur pass for the subtree in that case.
+ *
+ * Fix: inject rgba(26, 26, 26, 0.01) — minimum non-zero alpha — to force the
+ * compositor to include the element in the blur compositing pass.
+ *
+ * This block fires only when the browser SUPPORTS -webkit-backdrop-filter,
+ * meaning it targets Safari/WebKit exclusively and not legacy browsers.
+ *
+ * Color: rgba(26, 26, 26, ...) matches --bg: #1A1A1A from PROJECT_CONSTITUTION.
+ */
+@supports (-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px)) {
+  .safari-header > * {
+    /* Minimum opacity to prevent Safari nested container blur clipping */
+    background-color: rgba(26, 26, 26, 0.01);
+  }
+  /* Reset for elements that have their own explicit background */
+  .safari-header > *[class*='bg-'] {
+    background-color: revert;
+  }
+}
+
 @layer base {
   body {
     @apply bg-gray-50 text-gray-900;
