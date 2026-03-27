@@ -34,6 +34,8 @@ export async function POST(request: NextRequest) {
     // Derive absolute base URL from the request itself — avoids NEXT_PUBLIC_SITE_URL misconfiguration
     const origin = request.headers.get('origin') ?? process.env.NEXT_PUBLIC_SITE_URL ?? ''
 
+    const idempotencyKey = request.headers.get('Idempotency-Key') || crypto.randomUUID()
+
     const stripe = getStripe()
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -59,7 +61,7 @@ export async function POST(request: NextRequest) {
       metadata: {
         userId: user.id,
       },
-    })
+    }, { idempotencyKey })
 
     if (!session.url) {
       return NextResponse.json({ error: 'Stripe returned no checkout URL.' }, { status: 500 })

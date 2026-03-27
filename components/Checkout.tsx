@@ -78,9 +78,9 @@ export default function Checkout({ clientSecret }: { clientSecret: string, order
   if (!clientSecret) return <p className="text-gray-400 text-center animate-pulse">Lade sicheren Checkout...</p>;
 
   return (
-    <div className="w-full max-w-lg mx-auto bg-[#242424] text-white rounded-2xl border border-[#333333] shadow-2xl relative">
+    <div className="w-full max-w-lg mx-auto bg-[#242424] text-white rounded-2xl border border-[#333333] shadow-2xl relative z-10 overflow-visible">
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#77CC00] to-transparent opacity-50 rounded-t-2xl"></div>
-      <div className="p-8 sm:p-10 relative z-50 rounded-2xl">
+      <div className="p-8 sm:p-10 relative z-10 overflow-visible rounded-2xl bg-[#242424]">
       
       <div className="mb-8 text-center">
         <h2 className="text-2xl font-bold mb-2">Checkout</h2>

@@ -1,4 +1,4 @@
-# 📍 CURRENT MICRO-STATE: Handed over to Gem 4 for E2E Payment-Flow QA.
+# 📍 CURRENT MICRO-STATE: Payment bugs fixed (Idempotency + Safari UI). Handed over to Gem 4 for Re-Test.
 
 ## Aufgaben:
 - ✅ Alle Safari- & Viewport-Fixes erfolgreich gemergt.
