@@ -51,7 +51,7 @@ export default function SlugSettingsBlock({ projectId, initialSlug }: SlugSettin
       {/* Header */}
       <div className="flex items-center gap-2 mb-1">
         <Globe className="w-4 h-4 text-[#77CC00]" />
-        <span className="text-sm font-semibold text-gray-900">Storefront Web-Adresse</span>
+        <span className="text-sm font-semibold text-white">Storefront Web-Adresse</span>
         {savedSlug && (
           <a
             href={`https://${savedSlug}.bizzn.de`}
@@ -66,9 +66,9 @@ export default function SlugSettingsBlock({ projectId, initialSlug }: SlugSettin
       </div>
 
       {/* Single-line inline input group */}
-      <div className="flex items-stretch h-11 rounded-xl border border-gray-200 bg-white overflow-hidden shadow-sm focus-within:ring-2 focus-within:ring-[#77CC00] focus-within:border-[#77CC00] transition-all">
+      <div className="flex items-stretch h-11 rounded-xl border border-[#333333] bg-[#1A1A1A] overflow-hidden focus-within:ring-1 focus-within:ring-[#77CC00] focus-within:border-[#77CC00] transition-all">
         {/* Fixed prefix */}
-        <span className="flex items-center pl-3.5 pr-2 text-sm text-gray-400 bg-gray-50 border-r border-gray-200 shrink-0 select-none font-mono">
+        <span className="flex items-center pl-3.5 pr-2 text-sm text-gray-600 bg-[#242424] border-r border-[#333333] shrink-0 select-none font-mono">
           bizzn.de/
         </span>
         {/* Slug input */}
@@ -77,7 +77,7 @@ export default function SlugSettingsBlock({ projectId, initialSlug }: SlugSettin
           value={slug}
           onChange={(e) => handleChange(e.target.value)}
           placeholder="dein-restaurant"
-          className="flex-1 px-3 text-sm text-gray-900 bg-transparent outline-none font-mono placeholder:text-gray-300"
+          className="flex-1 px-3 text-sm text-white bg-transparent outline-none font-mono placeholder:text-gray-700"
           disabled={isPending}
           onKeyDown={(e) => { if (e.key === 'Enter') handleSave() }}
         />
@@ -85,7 +85,7 @@ export default function SlugSettingsBlock({ projectId, initialSlug }: SlugSettin
         <button
           onClick={handleSave}
           disabled={isPending || !isDirty || !slug}
-          className="px-4 bg-[#77CC00] hover:bg-[#66b300] disabled:opacity-40 text-white text-xs font-bold transition-colors flex items-center gap-1.5 shrink-0 border-l border-[#5eaa00]"
+          className="px-4 bg-[#77CC00] hover:bg-[#66b300] disabled:opacity-30 text-black text-xs font-bold transition-colors flex items-center gap-1.5 shrink-0 border-l border-[#5eaa00]"
         >
           {isPending ? (
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -99,12 +99,12 @@ export default function SlugSettingsBlock({ projectId, initialSlug }: SlugSettin
 
       {/* Feedback */}
       {error && (
-        <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-1.5">
+        <p className="text-xs text-red-400 bg-red-950 border border-red-900 rounded-lg px-3 py-1.5">
           {error}
         </p>
       )}
       {!error && (
-        <p className="text-[11px] text-gray-400">
+        <p className="text-[11px] text-gray-700">
           Nur Kleinbuchstaben, Zahlen und Bindestriche · min. 3 Zeichen
         </p>
       )}

@@ -26,32 +26,32 @@ function KpiCard({ icon, label, value, sub, accent = false }: KpiCardProps) {
     <div
       className={`rounded-2xl p-5 flex flex-col gap-3 border transition-all hover:shadow-md ${
         accent
-          ? 'bg-[#77CC00] border-[#5eaa00] shadow-[0_4px_16px_rgba(119,204,0,0.30)] text-white'
-          : 'bg-white border-gray-100 shadow-sm text-gray-900'
+          ? 'bg-[#77CC00] border-[#5eaa00] shadow-[0_4px_20px_rgba(119,204,0,0.35)] text-black'
+          : 'bg-[#1A1A1A] border-[#333333] shadow-sm text-white hover:border-[#444444]'
       }`}
     >
       <div className="flex items-start justify-between">
         <div
           className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-            accent ? 'bg-white/20' : 'bg-[#F0FBD8]'
+            accent ? 'bg-black/15' : 'bg-[#242424]'
           }`}
         >
-          <span className={`${accent ? 'text-white' : 'text-[#77CC00]'} [&>svg]:w-5 [&>svg]:h-5`}>{icon}</span>
+          <span className={`${accent ? 'text-black' : 'text-[#77CC00]'} [&>svg]:w-5 [&>svg]:h-5`}>{icon}</span>
         </div>
-        <ArrowUpRight className={`w-3.5 h-3.5 ${accent ? 'text-white/50' : 'text-gray-200'}`} />
+        <ArrowUpRight className={`w-3.5 h-3.5 ${accent ? 'text-black/40' : 'text-gray-700'}`} />
       </div>
       <div>
         <p className={`text-xs font-semibold uppercase tracking-wider ${
-          accent ? 'text-white/75' : 'text-gray-400'
+          accent ? 'text-black/70' : 'text-gray-500'
         }`}>
           {label}
         </p>
         <p className={`text-4xl font-extrabold tracking-tight mt-1 leading-none ${
-          accent ? 'text-white' : 'text-gray-900'
+          accent ? 'text-black' : 'text-white'
         }`}>
           {value}
         </p>
-        <p className={`text-xs mt-1.5 ${accent ? 'text-white/65' : 'text-gray-400'}`}>{sub}</p>
+        <p className={`text-xs mt-1.5 ${accent ? 'text-black/60' : 'text-gray-600'}`}>{sub}</p>
       </div>
     </div>
   )
@@ -200,17 +200,17 @@ export default function RestaurantOverview({ projectId }: RestaurantOverviewProp
     <div className="space-y-6">
       {/* Stripe Payout Warning Banner */}
       {stripePayoutsEnabled === false && (
-        <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3.5">
-          <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 bg-[#2a1f00] border border-amber-800 rounded-xl px-4 py-3.5">
+          <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-amber-800">Auszahlungen noch nicht aktiviert</p>
+            <p className="text-sm font-semibold text-amber-300">Auszahlungen noch nicht aktiviert</p>
             <p className="text-xs text-amber-600 mt-0.5">
               Verbinde dein Stripe-Konto, um Auszahlungen zu empfangen.
             </p>
           </div>
           <Link
             href={`/api/stripe/connect?projectId=${projectId}`}
-            className="shrink-0 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
+            className="shrink-0 bg-amber-500 hover:bg-amber-600 text-black text-xs font-bold px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
           >
             Jetzt aktivieren →
           </Link>
@@ -245,17 +245,17 @@ export default function RestaurantOverview({ projectId }: RestaurantOverviewProp
       <div className="grid grid-cols-2 gap-3 pt-2">
         <Link
           href={`/dashboard/project/${projectId}/orders`}
-          className="flex items-center justify-center gap-2 bg-[#77CC00] hover:bg-[#66b300] text-white font-semibold px-5 py-3.5 rounded-xl text-sm transition-colors shadow-sm"
+          className="flex items-center justify-center gap-2 bg-[#77CC00] hover:bg-[#66b300] text-black font-bold px-5 py-3.5 rounded-xl text-sm transition-colors shadow-sm"
         >
           <ShoppingBag className="w-4 h-4" />
-          Bestellungen verwalten
+          Bestellungen
         </Link>
         <Link
           href={`/dashboard/project/${projectId}/menu`}
-          className="flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-gray-700 font-semibold px-5 py-3.5 rounded-xl text-sm border border-gray-200 transition-colors shadow-sm"
+          className="flex items-center justify-center gap-2 bg-[#242424] hover:bg-[#2d2d2d] text-gray-200 font-semibold px-5 py-3.5 rounded-xl text-sm border border-[#333333] transition-colors"
         >
           <UtensilsCrossed className="w-4 h-4" />
-          Speisekarte bearbeiten
+          Speisekarte
         </Link>
       </div>
     </div>

@@ -8,7 +8,8 @@
 - [x] KDS Payout Transparency: 4th 'Ausgeliefert' column, PayoutBadge (green=paid/amber=pending), payout summary in live bar, realtime payout_status updates (deployed 42f066d..c0fe6cc)
 
 ## 🚀 Phase 2 — Growth & Compliance
-- [x] Dashboard UI Polish: KPI glow shadows, extrabold typography, animated status pings, SlugSettingsBlock inline input group, tighter rounded-2xl cards (deployed c0fe6cc..74f9506)
+- [x] Dashboard UI Polish: KPI glow shadows, extrabold typography, animated status pings, SlugSettingsBlock inline input group (deployed c0fe6cc..74f9506)
+- [x] Radical Dashboard Grid Redesign: 12-col grid layout (col-span-8 main + col-span-4 sidebar), topnav with live badge, channels in sidebar, condensed ProjectSettingsBlock (deployed 74f9506..aebe3a9)
 
 ## 🔄 In Progress
 *(empty)*

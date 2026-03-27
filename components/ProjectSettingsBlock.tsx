@@ -50,7 +50,7 @@ export default function ProjectSettingsBlock({ projectId, initialName }: { proje
 
   return (
     <div className="w-full">
-      {error && <div className="mb-3 p-3 bg-red-50 text-red-600 rounded-lg text-sm border border-red-100">{error}</div>}
+      {error && <div className="mb-3 p-3 bg-red-950 text-red-400 rounded-lg text-xs border border-red-900">{error}</div>}
       
       <div className="flex items-center justify-between">
         <div>
@@ -61,7 +61,7 @@ export default function ProjectSettingsBlock({ projectId, initialName }: { proje
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 autoFocus
-                className="text-xl font-bold text-gray-900 border border-gray-300 rounded-lg px-3 py-1 outline-none focus:border-[#77CC00] focus:ring-1 focus:ring-[#77CC00] max-w-[260px]"
+                className="text-xl font-bold text-white border border-[#444444] bg-[#1A1A1A] rounded-lg px-3 py-1 outline-none focus:border-[#77CC00] focus:ring-1 focus:ring-[#77CC00] max-w-[260px]"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') handleRename()
                   if (e.key === 'Escape') { setIsEditing(false); setName(initialName) }
@@ -77,10 +77,10 @@ export default function ProjectSettingsBlock({ projectId, initialName }: { proje
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-gray-900">{initialName}</h1>
+              <h1 className="text-xl font-bold text-white">{initialName}</h1>
               <button
                 onClick={() => setIsEditing(true)}
-                className="p-1 text-gray-300 hover:text-[#77CC00] hover:bg-gray-50 rounded-md transition-colors"
+                className="p-1 text-gray-700 hover:text-[#77CC00] hover:bg-[#242424] rounded-md transition-colors"
                 title="Projekt umbenennen"
               >
                 <Pencil className="w-3.5 h-3.5" />
@@ -88,8 +88,8 @@ export default function ProjectSettingsBlock({ projectId, initialName }: { proje
             </div>
           )}
           <div className="flex items-center gap-1.5 mt-1.5">
-            <span className="text-[11px] text-gray-400">Projekt-ID</span>
-            <span className="font-mono text-[10px] bg-gray-50 px-1.5 py-0.5 rounded text-gray-500 border border-gray-100">
+            <span className="text-[11px] text-gray-600">Projekt-ID</span>
+            <span className="font-mono text-[10px] bg-[#1A1A1A] px-1.5 py-0.5 rounded text-gray-600 border border-[#333333]">
               {projectId}
             </span>
           </div>
@@ -98,8 +98,8 @@ export default function ProjectSettingsBlock({ projectId, initialName }: { proje
 
       {/* Delete trigger — compact text link */}
       {showDeleteConfirm ? (
-        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl">
-          <h3 className="text-red-800 font-semibold text-sm mb-1">Projekt unwiderruflich löschen?</h3>
+        <div className="mt-4 p-4 bg-red-950 border border-red-900 rounded-xl">
+          <h3 className="text-red-400 font-semibold text-sm mb-1">Projekt unwiderruflich löschen?</h3>
           <p className="text-red-600 text-xs mb-3">
             Bist du sicher, dass du &quot;{initialName}&quot; löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden.
           </p>
@@ -115,7 +115,7 @@ export default function ProjectSettingsBlock({ projectId, initialName }: { proje
             <button
               onClick={() => setShowDeleteConfirm(false)}
               disabled={isDeleting}
-              className="bg-white text-gray-600 border border-gray-200 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-gray-50 transition-colors"
+              className="bg-[#242424] text-gray-400 border border-[#333333] px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-[#2d2d2d] transition-colors"
             >
               Abbrechen
             </button>
