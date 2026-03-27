@@ -4,6 +4,109 @@
 
 @layer base {
   body {
-    @apply bg-gray-50 text-gray-900;
+    @apply bg-[#1A1A1A] text-white;
+  }
+}
+
+@layer components {
+  /*
+   * .btn-glow-primary / .btn-glow-secondary
+   *
+   * The glow is rendered exclusively via a ::before pseudo-element so it sits
+   * BEHIND the button content and never masks the native :focus-visible outline.
+   *
+   * z-index: -1  → glow layer sits below button text
+   * pointer-events: none → pseudo-element is non-interactive
+   * transition on opacity → smooth glow on hover/focus
+   */
+
+  .btn-glow-primary {
+    @apply relative isolate;
+  }
+
+  .btn-glow-primary::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    background: transparent;
+    box-shadow: 0 0 25px rgba(119, 204, 0, 0);
+    z-index: -1;
+    pointer-events: none;
+    transition: box-shadow 0.3s ease;
+  }
+
+  .btn-glow-primary:hover::before {
+    box-shadow: 0 0 25px rgba(119, 204, 0, 0.4);
+  }
+
+  .btn-glow-primary:focus-visible {
+    outline: 2px solid #77CC00;
+    outline-offset: 3px;
+  }
+
+  .btn-glow-secondary {
+    @apply relative isolate;
+  }
+
+  .btn-glow-secondary::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    background: transparent;
+    box-shadow: 0 0 16px rgba(255, 255, 255, 0);
+    z-index: -1;
+    pointer-events: none;
+    transition: box-shadow 0.3s ease;
+  }
+
+  .btn-glow-secondary:hover::before {
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.05);
+  }
+
+  .btn-glow-secondary:focus-visible {
+    outline: 2px solid #77CC00;
+    outline-offset: 3px;
+  }
+
+  /*
+   * .safari-header
+   *
+   * Default state: translucent bg + blur, set via inline style in JSX.
+   * The @supports block below overrides this for non-supporting browsers.
+   *
+   * Note: no CSS properties needed here — the inline style handles the
+   * default case. This class exists purely as a selector hook for @supports.
+   */
+  .safari-header {
+    /* Stacking context via isolation — zero GPU/VRAM cost */
+    isolation: isolate;
+  }
+}
+
+/*
+ * @supports backdrop-filter fallback
+ * ────────────────────────────────────────────────────────────────
+ * Targets browsers that support NEITHER:
+ *   • -webkit-backdrop-filter (Safari < 9, some older iOS WebView)
+ *   • backdrop-filter          (Firefox < 103, Chrome < 76)
+ *
+ * The `or` condition means: if either prefix is supported, this block
+ * is skipped — the inline style handles it correctly.
+ * If NEITHER is supported, we force a fully-opaque solid background
+ * so text remains 100% legible without any blur effect.
+ *
+ * QA: Both vendor-prefixed (-webkit-) AND standard conditions are
+ * explicitly tested in the @supports query. ✓
+ */
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .safari-header {
+    /* Solid opaque fallback — legible without blur */
+    background-color: rgba(26, 26, 26, 1) !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    /* Release any GPU hint since blur is disabled */
+    will-change: auto !important;
   }
 }

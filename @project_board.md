@@ -1,5 +1,7 @@
-# 📍 CURRENT MICRO-STATE: Basis-Klassen auf Dark Mode Only (#1A1A1A, #242424, #77CC00) migriert. Warten auf Design von Gem 3.
+# 📍 CURRENT MICRO-STATE: Bugfix Iteration 2 (iOS Safari Rendering) implementiert. Warten auf QA durch Gem 4.
 
 ## Aufgaben:
-- ✅ Gastro-Dashboard Design überarbeiten (Dark Mode deployed c8916af)
+- ✅ Dark Mode + Gem 3 UI Patches + A11y Glows deployed to main
+- ✅ iOS sticky DOM restructure (feature/ui-design-integration, fix/ios-sticky-header-stacking)
+- ✅ iOS Safari rendering: rgba, translate3d, @supports fallback (fix/ios-safari-rendering 302ba73)
 - Checkout-Prozess bauen.
