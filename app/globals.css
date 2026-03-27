@@ -2,8 +2,127 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * ══════════════════════════════════════════════════════════════════
+ * @supports — Backdrop-Filter (POSITIVE detection)
+ *
+ * Correct query syntax: `(-webkit-backdrop-filter: none)` or
+ * `(backdrop-filter: none)` — using `none` tests capability without
+ * applying a value, which is the CSS @supports spec-correct pattern.
+ *
+ * The `blur(1px)` value used previously was acceptable, but `none` is
+ * more semantically precise for feature detection.
+ *
+ * Both vendor-prefixed and standard conditions are explicitly declared.
+ *
+ * Purpose: force Safari compositor to include nested containers in the
+ * blur compositing pass by injecting a minimum non-zero alpha background.
+ * ══════════════════════════════════════════════════════════════════
+ */
+
+/* Fallback base rule — BEFORE any @supports block.
+   Ensures solid, readable background if backdrop-filter is unavailable. */
+.safari-header {
+  background-color: rgba(26, 26, 26, 1); /* solid base fallback */
+}
+
+@supports (-webkit-backdrop-filter: none) or (backdrop-filter: none) {
+  .safari-header {
+    /* Override solid fallback with translucent + blur */
+    background-color: rgba(26, 26, 26, 0.85);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+  }
+
+  .safari-header > * {
+    /*
+     * Backdrop clipping fix: inject minimum non-zero alpha on direct
+     * children to force Safari's compositor to include them in the
+     * blur pass. Alpha = 0 causes Safari to skip compositing subtree.
+     */
+    background-color: rgba(26, 26, 26, 0.01);
+  }
+
+  /* Reset for children that have an explicit background class */
+  .safari-header > *[class*='bg-'] {
+    background-color: revert;
+  }
+}
+
+/*
+ * @supports NOT — Fallback for browsers lacking backdrop-filter entirely.
+ * Uses `none` syntax consistent with the positive detection above.
+ * `or` covers both vendor-prefixed and standard engines.
+ */
+@supports not ((-webkit-backdrop-filter: none) or (backdrop-filter: none)) {
+  .safari-header {
+    /* Fully-opaque solid fallback. Text is always legible without blur. */
+    background-color: rgba(26, 26, 26, 1) !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    will-change: auto !important;
+  }
+}
+
 @layer base {
   body {
-    @apply bg-gray-50 text-gray-900;
+    @apply bg-[#1A1A1A] text-white;
+  }
+}
+
+@layer components {
+  /*
+   * .btn-glow-primary / .btn-glow-secondary
+   * Glow via ::before pseudo-element — z-index:-1, pointer-events:none.
+   * Never masks the native :focus-visible outline.
+   */
+  .btn-glow-primary {
+    @apply relative isolate;
+  }
+
+  .btn-glow-primary::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    background: transparent;
+    box-shadow: 0 0 25px rgba(119, 204, 0, 0);
+    z-index: -1;
+    pointer-events: none;
+    transition: box-shadow 0.3s ease;
+  }
+
+  .btn-glow-primary:hover::before {
+    box-shadow: 0 0 25px rgba(119, 204, 0, 0.4);
+  }
+
+  .btn-glow-primary:focus-visible {
+    outline: 2px solid #77CC00;
+    outline-offset: 3px;
+  }
+
+  .btn-glow-secondary {
+    @apply relative isolate;
+  }
+
+  .btn-glow-secondary::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    background: transparent;
+    box-shadow: 0 0 16px rgba(255, 255, 255, 0);
+    z-index: -1;
+    pointer-events: none;
+    transition: box-shadow 0.3s ease;
+  }
+
+  .btn-glow-secondary:hover::before {
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.05);
+  }
+
+  .btn-glow-secondary:focus-visible {
+    outline: 2px solid #77CC00;
+    outline-offset: 3px;
   }
 }
