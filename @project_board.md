@@ -1,4 +1,4 @@
-# 📍 CURRENT MICRO-STATE: Fixed dropdown clipping, implemented WCAG-compliant Stripe error styling (#ff8080), and enforced idempotency key + submit lock. Ready for QA.
+# 📍 CURRENT MICRO-STATE: Handed over to Gem 4 for E2E Payment-Flow QA.
 
 ## Aufgaben:
 - ✅ Alle Safari- & Viewport-Fixes erfolgreich gemergt.
