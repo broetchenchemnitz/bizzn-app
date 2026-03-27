@@ -1,4 +1,4 @@
-# 📍 CURRENT MICRO-STATE: UI/UX QA Fixes implemented (Stripe Dark Mode, Focus States, Card Overflows). Bereit für finalen E2E Test.
+# 📍 CURRENT MICRO-STATE: Stripe Elements text color fixed for dark mode. Card overflow clipping resolved. Ready for re-QA.
 
 ## Aufgaben:
 - ✅ Alle Safari- & Viewport-Fixes erfolgreich gemergt.

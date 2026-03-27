@@ -78,9 +78,9 @@ export default function Checkout({ clientSecret }: { clientSecret: string, order
   if (!clientSecret) return <p className="text-gray-400 text-center animate-pulse">Lade sicheren Checkout...</p>;
 
   return (
-    <div className="w-full max-w-lg mx-auto p-8 sm:p-10 bg-[#242424] text-white rounded-2xl border border-[#333333] shadow-2xl relative overflow-x-hidden">
-      {/* Decorative Brand Accent */}
-      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#77CC00] to-transparent opacity-50"></div>
+    <div className="w-full max-w-lg mx-auto bg-[#242424] text-white rounded-2xl border border-[#333333] shadow-2xl relative">
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#77CC00] to-transparent opacity-50 rounded-t-2xl"></div>
+      <div className="p-8 sm:p-10 relative overflow-hidden rounded-2xl">
       
       <div className="mb-8 text-center">
         <h2 className="text-2xl font-bold mb-2">Checkout</h2>
@@ -89,6 +89,8 @@ export default function Checkout({ clientSecret }: { clientSecret: string, order
 
       <Elements stripe={stripePromise} options={{ 
         clientSecret, 
+        // @ts-expect-error - requested legacy style inject
+        style: { base: { color: '#ffffff', '::placeholder': { color: '#aab7c4' } } },
         appearance: { 
           theme: 'night',
           variables: {
@@ -143,6 +145,7 @@ export default function Checkout({ clientSecret }: { clientSecret: string, order
       <div className="mt-8 pt-6 border-t border-[#333] flex justify-center items-center gap-4 text-gray-500 text-xs">
         <span className="flex items-center gap-1">🔒 SSL Encrypted</span>
         <span className="flex items-center gap-1">🛡️ Stripe Secure</span>
+      </div>
       </div>
     </div>
   );
