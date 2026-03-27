@@ -94,8 +94,8 @@ export default function Checkout({ clientSecret }: { clientSecret: string, order
           variables: {
             colorPrimary: '#77CC00',
             colorBackground: '#1A1A1A',
-            colorText: '#ffffff',
-            colorDanger: '#ef4444',
+            colorText: '#FFFFFF',
+            colorDanger: '#FF4444',
             fontFamily: 'system-ui, sans-serif',
             spacingUnit: '4px',
             borderRadius: '12px',
