@@ -33,7 +33,7 @@ export default async function ProjectWorkspacePage({
   if (!project) notFound()
 
   return (
-    <div className="min-h-screen bg-[#1A1A1A] overflow-x-hidden">
+    <div className="min-h-screen bg-[#1A1A1A]">
       {/* ── Top Navigation Bar ───────────────────────────────── */}
       <div className="bg-[#242424] border-b border-white/5 px-4 sm:px-8 py-3.5 flex items-center gap-3 min-w-0">
         <Link
@@ -66,7 +66,7 @@ export default async function ProjectWorkspacePage({
         <div className="grid grid-cols-12 gap-5">
 
           {/* ── LEFT / MAIN — col-span-8 ──────────────────── */}
-          <div className="col-span-12 lg:col-span-8 space-y-5">
+          <div className="col-span-12 lg:col-span-8 space-y-5 min-w-0">
 
             {/* Project header card */}
             <div className="bg-[#242424] rounded-3xl border border-white/5 shadow-lg p-5">
@@ -80,7 +80,7 @@ export default async function ProjectWorkspacePage({
           </div>
 
           {/* ── RIGHT / SIDEBAR — col-span-4 ───────────── */}
-          <div className="col-span-12 lg:col-span-4 space-y-4">
+          <div className="col-span-12 lg:col-span-4 space-y-4 min-w-0">
 
             {/* Slug inline input */}
             <div className="bg-[#242424] rounded-3xl border border-white/5 shadow-lg px-5 py-4">

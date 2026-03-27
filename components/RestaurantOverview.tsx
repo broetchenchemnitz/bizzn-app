@@ -245,18 +245,18 @@ export default function RestaurantOverview({ projectId }: RestaurantOverviewProp
       <div className="grid grid-cols-2 gap-3 pt-2">
         <Link
           href={`/dashboard/project/${projectId}/orders`}
-          className="isolate flex items-center justify-center gap-2 bg-[#77CC00] text-[#1A1A1A] font-extrabold rounded-full px-5 sm:px-8 py-3.5 sm:py-4 text-sm transition-all duration-300 hover:scale-[1.02] active:scale-95 hover:shadow-[0_0_25px_rgba(119,204,0,0.4)] z-0"
+          className="btn-glow-primary flex items-center justify-center gap-2 bg-[#77CC00] text-[#1A1A1A] font-extrabold rounded-full px-5 sm:px-8 py-3.5 sm:py-4 text-sm transition-all duration-300 hover:scale-[1.02] active:scale-95 z-0"
         >
           <ShoppingBag className="w-4 h-4 shrink-0" />
-          <span className="hidden xs:inline sm:inline">Bestellungen</span>
+          <span className="hidden sm:inline">Bestellungen</span>
           <span className="sm:hidden">KDS</span>
         </Link>
         <Link
           href={`/dashboard/project/${projectId}/menu`}
-          className="isolate flex items-center justify-center gap-2 bg-[#242424] hover:bg-[#2d2d2d] text-gray-200 hover:text-white font-semibold rounded-full px-5 sm:px-8 py-3.5 sm:py-4 text-sm border border-white/5 transition-all duration-300 hover:border-white/10 z-0"
+          className="btn-glow-secondary flex items-center justify-center gap-2 bg-[#242424] hover:bg-[#2d2d2d] text-gray-200 hover:text-white font-semibold rounded-full px-5 sm:px-8 py-3.5 sm:py-4 text-sm border border-white/5 transition-all duration-300 hover:border-white/10 z-0"
         >
           <UtensilsCrossed className="w-4 h-4 shrink-0" />
-          <span className="hidden xs:inline sm:inline">Speisekarte</span>
+          <span className="hidden sm:inline">Speisekarte</span>
           <span className="sm:hidden">Menü</span>
         </Link>
       </div>
