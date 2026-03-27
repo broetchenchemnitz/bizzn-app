@@ -60,7 +60,7 @@ function PaymentForm() {
       <PaymentElement />
       <button 
         type="submit" 
-        disabled={!stripe || loading}
+        disabled={!stripe || !elements || loading}
         className="mt-2 w-full py-4 px-6 bg-[#77CC00] text-[#1A1A1A] text-lg font-bold rounded-xl hover:bg-[#88e600] disabled:opacity-50 transition-all duration-300 shadow-[0_0_20px_rgba(119,204,0,0.3)] hover:shadow-[0_0_30px_rgba(119,204,0,0.5)] active:scale-[0.98] flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#77CC00] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1A1A1A]"
       >
         {loading ? (
@@ -80,7 +80,7 @@ export default function Checkout({ clientSecret }: { clientSecret: string, order
   return (
     <div className="w-full max-w-lg mx-auto bg-[#242424] text-white rounded-2xl border border-[#333333] shadow-2xl relative">
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#77CC00] to-transparent opacity-50 rounded-t-2xl"></div>
-      <div className="p-8 sm:p-10 relative overflow-hidden rounded-2xl">
+      <div className="p-8 sm:p-10 relative z-50 rounded-2xl">
       
       <div className="mb-8 text-center">
         <h2 className="text-2xl font-bold mb-2">Checkout</h2>
@@ -103,6 +103,7 @@ export default function Checkout({ clientSecret }: { clientSecret: string, order
             borderRadius: '12px',
           },
           rules: {
+            '.invalid': { color: '#ff8080' },
             '.Label': {
               color: '#a3a3a3',
               fontWeight: '500',

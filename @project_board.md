@@ -1,4 +1,4 @@
-# 📍 CURRENT MICRO-STATE: Stripe Elements text color fixed for dark mode. Card overflow clipping resolved. Ready for re-QA.
+# 📍 CURRENT MICRO-STATE: Fixed dropdown clipping, implemented WCAG-compliant Stripe error styling (#ff8080), and enforced idempotency key + submit lock. Ready for QA.
 
 ## Aufgaben:
 - ✅ Alle Safari- & Viewport-Fixes erfolgreich gemergt.
