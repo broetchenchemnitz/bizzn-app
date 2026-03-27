@@ -2,26 +2,101 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * ══════════════════════════════════════════════════════════════════
+ * .safari-header — iOS Render Glitch Fix V3
+ *
+ * V3 CHANGES vs V2:
+ *   ✗ REMOVED: translate3d(0,0,0) — caused GPU memory leak by forcing
+ *     an immediate compositor layer with no browser-managed release.
+ *
+ *   ✓ ADDED: will-change: transform
+ *     Browser-deferred GPU hint. The compositor allocates the layer
+ *     only when needed and manages release automatically.
+
+ *   ✓ ADDED: -webkit-backface-visibility + backface-visibility: hidden
+ *     Prevents iOS Safari paint flicker without a persistent GPU layer.
+ *     Strictly scoped to .safari-header via direct selector only —
+ *     does NOT use inheritance or cascade to child elements.
+ *
+ * Cascade isolation:
+ *   backface-visibility is NOT inherited in CSS (initial: visible).
+ *   will-change is NOT inherited in CSS (initial: auto).
+ *   → child elements are unaffected by both properties. ✓
+ * ══════════════════════════════════════════════════════════════════
+ */
+
+/* ── BASE RULE — strictly OUTSIDE @supports ─────────────────────── */
+.safari-header {
+  /* Solid background-color fallback — always rendered, browser-agnostic */
+  background-color: rgba(26, 26, 26, 1);
+
+  /*
+   * will-change: transform
+   * ─────────────────────────────────────────
+   * Replaces the removed translate3d(0,0,0) hack.
+   * Defers GPU layer allocation to the browser compositor.
+   * Released automatically when .safari-header leaves the viewport.
+   * Applied to THIS element ONLY — not inherited.
+   */
+  will-change: transform;
+
+  /*
+   * backface-visibility: hidden
+   * ─────────────────────────────────────────
+   * Prevents iOS Safari paint artifact (white flash / content flicker)
+   * during composite layer promotion.
+   * Both -webkit- prefix (iOS < 15) and standard are explicit.
+   * NOT inherited — children retain their default backface-visibility.
+   */
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+
+  /* Stacking context — zero GPU cost, restores z-order */
+  isolation: isolate;
+  z-index: 50;
+}
+
+/* ── @supports POSITIVE — browser supports backdrop-filter ────────── */
+@supports (-webkit-backdrop-filter: none) or (backdrop-filter: none) {
+  .safari-header {
+    background-color: rgba(26, 26, 26, 0.85);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+  }
+
+  .safari-header > * {
+    /* Clipping fix: minimum non-zero alpha to force compositor pass */
+    background-color: rgba(26, 26, 26, 0.01);
+  }
+
+  .safari-header > *[class*='bg-'] {
+    background-color: revert;
+  }
+}
+
+/* ── @supports NOT — fully opaque, no blur, VRAM released ─────────── */
+@supports not ((-webkit-backdrop-filter: none) or (backdrop-filter: none)) {
+  .safari-header {
+    background-color: rgba(26, 26, 26, 1) !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    /* Release GPU hint in the non-blur code path */
+    will-change: auto !important;
+    -webkit-backface-visibility: visible !important;
+    backface-visibility: visible !important;
+  }
+}
+
+/* ── Global base ──────────────────────────────────────────────────── */
 @layer base {
   body {
     @apply bg-[#1A1A1A] text-white;
   }
 }
 
+/* ── Button glow via pseudo-elements (a11y safe) ─────────────────── */
 @layer components {
-  /*
-   * .btn-glow-primary / .btn-glow-secondary
-   *
-   * The glow is rendered exclusively via a ::before pseudo-element so it sits
-   * BEHIND the button content and never masks the native :focus-visible outline.
-   *
-   * z-index: -1  → glow layer sits below button text
-   * pointer-events: none → pseudo-element is non-interactive
-   * transition on opacity → smooth glow on hover/focus
-   *
-   * Usage: combine with `relative` on the element (already applied).
-   */
-
   .btn-glow-primary {
     @apply relative isolate;
   }
@@ -42,7 +117,6 @@
     box-shadow: 0 0 25px rgba(119, 204, 0, 0.4);
   }
 
-  /* Ensure native focus ring is never hidden */
   .btn-glow-primary:focus-visible {
     outline: 2px solid #77CC00;
     outline-offset: 3px;
@@ -71,20 +145,5 @@
   .btn-glow-secondary:focus-visible {
     outline: 2px solid #77CC00;
     outline-offset: 3px;
-  }
-}
-
-@layer utilities {
-  /*
-   * .no-overflow-x
-   *
-   * Applied at the LOCAL component level (grid container) rather than globally.
-   * Prevents horizontal overflow caused by grid children with min-width > 100%
-   * without stranding position:sticky elements (which need overflow:visible on
-   * ancestors to function in Mobile Safari).
-   */
-  .grid-safe {
-    min-width: 0;
-    overflow: hidden;
   }
 }
