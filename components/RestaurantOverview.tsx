@@ -24,7 +24,7 @@ interface KpiCardProps {
 function KpiCard({ icon, label, value, sub, accent = false }: KpiCardProps) {
   return (
     <div
-      className={`rounded-2xl p-5 flex flex-col gap-3 border transition-all relative overflow-hidden ${
+      className={`rounded-2xl p-5 flex flex-col gap-3 border transition-all relative overflow-x-hidden ${
         accent
           ? 'bg-[#77CC00] border-[#5eaa00] shadow-[0_0_20px_rgba(119,204,0,0.35)] text-black'
           : 'bg-[#242424] border-[#77CC00]/30 shadow-[0_0_20px_rgba(119,204,0,0.15)] text-white hover:border-[#77CC00]/50'

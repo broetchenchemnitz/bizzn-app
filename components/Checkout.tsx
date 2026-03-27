@@ -61,7 +61,7 @@ function PaymentForm() {
       <button 
         type="submit" 
         disabled={!stripe || loading}
-        className="mt-2 w-full py-4 px-6 bg-[#77CC00] text-[#1A1A1A] text-lg font-bold rounded-xl hover:bg-[#88e600] disabled:opacity-50 transition-all duration-300 shadow-[0_0_20px_rgba(119,204,0,0.3)] hover:shadow-[0_0_30px_rgba(119,204,0,0.5)] active:scale-[0.98] flex items-center justify-center gap-2"
+        className="mt-2 w-full py-4 px-6 bg-[#77CC00] text-[#1A1A1A] text-lg font-bold rounded-xl hover:bg-[#88e600] disabled:opacity-50 transition-all duration-300 shadow-[0_0_20px_rgba(119,204,0,0.3)] hover:shadow-[0_0_30px_rgba(119,204,0,0.5)] active:scale-[0.98] flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#77CC00] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1A1A1A]"
       >
         {loading ? (
           <div className="w-5 h-5 border-2 border-[#1A1A1A] border-t-transparent rounded-full animate-spin"></div>
@@ -78,7 +78,7 @@ export default function Checkout({ clientSecret }: { clientSecret: string, order
   if (!clientSecret) return <p className="text-gray-400 text-center animate-pulse">Lade sicheren Checkout...</p>;
 
   return (
-    <div className="w-full max-w-lg mx-auto p-8 sm:p-10 bg-[#242424] text-white rounded-2xl border border-[#333333] shadow-2xl relative overflow-hidden">
+    <div className="w-full max-w-lg mx-auto p-8 sm:p-10 bg-[#242424] text-white rounded-2xl border border-[#333333] shadow-2xl relative overflow-x-hidden">
       {/* Decorative Brand Accent */}
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#77CC00] to-transparent opacity-50"></div>
       
@@ -92,10 +92,10 @@ export default function Checkout({ clientSecret }: { clientSecret: string, order
         appearance: { 
           theme: 'night',
           variables: {
+            colorBackground: '#242424',
+            colorText: '#ffffff',
             colorPrimary: '#77CC00',
-            colorBackground: '#1A1A1A',
-            colorText: '#FFFFFF',
-            colorDanger: '#FF4444',
+            colorDanger: '#ff4d4f',
             fontFamily: 'system-ui, sans-serif',
             spacingUnit: '4px',
             borderRadius: '12px',

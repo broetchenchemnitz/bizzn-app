@@ -1,4 +1,4 @@
-# 📍 CURRENT MICRO-STATE: Checkout-UI COMPLETED (Veredelt durch Gem 3). Bereit für QA-Abnahme.
+# 📍 CURRENT MICRO-STATE: UI/UX QA Fixes implemented (Stripe Dark Mode, Focus States, Card Overflows). Bereit für finalen E2E Test.
 
 ## Aufgaben:
 - ✅ Alle Safari- & Viewport-Fixes erfolgreich gemergt.
