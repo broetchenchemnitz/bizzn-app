@@ -4,6 +4,87 @@
 
 @layer base {
   body {
-    @apply bg-gray-50 text-gray-900;
+    @apply bg-[#1A1A1A] text-white;
+  }
+}
+
+@layer components {
+  /*
+   * .btn-glow-primary / .btn-glow-secondary
+   *
+   * The glow is rendered exclusively via a ::before pseudo-element so it sits
+   * BEHIND the button content and never masks the native :focus-visible outline.
+   *
+   * z-index: -1  → glow layer sits below button text
+   * pointer-events: none → pseudo-element is non-interactive
+   * transition on opacity → smooth glow on hover/focus
+   *
+   * Usage: combine with `relative` on the element (already applied).
+   */
+
+  .btn-glow-primary {
+    @apply relative isolate;
+  }
+
+  .btn-glow-primary::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    background: transparent;
+    box-shadow: 0 0 25px rgba(119, 204, 0, 0);
+    z-index: -1;
+    pointer-events: none;
+    transition: box-shadow 0.3s ease;
+  }
+
+  .btn-glow-primary:hover::before {
+    box-shadow: 0 0 25px rgba(119, 204, 0, 0.4);
+  }
+
+  /* Ensure native focus ring is never hidden */
+  .btn-glow-primary:focus-visible {
+    outline: 2px solid #77CC00;
+    outline-offset: 3px;
+  }
+
+  .btn-glow-secondary {
+    @apply relative isolate;
+  }
+
+  .btn-glow-secondary::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    background: transparent;
+    box-shadow: 0 0 16px rgba(255, 255, 255, 0);
+    z-index: -1;
+    pointer-events: none;
+    transition: box-shadow 0.3s ease;
+  }
+
+  .btn-glow-secondary:hover::before {
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.05);
+  }
+
+  .btn-glow-secondary:focus-visible {
+    outline: 2px solid #77CC00;
+    outline-offset: 3px;
+  }
+}
+
+@layer utilities {
+  /*
+   * .no-overflow-x
+   *
+   * Applied at the LOCAL component level (grid container) rather than globally.
+   * Prevents horizontal overflow caused by grid children with min-width > 100%
+   * without stranding position:sticky elements (which need overflow:visible on
+   * ancestors to function in Mobile Safari).
+   */
+  .grid-safe {
+    min-width: 0;
+    overflow: hidden;
   }
 }

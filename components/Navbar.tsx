@@ -35,7 +35,7 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="w-full bg-[#242424] border-b border-white/5 px-6 py-4 flex justify-between items-center sticky top-0 z-50">
+    <nav className="w-full bg-[#242424] border-b border-white/5 px-4 sm:px-6 py-4 flex justify-between items-center sticky top-0 z-50 min-w-0">
       <Link href="/" className="flex items-center gap-2">
         <Image src="/logo.svg" alt="Bizzn Logo" width={100} height={38} priority />
       </Link>
@@ -43,7 +43,7 @@ export default function Navbar() {
         {!loading && (
           user ? (
             <>
-              <Link href="/dashboard" className="text-sm font-medium text-gray-400 hover:text-[#77CC00] transition-colors">
+              <Link href="/dashboard" className="text-sm font-medium text-gray-400 hover:text-white transition-colors">
                 Dashboard
               </Link>
               <button
