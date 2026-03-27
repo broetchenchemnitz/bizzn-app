@@ -147,3 +147,27 @@
     outline-offset: 3px;
   }
 }
+
+/*
+ * ══════════════════════════════════════════════════════════════════
+ * iOS Safari Viewport-Fix implementiert (CSS-Kaskade + JS Observer)
+ * ══════════════════════════════════════════════════════════════════
+ */
+@layer utilities {
+  .min-h-screen {
+    min-height: 100vh;
+    /* stylelint-disable-next-line value-no-vendor-prefix */
+    min-height: -webkit-fill-available;
+    min-height: 100dvh;
+    min-height: calc(var(--vh, 1vh) * 100);
+  }
+
+  .h-screen {
+    height: 100vh;
+    /* stylelint-disable-next-line value-no-vendor-prefix */
+    height: -webkit-fill-available;
+    height: 100dvh;
+    height: calc(var(--vh, 1vh) * 100);
+  }
+}
+
