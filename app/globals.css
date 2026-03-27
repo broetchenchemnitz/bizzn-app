@@ -147,3 +147,49 @@
     outline-offset: 3px;
   }
 }
+
+/*
+ * ══════════════════════════════════════════════════════════════════
+ * iOS Safari V3 Regression Fixes
+ * Branch: hotfix/ios-safari-v3-glitch
+ * ══════════════════════════════════════════════════════════════════
+ */
+@layer utilities {
+  /*
+   * 1. GPU Isolation — Typography & Compositing
+   * translateZ(0): promotes element to GPU layer.
+   * isolation: isolate: explicit stacking context (no z-index side-effects).
+   * -webkit-font-smoothing: restores subpixel antialiasing lost on GPU layers.
+   * Usage: apply to components experiencing font blurriness on GPU compositing.
+   */
+  .gpu-accelerated-layer {
+    transform: translateZ(0);
+    isolation: isolate;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /*
+   * 2. Strict Viewport Fallback Cascade
+   * Prevents layout collapse when Safari address bar shows/hides.
+   * Mirrors .screen-full but as an explicit named utility for component use.
+   */
+  .viewport-lock {
+    min-height: 100vh;                   /* Tier 1 — legacy */
+    /* stylelint-disable-next-line value-no-vendor-prefix */
+    min-height: -webkit-fill-available;  /* Tier 2 — Safari 11–14 */
+    min-height: 100dvh;                  /* Tier 3 — Safari 15.4+ */
+  }
+
+  /*
+   * 3. Touch-Target Safety — iOS Home Bar
+   * env(safe-area-inset-bottom, 20px): 20px default prevents hard-coded
+   * failures on devices without a Home Bar.
+   * min-height calc: guarantees the tap zone is always >= 48px (WCAG 2.5.5)
+   * plus the inset, keeping interactable area above the iOS swipe zone.
+   */
+  .bottom-interactive-zone {
+    padding-bottom: env(safe-area-inset-bottom, 20px);
+    min-height: calc(48px + env(safe-area-inset-bottom, 20px));
+  }
+}
