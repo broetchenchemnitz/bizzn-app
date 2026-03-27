@@ -33,9 +33,9 @@ export default async function ProjectWorkspacePage({
   if (!project) notFound()
 
   return (
-    <div className="min-h-screen bg-[#1A1A1A]">
+    <div className="min-h-screen bg-[#1A1A1A] overflow-x-hidden">
       {/* ── Top Navigation Bar ───────────────────────────────── */}
-      <div className="bg-[#242424] border-b border-white/5 px-8 py-3.5 flex items-center gap-4">
+      <div className="bg-[#242424] border-b border-white/5 px-4 sm:px-8 py-3.5 flex items-center gap-3 min-w-0">
         <Link
           href="/dashboard"
           className="inline-flex items-center text-sm font-medium text-gray-500 hover:text-gray-300 transition-colors gap-1.5 group"
@@ -62,7 +62,7 @@ export default async function ProjectWorkspacePage({
       </div>
 
       {/* ── Grid Body ────────────────────────────────────────── */}
-      <div className="max-w-7xl mx-auto px-8 py-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-8 py-6">
         <div className="grid grid-cols-12 gap-5">
 
           {/* ── LEFT / MAIN — col-span-8 ──────────────────── */}
@@ -100,9 +100,9 @@ export default async function ProjectWorkspacePage({
                 ].map(({ label, active }) => (
                   <div
                     key={label}
-                    className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-[#1A1A1A] border border-[#333333] hover:border-[#77CC00]/30 transition-all"
+                    className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-[#1A1A1A] border border-[#333333] hover:border-[#77CC00]/30 hover:text-white transition-all"
                   >
-                    <span className="text-sm text-gray-300">{label}</span>
+                    <span className="text-sm text-gray-300 group-hover:text-white transition-colors">{label}</span>
                     <div className="flex items-center gap-1.5">
                       <span className="relative flex h-2 w-2">
                         {active && (

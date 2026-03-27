@@ -32,7 +32,7 @@ export default async function DashboardPage({
   const isCanceled = searchParams?.canceled === 'true'
 
   return (
-    <div className="min-h-screen bg-[#1A1A1A] p-8">
+    <div className="min-h-screen bg-[#1A1A1A] overflow-x-hidden p-4 sm:p-8">
       <div className="max-w-5xl mx-auto space-y-5">
         {isSuccess && (
           <div className="p-4 bg-[#1a2e00] text-[#77CC00] rounded-xl border border-[#77CC00]/30 text-sm font-medium">
