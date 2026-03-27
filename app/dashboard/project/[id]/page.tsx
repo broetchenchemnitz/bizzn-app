@@ -35,7 +35,7 @@ export default async function ProjectWorkspacePage({
   return (
     <div className="min-h-screen bg-[#1A1A1A]">
       {/* ── Top Navigation Bar ───────────────────────────────── */}
-      <div className="bg-[#242424] border-b border-[#333333] px-8 py-3.5 flex items-center gap-4">
+      <div className="bg-[#242424] border-b border-white/5 px-8 py-3.5 flex items-center gap-4">
         <Link
           href="/dashboard"
           className="inline-flex items-center text-sm font-medium text-gray-500 hover:text-gray-300 transition-colors gap-1.5 group"
@@ -69,12 +69,12 @@ export default async function ProjectWorkspacePage({
           <div className="col-span-12 lg:col-span-8 space-y-5">
 
             {/* Project header card */}
-            <div className="bg-[#242424] rounded-2xl border border-[#333333] p-5">
+            <div className="bg-[#242424] rounded-3xl border border-white/5 shadow-lg p-5">
               <ProjectSettingsBlock projectId={project.id} initialName={project.name} />
             </div>
 
             {/* KPI + Quick Actions */}
-            <div className="bg-[#242424] rounded-2xl border border-[#333333] p-5">
+            <div className="bg-[#242424] rounded-3xl border border-white/5 shadow-lg p-5">
               <RestaurantOverview projectId={project.id} />
             </div>
           </div>
@@ -83,12 +83,12 @@ export default async function ProjectWorkspacePage({
           <div className="col-span-12 lg:col-span-4 space-y-4">
 
             {/* Slug inline input */}
-            <div className="bg-[#242424] rounded-2xl border border-[#333333] px-5 py-4">
+            <div className="bg-[#242424] rounded-3xl border border-white/5 shadow-lg px-5 py-4">
               <SlugSettingsBlock projectId={project.id} initialSlug={project.slug ?? null} />
             </div>
 
             {/* Order Channels */}
-            <div className="bg-[#242424] rounded-2xl border border-[#333333] p-5">
+            <div className="bg-[#242424] rounded-3xl border border-white/5 shadow-lg p-5">
               <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-3">
                 Bestellkanäle
               </p>

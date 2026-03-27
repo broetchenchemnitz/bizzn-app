@@ -77,7 +77,7 @@ export default function ProjectSettingsBlock({ projectId, initialName }: { proje
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-white">{initialName}</h1>
+              <h1 className="text-xl font-extrabold tracking-tighter text-white">{initialName}</h1>
               <button
                 onClick={() => setIsEditing(true)}
                 className="p-1 text-gray-700 hover:text-[#77CC00] hover:bg-[#242424] rounded-md transition-colors"

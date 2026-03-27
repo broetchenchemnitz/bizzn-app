@@ -24,34 +24,34 @@ interface KpiCardProps {
 function KpiCard({ icon, label, value, sub, accent = false }: KpiCardProps) {
   return (
     <div
-      className={`rounded-2xl p-5 flex flex-col gap-3 border transition-all hover:shadow-md ${
+      className={`rounded-2xl p-5 flex flex-col gap-3 border transition-all relative overflow-hidden ${
         accent
-          ? 'bg-[#77CC00] border-[#5eaa00] shadow-[0_4px_20px_rgba(119,204,0,0.35)] text-black'
-          : 'bg-[#1A1A1A] border-[#333333] shadow-sm text-white hover:border-[#444444]'
+          ? 'bg-[#77CC00] border-[#5eaa00] shadow-[0_0_20px_rgba(119,204,0,0.35)] text-black'
+          : 'bg-[#242424] border-[#77CC00]/30 shadow-[0_0_20px_rgba(119,204,0,0.15)] text-white hover:border-[#77CC00]/50'
       }`}
     >
       <div className="flex items-start justify-between">
         <div
           className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-            accent ? 'bg-black/15' : 'bg-[#242424]'
+            accent ? 'bg-black/15' : 'bg-[#1A1A1A]'
           }`}
         >
           <span className={`${accent ? 'text-black' : 'text-[#77CC00]'} [&>svg]:w-5 [&>svg]:h-5`}>{icon}</span>
         </div>
-        <ArrowUpRight className={`w-3.5 h-3.5 ${accent ? 'text-black/40' : 'text-gray-700'}`} />
+        <ArrowUpRight className={`w-3.5 h-3.5 ${accent ? 'text-black/40' : 'text-[#77CC00]/40'}`} />
       </div>
       <div>
-        <p className={`text-xs font-semibold uppercase tracking-wider ${
-          accent ? 'text-black/70' : 'text-gray-500'
+        <p className={`text-xs font-medium tracking-wide uppercase ${
+          accent ? 'text-black/70' : 'text-gray-400'
         }`}>
           {label}
         </p>
         <p className={`text-4xl font-extrabold tracking-tight mt-1 leading-none ${
-          accent ? 'text-black' : 'text-white'
+          accent ? 'text-black' : 'text-[#77CC00] drop-shadow-[0_0_8px_rgba(119,204,0,0.5)]'
         }`}>
           {value}
         </p>
-        <p className={`text-xs mt-1.5 ${accent ? 'text-black/60' : 'text-gray-600'}`}>{sub}</p>
+        <p className={`text-xs mt-1.5 font-medium ${accent ? 'text-black/60' : 'text-gray-500'}`}>{sub}</p>
       </div>
     </div>
   )
@@ -245,14 +245,14 @@ export default function RestaurantOverview({ projectId }: RestaurantOverviewProp
       <div className="grid grid-cols-2 gap-3 pt-2">
         <Link
           href={`/dashboard/project/${projectId}/orders`}
-          className="flex items-center justify-center gap-2 bg-[#77CC00] hover:bg-[#66b300] text-black font-bold px-5 py-3.5 rounded-xl text-sm transition-colors shadow-sm"
+          className="flex items-center justify-center gap-2 bg-[#77CC00] text-[#1A1A1A] font-extrabold rounded-full px-8 py-4 text-sm transition-all duration-300 hover:scale-[1.02] active:scale-95 hover:shadow-[0_0_25px_rgba(119,204,0,0.4)]"
         >
           <ShoppingBag className="w-4 h-4" />
           Bestellungen
         </Link>
         <Link
           href={`/dashboard/project/${projectId}/menu`}
-          className="flex items-center justify-center gap-2 bg-[#242424] hover:bg-[#2d2d2d] text-gray-200 font-semibold px-5 py-3.5 rounded-xl text-sm border border-[#333333] transition-colors"
+          className="flex items-center justify-center gap-2 bg-[#242424] hover:bg-[#2d2d2d] text-gray-200 font-semibold rounded-full px-8 py-4 text-sm border border-white/5 transition-all duration-300 hover:border-white/10"
         >
           <UtensilsCrossed className="w-4 h-4" />
           Speisekarte

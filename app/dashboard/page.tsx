@@ -46,17 +46,17 @@ export default async function DashboardPage({
         )}
 
         {/* Header card */}
-        <div className="flex justify-between items-center bg-[#242424] rounded-2xl border border-[#333333] p-6">
+        <div className="flex justify-between items-center bg-[#242424] rounded-3xl border border-white/5 shadow-lg p-6">
           <div>
-            <h1 className="text-2xl font-extrabold text-white">Dashboard</h1>
-            <p className="text-gray-400 text-sm mt-1">
+            <h1 className="text-2xl font-extrabold tracking-tighter text-white">Dashboard</h1>
+            <p className="text-gray-400 font-medium tracking-wide text-sm mt-1">
               Willkommen zurück, {(user?.user_metadata?.full_name as string | undefined) || user?.email || 'User'}.
             </p>
           </div>
           <div className="flex items-start gap-3">
             <Link
               href="/dashboard/settings"
-              className="flex items-center gap-2 bg-[#1A1A1A] hover:bg-[#333333] text-gray-300 border border-[#333333] px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+              className="flex items-center gap-2 bg-[#1A1A1A] hover:bg-[#333333] text-gray-300 border border-white/5 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300"
             >
               <Settings className="w-4 h-4 text-gray-500" />
               Einstellungen
@@ -67,8 +67,8 @@ export default async function DashboardPage({
         </div>
 
         {/* Projects card */}
-        <div className="bg-[#242424] rounded-2xl border border-[#333333] p-6">
-          <h2 className="text-base font-bold text-white mb-4 flex items-center gap-2">
+        <div className="bg-[#242424] rounded-3xl border border-white/5 shadow-lg p-6">
+          <h2 className="text-base font-extrabold tracking-tighter text-white mb-4 flex items-center gap-2">
             <FolderGit2 className="w-4 h-4 text-[#77CC00]" />
             Aktive Projekte
           </h2>
@@ -87,7 +87,7 @@ export default async function DashboardPage({
                 <Link
                   href={`/dashboard/project/${project.id}`}
                   key={project.id}
-                  className="block p-4 bg-[#1A1A1A] border border-[#333333] rounded-xl hover:border-[#77CC00]/60 hover:shadow-[0_0_12px_rgba(119,204,0,0.15)] transition-all cursor-pointer group"
+                  className="block p-4 bg-[#1A1A1A] border border-white/5 rounded-2xl hover:border-[#77CC00]/50 hover:shadow-[0_0_20px_rgba(119,204,0,0.15)] transition-all duration-300 cursor-pointer group"
                 >
                   <h3 className="font-semibold text-white group-hover:text-[#77CC00] transition-colors">{project.name}</h3>
                   <div className="flex justify-between items-center mt-4">
