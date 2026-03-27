@@ -95,6 +95,80 @@
   }
 }
 
+/*
+ * ══════════════════════════════════════════════════════════════════
+ * iOS Safari V3 Hardened Viewport Utilities
+ * hotfix/ios-safari-v3-hardening
+ *
+ * Step 1 — Strict viewport cascade:
+ *   - Base: 100vh (all browsers)
+ *   - Modern: 100dvh (Safari 15.4+, Chrome 108+)
+ *   - Legacy iOS: -webkit-fill-available ONLY inside
+ *     @supports (-webkit-touch-callout: none) — this selector matches
+ *     iOS Safari exclusively, isolating the hack from macOS Safari/Blink.
+ *
+ * Step 2 — env() fallback corrected to 0px:
+ *   - Non-zero defaults (20px) mask layout issues on devices without
+ *     a Home Bar. 0px is spec-correct: the env() value IS the fallback.
+ * ══════════════════════════════════════════════════════════════════
+ */
+@layer utilities {
+  /* Full-screen height — hardened */
+  .screen-full {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  @supports (-webkit-touch-callout: none) {
+    .screen-full {
+      /* stylelint-disable-next-line value-no-vendor-prefix */
+      min-height: -webkit-fill-available; /* iOS < 15.4 only */
+    }
+  }
+
+  /* Named alias for component-level use */
+  .viewport-lock {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  @supports (-webkit-touch-callout: none) {
+    .viewport-lock {
+      /* stylelint-disable-next-line value-no-vendor-prefix */
+      min-height: -webkit-fill-available;
+    }
+  }
+
+  /* Safe-area padding — env() fallback: 0px (spec-correct) */
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-bottom: max(env(safe-area-inset-bottom, 0px), 0px);
+  }
+
+  .fixed-bottom-safe {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    z-index: 40;
+  }
+
+  /* Home Bar touch target — WCAG 2.5.5 min 48px above swipe zone */
+  .bottom-interactive-zone {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    min-height: calc(48px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* GPU compositing + typography isolation */
+  .gpu-accelerated-layer {
+    transform: translateZ(0);
+    isolation: isolate;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
 /* ── Button glow via pseudo-elements (a11y safe) ─────────────────── */
 @layer components {
   .btn-glow-primary {
