@@ -1,4 +1,4 @@
-# 📍 CURRENT MICRO-STATE: Merge abgeschlossen. Warten auf Feature-Spezifikationen.
+# 📍 CURRENT MICRO-STATE: Safari-Bugs erfolgreich gemerged. Warten auf Befehl für neues Feature.
 
 ## Aufgaben:
 - ✅ Alle iOS-Hotfix-Branches in main gemergt (569f127)
