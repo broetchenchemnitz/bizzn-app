@@ -1,4 +1,4 @@
-# 📍 CURRENT MICRO-STATE: Meilenstein abgeschlossen. Bereit für finalen Merge.
+# 📍 CURRENT MICRO-STATE: Merge abgeschlossen. Warten auf Feature-Spezifikationen.
 
 ## Aufgaben:
 - ✅ Alle iOS-Hotfix-Branches in main gemergt (569f127)
