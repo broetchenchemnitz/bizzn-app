@@ -1,4 +1,4 @@
-# 📍 CURRENT MICRO-STATE: Payment bugs fixed (Idempotency + Safari UI). Handed over to Gem 4 for Re-Test.
+# 📍 CURRENT MICRO-STATE: Payment bugs fixed (Double-Submit + Safari UI). Handed over to Gem 4 for Re-Test.
 
 ## Aufgaben:
 - ✅ Alle Safari- & Viewport-Fixes erfolgreich gemergt.
