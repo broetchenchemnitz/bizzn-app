@@ -95,6 +95,67 @@
   }
 }
 
+/*
+ * ══════════════════════════════════════════════════════════════════
+ * TASK 1 — VRAM Audit (no action needed, documented)
+ *
+ * will-change is applied ONLY to .safari-header (single sticky element).
+ * No global or high-level containers carry will-change or translate3d.
+ * StickyHeader.tsx manages the lifecycle dynamically (mount → double-rAF release).
+ * ✓ No additional removal needed.
+ * ══════════════════════════════════════════════════════════════════
+ *
+ * ══════════════════════════════════════════════════════════════════
+ * TASK 2 — Dynamic Viewport: 100vh → 100dvh fallback chain
+ *
+ * Tailwind's `min-h-screen` compiles to `min-height: 100vh` which breaks
+ * on Safari iOS when the address bar is visible (shrinks usable viewport).
+ *
+ * Fix: override via .screen-full utility class with the 3-tier fallback:
+ *   1. min-height: 100vh      → legacy Safari (no dvh support)
+ *   2. min-height: -webkit-fill-available → Safari 11–14
+ *   3. min-height: 100dvh     → Safari 15.4+, Chrome 108+
+ *
+ * Applied to all page root wrappers that need full-screen height.
+ * ══════════════════════════════════════════════════════════════════
+ */
+@layer utilities {
+  .screen-full {
+    min-height: 100vh;                    /* Tier 1 — base */
+    /* stylelint-disable-next-line value-no-vendor-prefix */
+    min-height: -webkit-fill-available;   /* Tier 2 — Safari 11–14 */
+    min-height: 100dvh;                   /* Tier 3 — modern browsers */
+  }
+
+  /*
+   * TASK 3 — Safe Area Insets for iOS Home Bar
+   *
+   * .safe-bottom: applies env(safe-area-inset-bottom) padding to any
+   * bottom-anchored fixed/sticky element (e.g., CTA bars, mobile nav,
+   * floating cart buttons) so they don't clash with the iOS Home Bar.
+   *
+   * z-index: 40 keeps bottom UI below the sticky breadcrumb header (z-50)
+   * and the global Navbar (z-50) in separate stacking contexts.
+   *
+   * Requires <meta name="viewport" content="...viewport-fit=cover"> in layout.tsx.
+   */
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+    /* Fallback for browsers lacking env() support */
+    padding-bottom: max(env(safe-area-inset-bottom), 12px);
+  }
+
+  .fixed-bottom-safe {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-bottom: max(env(safe-area-inset-bottom), 12px);
+    z-index: 40; /* below sticky header (z-50) and global nav (z-50) */
+  }
+}
+
 /* ── Button glow via pseudo-elements (a11y safe) ─────────────────── */
 @layer components {
   .btn-glow-primary {
