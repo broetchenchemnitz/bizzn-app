@@ -1,4 +1,4 @@
-# 📍 CURRENT MICRO-STATE: iOS Safari Viewport-Fix implementiert (CSS-Kaskade + JS Observer). Warten auf QA durch Gem 4.
+# 📍 CURRENT MICRO-STATE: Meilenstein abgeschlossen. Bereit für finalen Merge.
 
 ## Aufgaben:
 - ✅ Alle iOS-Hotfix-Branches in main gemergt (569f127)
