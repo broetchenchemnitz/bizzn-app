@@ -2,8 +2,144 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * ══════════════════════════════════════════════════════════════════
+ * .safari-header — iOS WebKit Render-Blocker Fix (V2)
+ *
+ * Rule order is strict and intentional:
+ *
+ * 1. BASE RULE (outside @supports) — always applied, all browsers:
+ *    - background-color solid fallback                              ← OUTSIDE @supports ✓
+ *    - -webkit-transform + transform: translate3d(0,0,0)           ← hardware acceleration
+ *    - isolation: isolate                                           ← restores z-order
+ *
+ * 2. @supports POSITIVE — only when backdrop-filter is supported:
+ *    - Override background-color to semi-transparent               ← enables blur visibility
+ *    - Explicit -webkit-backdrop-filter + backdrop-filter
+ *    - Clipping fix on direct children
+ *
+ * 3. @supports NOT — fully opaque solid fallback, VRAM released
+ *
+ * translate3d rationale:
+ *   Creates a GPU compositing layer → eliminates WebKit scroll flicker.
+ *   isolation: isolate is applied alongside to restore any z-index
+ *   ordering disrupted by the new stacking context created by transform.
+ * ══════════════════════════════════════════════════════════════════
+ */
+
+/* ── 1. BASE RULE — strictly OUTSIDE @supports ─────────────────── */
+.safari-header {
+  /* Solid background-color fallback — declared here, outside @supports,
+     so it always renders regardless of browser support. */
+  background-color: rgba(26, 26, 26, 1);
+
+  /* Hardware acceleration:
+     -webkit-transform required for iOS Safari < 9.
+     Creates a GPU compositor layer to prevent WebKit scroll flicker.
+     The -webkit- prefix is explicit per QA spec. */
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+
+  /* Z-index restoration:
+     translate3d creates a new local stacking context.
+     isolation: isolate re-establishes the correct z-order for all
+     child elements without allocating an additional GPU layer. */
+  isolation: isolate;
+  z-index: 50;
+}
+
+/* ── 2. @supports POSITIVE — browser supports backdrop-filter ──── */
+@supports (-webkit-backdrop-filter: none) or (backdrop-filter: none) {
+  .safari-header {
+    /* Semi-transparent override — required for WebKit to composite blur.
+       alpha < 1 is mandatory; fully opaque disables blur rendering. */
+    background-color: rgba(26, 26, 26, 0.85);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+  }
+
+  .safari-header > * {
+    /*
+     * Nested container clipping fix:
+     * Direct children with alpha = 0 cause Safari to skip the blur
+     * compositor pass for the entire subtree. Minimum 0.01 alpha
+     * forces inclusion in the compositing pass.
+     */
+    background-color: rgba(26, 26, 26, 0.01);
+  }
+
+  /* Reset for children with explicit background classes */
+  .safari-header > *[class*='bg-'] {
+    background-color: revert;
+  }
+}
+
+/* ── 3. @supports NOT — solid fallback, no blur ────────────────── */
+@supports not ((-webkit-backdrop-filter: none) or (backdrop-filter: none)) {
+  .safari-header {
+    background-color: rgba(26, 26, 26, 1) !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    will-change: auto !important;
+  }
+}
+
+/* ── Global base ────────────────────────────────────────────────── */
 @layer base {
   body {
-    @apply bg-gray-50 text-gray-900;
+    @apply bg-[#1A1A1A] text-white;
+  }
+}
+
+/* ── Button glow via pseudo-elements (a11y safe) ───────────────── */
+@layer components {
+  .btn-glow-primary {
+    @apply relative isolate;
+  }
+
+  .btn-glow-primary::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    background: transparent;
+    box-shadow: 0 0 25px rgba(119, 204, 0, 0);
+    z-index: -1;
+    pointer-events: none;
+    transition: box-shadow 0.3s ease;
+  }
+
+  .btn-glow-primary:hover::before {
+    box-shadow: 0 0 25px rgba(119, 204, 0, 0.4);
+  }
+
+  .btn-glow-primary:focus-visible {
+    outline: 2px solid #77CC00;
+    outline-offset: 3px;
+  }
+
+  .btn-glow-secondary {
+    @apply relative isolate;
+  }
+
+  .btn-glow-secondary::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    background: transparent;
+    box-shadow: 0 0 16px rgba(255, 255, 255, 0);
+    z-index: -1;
+    pointer-events: none;
+    transition: box-shadow 0.3s ease;
+  }
+
+  .btn-glow-secondary:hover::before {
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.05);
+  }
+
+  .btn-glow-secondary:focus-visible {
+    outline: 2px solid #77CC00;
+    outline-offset: 3px;
   }
 }
