@@ -39,28 +39,25 @@ export async function middleware(request: NextRequest) {
   // 5. Subdomain-Routing
   const extractedSubdomain = hostname.split('.')[0]
 
-  // 1. Absicherung gegen undefined/null Subdomains
-  if (!extractedSubdomain) {
+  // 1. Strikte Validierung der Subdomain (nur Alphanumerisch + Bindestrich)
+  const subdomainRegex = /^[a-zA-Z0-9-]+$/
+  if (!extractedSubdomain || !subdomainRegex.test(extractedSubdomain)) {
+    // Sicherheits-Fallback: Reguläres Routing ohne Rewrite, wenn ungültig
     return NextResponse.next()
   }
 
-  if (extractedSubdomain !== 'www') {
-    const url = request.nextUrl.clone()
+  const url = request.nextUrl.clone()
+  const requestHeaders = new Headers(request.headers)
+  // Header-Injection ist durch die Regex-Validierung nun ausgeschlossen
+  requestHeaders.set('x-subdomain', extractedSubdomain)
 
-    const requestHeaders = new Headers(request.headers)
-    requestHeaders.set('x-subdomain', extractedSubdomain)
-
-    // 2. FIX: url.search zwingend anhängen, um Query-Parameter nicht zu droppen!
-    const rewritePath = `/${extractedSubdomain}${url.pathname}${url.search}`
-
-    return NextResponse.rewrite(new URL(rewritePath, request.url), {
-      request: {
-        headers: requestHeaders,
-      },
-    })
-  }
-
-  return response
+  // 2. Rewrite-Logik (Query-Parameter werden nicht gedropt)
+  const rewritePath = `/${extractedSubdomain}${url.pathname}${url.search}`
+  return NextResponse.rewrite(new URL(rewritePath, request.url), {
+    request: {
+      headers: requestHeaders,
+    },
+  })
 }
 
 export const config = {
