@@ -46,13 +46,17 @@ test.describe('Stripe Payment E2E Flow', () => {
       const { data: order, error } = await supabase
         .from('orders')
         .select('payment_intent_id, status')
-        .eq('user_id', testUser.id) // KORREKTUR: Zwingende Zuweisung zur Test-Session!
+        .eq('user_id', testUser.id)
         .order('created_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle(); // QA-Fix: maybeSingle verhindert Error-Spamming bei 0 Reihen
 
-      if (error) return null; // Return null bei PGRST116 (0 rows), damit Playwright weiter pollt
-      return order;
+      // QA-Fix: Echte Fehler (Auth, Network, etc.) hart werfen, nicht schlucken!
+      if (error) {
+        throw new Error(`Kritischer Supabase DB-Fehler im Payment-Poll: ${error.message}`);
+      }
+
+      return order; // Ist null, solange der Webhook nicht gefeuert hat. Poll retried automatisch.
     }, {
       message: 'Timeout: Webhook hat den Order-Status nicht rechtzeitig auf paid gesetzt.',
       timeout: 10000,
