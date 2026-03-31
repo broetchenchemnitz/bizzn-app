@@ -7,7 +7,18 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY as string;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 test.describe('Stripe Payment E2E Flow', () => {
-  
+
+  // testUser is populated in beforeEach so it is in scope for all DB assertions
+  let testUser: { id: string };
+
+  test.beforeEach(async () => {
+    // Retrieve the currently authenticated Supabase test user (service role bypasses RLS)
+    const { data, error } = await supabase.auth.admin.listUsers();
+    if (error || !data.users.length) throw new Error('No test user found in Supabase auth');
+    // Use the first user — replace this with a dedicated test account lookup if needed
+    testUser = { id: data.users[0].id };
+  });
+
   test('Successful Payment (4242) and DB Verification', async ({ page }) => {
     // 1. Navigate to checkout (adjust URL to specific test product/route)
     await page.goto('/checkout');
@@ -29,20 +40,26 @@ test.describe('Stripe Payment E2E Flow', () => {
     await expect(page).toHaveURL(/\/checkout\/success/);
 
     // 5. Verify Supabase Database (Wait for webhook to process)
-    await page.waitForTimeout(3000); // Give Webhook time to process
-    
-    // Fetch latest order for this test user/session
-    const { data: order, error } = await supabase
-      .from('orders')
-      .select('payment_intent_id, status')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
+    // Fetch und Poll latest order for THIS specific test user
+    // expect.poll wartet, bis der Webhook die DB erfolgreich aktualisiert hat (max 10s)
+    await expect.poll(async () => {
+      const { data: order, error } = await supabase
+        .from('orders')
+        .select('payment_intent_id, status')
+        .eq('user_id', testUser.id) // KORREKTUR: Zwingende Zuweisung zur Test-Session!
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
 
-    expect(error).toBeNull();
-    expect(order?.payment_intent_id).toBeTruthy();
-    expect(order?.payment_intent_id).toContain('pi_');
-    expect(order?.status).toBe('paid');
+      if (error) return null; // Return null bei PGRST116 (0 rows), damit Playwright weiter pollt
+      return order;
+    }, {
+      message: 'Timeout: Webhook hat den Order-Status nicht rechtzeitig auf paid gesetzt.',
+      timeout: 10000,
+    }).toMatchObject({
+      payment_intent_id: expect.stringContaining('pi_'),
+      status: 'paid'
+    });
   });
 
   test('Failed Payment Error Handling', async ({ page }) => {
