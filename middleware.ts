@@ -1,44 +1,36 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { updateSession } from '@/utils/supabase/middleware'
 
-// ---------------------------------------------------------------------------
-// Main domain list — requests from these hosts are treated as the Bizzn admin
-// app and get normal auth-guard behaviour.
-// ---------------------------------------------------------------------------
 const MAIN_DOMAINS = new Set([
   'localhost:3000',
   'bizzn.de',
   'www.bizzn.de',
-  'bizzn-chemnitz.vercel.app', // <-- Hier ist das VIP-Ticket für Vercel!
+  'bizzn-chemnitz.vercel.app',
 ])
 
 export async function middleware(request: NextRequest) {
+  // 1. Session Update & Edge Auth Guards MÜSSEN zuerst laufen!
+  const response = await updateSession(request)
+
+  // 2. Wenn updateSession ein Redirect auslöst (z.B. Login Kick), sofort ausführen!
+  if (response.status >= 300 && response.status < 400) {
+    return response
+  }
+
+  // 3. Subdomain-Routing anwenden
   const hostname = request.headers.get('host') ?? ''
-
-  // ------------------------------------------------------------------
-  // Multi-tenant subdomain routing
-  // If the request comes from a subdomain (e.g. marios.localhost:3000),
-  // rewrite it transparently to /[domain]/... so Next.js serves
-  // app/[domain]/page.tsx without changing the visible URL.
-  // ------------------------------------------------------------------
   if (!MAIN_DOMAINS.has(hostname)) {
-    // Extract subdomain: "marios.localhost:3000" → "marios"
-    // "marios.bizzn.de"         → "marios"
     const subdomain = hostname.split('.')[0]
-
     if (subdomain) {
       const url = request.nextUrl.clone()
-      // Rewrite /some/path → /marios/some/path
       url.pathname = `/${subdomain}${request.nextUrl.pathname}`
-      return NextResponse.rewrite(url)
+
+      // WICHTIG: Headers (inkl. Supabase Set-Cookie) vom response übernehmen!
+      return NextResponse.rewrite(url, { headers: response.headers })
     }
   }
 
-  // ------------------------------------------------------------------
-  // Main domain: delegate to updateSession utility for strict auth guard
-  // (getUser() server-side validation, /dashboard protection, /auth redirect)
-  // ------------------------------------------------------------------
-  return updateSession(request)
+  return response
 }
 
 export const config = {
