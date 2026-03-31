@@ -1,4 +1,4 @@
-# 📍 CURRENT MICRO-STATE: Globaler Dark-Mode (#1A1A1A) erzwungen. UI-Bug (weißer Hintergrund) behoben.
+# 📍 CURRENT MICRO-STATE: Globaler Dark Mode (#1A1A1A Base) und echtes Vektor-Logo (logo.svg) via Next.js <Image> Tag überall integriert.
 
 ## Aufgaben:
 - ✅ Alle Safari- & Viewport-Fixes erfolgreich gemergt.
