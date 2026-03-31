@@ -11,11 +11,10 @@ export default function Home() {
         <Link href="/" aria-label="Bizzn Startseite" className="mb-2 md:mb-6">
           <Image
             src="/logo.svg"
-            alt="Bizzn Logo"
-            width={260}
-            height={98}
-            className="w-48 h-auto md:w-72 drop-shadow-[0_0_32px_rgba(119,204,0,0.3)]"
-            priority={true}
+            alt="Hero Logo"
+            width={500}
+            height={500}
+            className="w-64 md:w-96 lg:max-w-md h-auto drop-shadow-2xl"
           />
         </Link>
 

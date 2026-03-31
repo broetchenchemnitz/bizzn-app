@@ -40,11 +40,10 @@ export default function Navbar() {
       <Link href="/" className="flex items-center shrink-0" aria-label="Bizzn – Zur Startseite">
         <Image
           src="/logo.svg"
-          alt="Bizzn Logo"
-          width={110}
-          height={42}
-          className="w-32 h-auto md:w-40"
-          priority={true}
+          alt="Header Logo"
+          width={250}
+          height={250}
+          className="w-40 md:w-56 h-auto"
         />
       </Link>
 

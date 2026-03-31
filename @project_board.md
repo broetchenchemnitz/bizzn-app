@@ -1,4 +1,4 @@
-# 📍 CURRENT MICRO-STATE: Design implementiert. Warten auf QA.
+# 📍 CURRENT MICRO-STATE: Design implementiert (SVG Logo skaliert). Warten auf QA.
 
 ## Aufgaben:
 - ✅ Alle Safari- & Viewport-Fixes erfolgreich gemergt.
