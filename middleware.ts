@@ -1,5 +1,5 @@
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { updateSession } from '@/utils/supabase/middleware'
 
 // ---------------------------------------------------------------------------
 // Main domain list — requests from these hosts are treated as the Bizzn admin
@@ -35,47 +35,10 @@ export async function middleware(request: NextRequest) {
   }
 
   // ------------------------------------------------------------------
-  // Main domain: standard Supabase Auth guard for /dashboard
+  // Main domain: delegate to updateSession utility for strict auth guard
+  // (getUser() server-side validation, /dashboard protection, /auth redirect)
   // ------------------------------------------------------------------
-  let response = NextResponse.next({
-    request: { headers: request.headers },
-  })
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          request.cookies.set({ name, value, ...options })
-          response = NextResponse.next({ request: { headers: request.headers } })
-          response.cookies.set({ name, value, ...options })
-        },
-        remove(name: string, options: CookieOptions) {
-          request.cookies.set({ name, value: '', ...options })
-          response = NextResponse.next({ request: { headers: request.headers } })
-          response.cookies.set({ name, value: '', ...options })
-        },
-      },
-    }
-  )
-
-  const { data: { user } } = await supabase.auth.getUser()
-
-  // Protect the /dashboard route
-  if (request.nextUrl.pathname.startsWith('/dashboard') && !user) {
-    return NextResponse.redirect(new URL('/auth/login', request.url))
-  }
-
-  // Redirect logged-in users away from auth pages
-  if (request.nextUrl.pathname.startsWith('/auth/login') && user) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
-  }
-
-  return response
+  return updateSession(request)
 }
 
 export const config = {
