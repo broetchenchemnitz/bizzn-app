@@ -43,7 +43,8 @@ export default function Navbar() {
           alt="Header Logo"
           width={250}
           height={250}
-          className="w-40 md:w-56 h-auto"
+          className="h-10 w-auto md:h-12 lg:h-14 object-contain"
+          priority
         />
       </Link>
 

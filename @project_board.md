@@ -1,4 +1,4 @@
-# 📍 CURRENT MICRO-STATE: Design implementiert (SVG Logo skaliert). Warten auf QA.
+# 📍 CURRENT MICRO-STATE: Hero and Navbar Logo responsive/LCP bugs fixed.
 
 ## Aufgaben:
 - ✅ Alle Safari- & Viewport-Fixes erfolgreich gemergt.
