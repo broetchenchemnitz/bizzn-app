@@ -17,11 +17,11 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className="dark bg-[#1A1A1A] text-white">
       <body className={`${inter.className} bg-[#1A1A1A] text-white min-h-screen flex flex-col`}>
         <ViewportFix />
         <Navbar />
-        <main className="flex-1 w-full mx-auto flex flex-col">
+        <main className="flex-1 w-full mx-auto flex flex-col bg-[#1A1A1A]">
           {children}
         </main>
       </body>

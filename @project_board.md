@@ -1,4 +1,4 @@
-# 📍 CURRENT MICRO-STATE: Payment bugs fixed (Double-Submit + Safari UI). Handed over to Gem 4 for Re-Test.
+# 📍 CURRENT MICRO-STATE: Globaler Dark-Mode (#1A1A1A) erzwungen. UI-Bug (weißer Hintergrund) behoben.
 
 ## Aufgaben:
 - ✅ Alle Safari- & Viewport-Fixes erfolgreich gemergt.

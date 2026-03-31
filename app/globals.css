@@ -90,8 +90,9 @@
 
 /* ── Global base ──────────────────────────────────────────────────── */
 @layer base {
-  body {
+  html, body {
     @apply bg-[#1A1A1A] text-white;
+    color-scheme: dark;
   }
   button {
     @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#77CC00] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1A1A1A];
