@@ -1,4 +1,4 @@
-# 📍 CURRENT MICRO-STATE: UI-Refactoring auf Dark Mode (Kategorie-Detailseite & DishForm) abgeschlossen. Bizzn-Limettengrün integriert.
+# 📍 CURRENT MICRO-STATE: UI-Refactoring auf strikten Bizzn Dark Mode (Kategorie & Formular) via globals.css Tokens implementiert.
 
 ## 🚀 MEILENSTEINE (PHASE 1)
 1. [x] **DB-Architektur & Vision-Service:** Setup der Supabase-Tabellen für Kategorien/Gerichte und Integration der Vision API Schnittstelle.
