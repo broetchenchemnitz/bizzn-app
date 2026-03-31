@@ -1,4 +1,4 @@
-# 📍 CURRENT MICRO-STATE: Bugfix middleware.ts - Edge Auth & Subdomain Routing (Wartet auf QA)
+# 📍 CURRENT MICRO-STATE: middleware.ts gefixt - Supabase Auth Headers, Vercel Previews & IPs gesichert (Wartet auf QA)
 
 ## PHASE 1: DAS CORE-MVP (Gastronomen-Dashboard)
 - [x] Authentifizierung: Supabase Login/Registrierung NUR für Gastronomen. Middleware-Protection für /dashboard.

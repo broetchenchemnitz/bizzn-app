@@ -5,28 +5,43 @@ const MAIN_DOMAINS = new Set([
   'localhost:3000',
   'bizzn.de',
   'www.bizzn.de',
-  'bizzn-chemnitz.vercel.app',
 ])
 
 export async function middleware(request: NextRequest) {
-  // 1. Session Update & Edge Auth Guards MÜSSEN zuerst laufen!
+  // 1. Session & Cookies von Supabase validieren
   const response = await updateSession(request)
 
-  // 2. Wenn updateSession ein Redirect auslöst (z.B. Login Kick), sofort ausführen!
+  // 2. Auth-Redirects sofort passieren lassen
   if (response.status >= 300 && response.status < 400) {
     return response
   }
 
-  // 3. Subdomain-Routing anwenden
   const hostname = request.headers.get('host') ?? ''
-  if (!MAIN_DOMAINS.has(hostname)) {
+
+  // 3. Sicherheits-Checks für Preview-Environments und direkte IP-Aufrufe
+  const isVercelPreview = hostname.endsWith('.vercel.app')
+  const isIPAddress = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}(:[0-9]+)?$/.test(hostname)
+
+  if (!MAIN_DOMAINS.has(hostname) && !isVercelPreview && !isIPAddress) {
     const subdomain = hostname.split('.')[0]
-    if (subdomain) {
+
+    if (subdomain && subdomain !== 'www') {
       const url = request.nextUrl.clone()
       url.pathname = `/${subdomain}${request.nextUrl.pathname}`
 
-      // WICHTIG: Headers (inkl. Supabase Set-Cookie) vom response übernehmen!
-      return NextResponse.rewrite(url, { headers: response.headers })
+      // 4. Rewrite Response erstellen und REQUEST-Header erhalten
+      const rewriteResponse = NextResponse.rewrite(url, {
+        request: {
+          headers: request.headers,
+        },
+      })
+
+      // 5. RESPONSE-Header (Cookies von Supabase) sauber mergen
+      response.headers.forEach((value, key) => {
+        rewriteResponse.headers.append(key, value)
+      })
+
+      return rewriteResponse
     }
   }
 
