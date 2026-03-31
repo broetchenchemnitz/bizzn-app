@@ -8,13 +8,13 @@ export default function Home() {
       <div className="flex flex-col items-center text-center gap-8 max-w-2xl">
 
         {/* Vektor-Logo — scharf auf #1A1A1A via Lime-Fill */}
-        <Link href="/" aria-label="Bizzn Startseite">
+        <Link href="/" aria-label="Bizzn Startseite" className="mb-2 md:mb-6">
           <Image
             src="/logo.svg"
             alt="Bizzn Logo"
             width={260}
             height={98}
-            className="h-20 w-auto md:h-24 drop-shadow-[0_0_24px_rgba(119,204,0,0.25)]"
+            className="w-48 h-auto md:w-72 drop-shadow-[0_0_32px_rgba(119,204,0,0.3)]"
             priority={true}
           />
         </Link>

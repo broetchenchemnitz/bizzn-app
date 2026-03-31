@@ -43,7 +43,7 @@ export default function Navbar() {
           alt="Bizzn Logo"
           width={110}
           height={42}
-          className="h-9 w-auto md:h-10"
+          className="w-32 h-auto md:w-40"
           priority={true}
         />
       </Link>

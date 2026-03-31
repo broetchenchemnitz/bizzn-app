@@ -1,4 +1,4 @@
-# 📍 CURRENT MICRO-STATE: Startseite auf Deutsch übersetzt. Korrektes logo.svg via Next.js <Image> integriert.
+# 📍 CURRENT MICRO-STATE: Design implementiert. Warten auf QA.
 
 ## Aufgaben:
 - ✅ Alle Safari- & Viewport-Fixes erfolgreich gemergt.
