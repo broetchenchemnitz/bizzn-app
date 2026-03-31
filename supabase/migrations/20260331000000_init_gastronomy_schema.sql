@@ -43,30 +43,39 @@ CREATE POLICY "Restaurants Owner CRUD" ON restaurants
   WITH CHECK (auth.uid() = owner_id);
 
 -- Categories
-CREATE POLICY "Categories Owner CRUD" ON categories
-  FOR ALL TO authenticated
-  USING (restaurant_id IN (SELECT id FROM restaurants WHERE owner_id = auth.uid()))
-  WITH CHECK (restaurant_id IN (SELECT id FROM restaurants WHERE owner_id = auth.uid()));
+DROP POLICY IF EXISTS "Categories Owner CRUD" ON categories;
+DROP POLICY IF EXISTS "Gastronom_All_Access_Categories" ON categories;
+CREATE POLICY "Gastronom_All_Access_Categories" ON categories AS PERMISSIVE FOR ALL TO authenticated USING (
+  restaurant_id IN (SELECT id FROM restaurants WHERE owner_id = auth.uid())
+) WITH CHECK (
+  restaurant_id IN (SELECT id FROM restaurants WHERE owner_id = auth.uid())
+);
 
 CREATE POLICY "Categories Public Select" ON categories
   FOR SELECT TO anon, authenticated
   USING (true);
 
 -- Menu Items
-CREATE POLICY "Menu Items Owner CRUD" ON menu_items
-  FOR ALL TO authenticated
-  USING (category_id IN (SELECT id FROM categories WHERE restaurant_id IN (SELECT id FROM restaurants WHERE owner_id = auth.uid())))
-  WITH CHECK (category_id IN (SELECT id FROM categories WHERE restaurant_id IN (SELECT id FROM restaurants WHERE owner_id = auth.uid())));
+DROP POLICY IF EXISTS "Menu Items Owner CRUD" ON menu_items;
+DROP POLICY IF EXISTS "Gastronom_All_Access_MenuItems" ON menu_items;
+CREATE POLICY "Gastronom_All_Access_MenuItems" ON menu_items AS PERMISSIVE FOR ALL TO authenticated USING (
+  category_id IN (SELECT id FROM categories WHERE restaurant_id IN (SELECT id FROM restaurants WHERE owner_id = auth.uid()))
+) WITH CHECK (
+  category_id IN (SELECT id FROM categories WHERE restaurant_id IN (SELECT id FROM restaurants WHERE owner_id = auth.uid()))
+);
 
 CREATE POLICY "Menu Items Public Select" ON menu_items
   FOR SELECT TO anon, authenticated
   USING (true);
 
 -- Tables
-CREATE POLICY "Tables Owner CRUD" ON tables
-  FOR ALL TO authenticated
-  USING (restaurant_id IN (SELECT id FROM restaurants WHERE owner_id = auth.uid()))
-  WITH CHECK (restaurant_id IN (SELECT id FROM restaurants WHERE owner_id = auth.uid()));
+DROP POLICY IF EXISTS "Tables Owner CRUD" ON tables;
+DROP POLICY IF EXISTS "Gastronom_All_Access_Tables" ON tables;
+CREATE POLICY "Gastronom_All_Access_Tables" ON tables AS PERMISSIVE FOR ALL TO authenticated USING (
+  restaurant_id IN (SELECT id FROM restaurants WHERE owner_id = auth.uid())
+) WITH CHECK (
+  restaurant_id IN (SELECT id FROM restaurants WHERE owner_id = auth.uid())
+);
 
 CREATE POLICY "Tables Public Select" ON tables
   FOR SELECT TO anon, authenticated
