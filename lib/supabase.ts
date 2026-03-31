@@ -1,17 +1,23 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js'
+import { createBrowserClient } from '@supabase/ssr'
 
-let _supabase: SupabaseClient | null = null
+/**
+ * Browser Supabase client — singleton, safe to call multiple times.
+ * Uses createBrowserClient from @supabase/ssr so session cookies are
+ * kept in sync with the server-side middleware (utils/supabase/middleware.ts).
+ */
+let _client: ReturnType<typeof createBrowserClient> | null = null
 
-export function getSupabase(): SupabaseClient {
-  if (!_supabase) {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
-    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
-    _supabase = createClient(url, key)
+export function getBrowserClient() {
+  if (!_client) {
+    _client = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
   }
-  return _supabase
+  return _client
 }
 
-// Convenience re-export for client components
+// Convenience proxy for client components — drop-in replacement for old supabase export
 export const supabase = {
-  get auth() { return getSupabase().auth },
+  get auth() { return getBrowserClient().auth },
 }
