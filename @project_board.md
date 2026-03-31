@@ -1,4 +1,4 @@
-# 📍 CURRENT MICRO-STATE: RLS-Policy Performance-Bug auf menu_items gefixt (EXISTS statt IN). Backend-Architektur bereit für finale QA und Phase 1 Frontend-Integration.
+# 📍 CURRENT MICRO-STATE: RLS Performance & Index-Migration erfolgreich getestet und abgeschlossen. Backend-Architektur gemerged. Bereit für Phase 1 Speisekarten-CRUD.
 
 ## PHASE 1: DAS CORE-MVP (Gastronomen-Dashboard)
 - [x] Authentifizierung: Supabase Login/Registrierung NUR für Gastronomen. Middleware-Protection für /dashboard.
