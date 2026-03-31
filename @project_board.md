@@ -1,4 +1,4 @@
-# 📍 CURRENT MICRO-STATE: [Hero Logo Responsive Fix] erfolgreich getestet und abgeschlossen
+# 📍 CURRENT MICRO-STATE: E2E Playwright Test (tests/e2e/payment-flow.spec.ts) scaffolded. Bereit zur Ausführung gegen localhost:3000.
 
 ## Aufgaben:
 - ✅ Alle Safari- & Viewport-Fixes erfolgreich gemergt.
