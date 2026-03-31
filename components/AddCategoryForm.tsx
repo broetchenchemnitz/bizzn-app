@@ -35,26 +35,27 @@ export default function AddCategoryForm({ projectId }: AddCategoryFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
-      <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row gap-3">
         <input
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="z. B. Vorspeisen, Hauptgericht, Getränke…"
-          className="flex-1 px-4 py-2.5 text-sm border border-gray-200 rounded-xl outline-none focus:border-[#77CC00] focus:ring-2 focus:ring-[#77CC00]/20 transition-all"
+          className="flex-1 px-4 py-3 text-sm bg-slate-950 text-slate-100 placeholder-slate-500 border border-slate-700 rounded-xl outline-none focus:border-lime-500 focus:ring-2 focus:ring-lime-500/30 transition-all shadow-inner"
           disabled={isLoading}
         />
         <button
           type="submit"
           disabled={isLoading || !name.trim()}
-          className="flex items-center gap-2 bg-[#77CC00] hover:bg-[#66b300] text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors disabled:opacity-50 shadow-sm"
+          className="flex items-center justify-center gap-2 bg-gradient-to-r from-lime-500 to-emerald-600 hover:from-lime-400 hover:to-emerald-500 text-slate-950 font-bold px-6 py-3 rounded-xl text-sm transition-all duration-300 disabled:opacity-50 shadow-lg shadow-lime-500/20 hover:shadow-lime-500/40 active:scale-[0.98] whitespace-nowrap"
         >
           {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
           Hinzufügen
         </button>
       </div>
       {error && (
-        <p className="text-sm text-red-500 bg-red-50 border border-red-100 px-3 py-2 rounded-lg">
+        <p className="text-sm text-rose-400 bg-rose-950/40 border border-rose-800/60 px-4 py-2.5 rounded-xl shadow-inner flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
           {error}
         </p>
       )}

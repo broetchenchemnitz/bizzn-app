@@ -1,4 +1,4 @@
-# 📍 CURRENT MICRO-STATE: RLS Performance & Index-Migration erfolgreich getestet und abgeschlossen. Backend-Architektur gemerged. Bereit für Phase 1 Speisekarten-CRUD.
+# 📍 CURRENT MICRO-STATE: Phase 1 - Backend-Architektur & RLS-Policies (Restaurants, Categories, Menu, Tables) per SQL implementiert. Warten auf QA durch Gem 4.
 
 ## PHASE 1: DAS CORE-MVP (Gastronomen-Dashboard)
 - [x] Authentifizierung: Supabase Login/Registrierung NUR für Gastronomen. Middleware-Protection für /dashboard.
