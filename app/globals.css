@@ -4,55 +4,35 @@
 
 /*
  * ══════════════════════════════════════════════════════════════════
+ * PROJECT CONSTITUTION — DARK MODE ONLY
+ *
+ * Base surface:  #1A1A1A  (html, body, main backgrounds)
+ * Card surface:  #242424
+ * Raised surface:#2d2d2d
+ * Brand accent:  #77CC00  (buttons, links, focus rings)
+ * Text primary:  #ffffff
+ * Text muted:    rgba(255,255,255,0.45)
+ *
+ * NO light-mode overrides. color-scheme: dark; is enforced globally.
+ * ══════════════════════════════════════════════════════════════════
+ */
+
+/*
+ * ══════════════════════════════════════════════════════════════════
  * .safari-header — iOS Render Glitch Fix V3
  *
- * V3 CHANGES vs V2:
- *   ✗ REMOVED: translate3d(0,0,0) — caused GPU memory leak by forcing
- *     an immediate compositor layer with no browser-managed release.
- *
- *   ✓ ADDED: will-change: transform
- *     Browser-deferred GPU hint. The compositor allocates the layer
- *     only when needed and manages release automatically.
-
- *   ✓ ADDED: -webkit-backface-visibility + backface-visibility: hidden
- *     Prevents iOS Safari paint flicker without a persistent GPU layer.
- *     Strictly scoped to .safari-header via direct selector only —
- *     does NOT use inheritance or cascade to child elements.
- *
- * Cascade isolation:
- *   backface-visibility is NOT inherited in CSS (initial: visible).
- *   will-change is NOT inherited in CSS (initial: auto).
- *   → child elements are unaffected by both properties. ✓
+ * ✓ will-change: transform — browser-deferred GPU hint
+ * ✓ backface-visibility: hidden — prevents iOS Safari paint flicker
+ * ✗ REMOVED: translate3d(0,0,0) — caused GPU memory leak
  * ══════════════════════════════════════════════════════════════════
  */
 
 /* ── BASE RULE — strictly OUTSIDE @supports ─────────────────────── */
 .safari-header {
-  /* Solid background-color fallback — always rendered, browser-agnostic */
   background-color: rgba(26, 26, 26, 1);
-
-  /*
-   * will-change: transform
-   * ─────────────────────────────────────────
-   * Replaces the removed translate3d(0,0,0) hack.
-   * Defers GPU layer allocation to the browser compositor.
-   * Released automatically when .safari-header leaves the viewport.
-   * Applied to THIS element ONLY — not inherited.
-   */
   will-change: transform;
-
-  /*
-   * backface-visibility: hidden
-   * ─────────────────────────────────────────
-   * Prevents iOS Safari paint artifact (white flash / content flicker)
-   * during composite layer promotion.
-   * Both -webkit- prefix (iOS < 15) and standard are explicit.
-   * NOT inherited — children retain their default backface-visibility.
-   */
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
-
-  /* Stacking context — zero GPU cost, restores z-order */
   isolation: isolate;
   z-index: 50;
 }
@@ -66,7 +46,6 @@
   }
 
   .safari-header > * {
-    /* Clipping fix: minimum non-zero alpha to force compositor pass */
     background-color: rgba(26, 26, 26, 0.01);
   }
 
@@ -81,7 +60,6 @@
     background-color: rgba(26, 26, 26, 1) !important;
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
-    /* Release GPU hint in the non-blur code path */
     will-change: auto !important;
     -webkit-backface-visibility: visible !important;
     backface-visibility: visible !important;
@@ -90,13 +68,53 @@
 
 /* ── Global base ──────────────────────────────────────────────────── */
 @layer base {
+  html,
   body {
     @apply bg-[#1A1A1A] text-white;
+    color-scheme: dark;
+  }
+
+  /* Prevent any browser chrome or system UI from injecting light backgrounds */
+  * {
+    border-color: rgba(255, 255, 255, 0.08);
+    box-sizing: border-box;
+  }
+
+  button {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#77CC00] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1A1A1A];
+  }
+
+  a {
+    @apply text-white/80 hover:text-white transition-colors;
   }
 }
 
-/* ── Button glow via pseudo-elements (a11y safe) ─────────────────── */
+/* ── Brand + surface design tokens (component layer) ─────────────── */
 @layer components {
+  /* Primary CTA — lime green brand accent */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2
+           px-5 py-2.5
+           bg-[#77CC00] hover:bg-[#66b300] active:bg-[#5eaa00]
+           text-black text-sm font-bold rounded-lg
+           transition-colors duration-150;
+  }
+
+  /* Ghost / secondary outline */
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2
+           px-5 py-2.5
+           border border-white/15 hover:border-white/30
+           text-white text-sm font-semibold rounded-lg
+           transition-colors duration-150;
+  }
+
+  /* Card surface */
+  .card {
+    @apply bg-[#242424] rounded-xl border border-white/5;
+  }
+
+  /* Button glow via pseudo-elements (a11y safe) */
   .btn-glow-primary {
     @apply relative isolate;
   }
@@ -115,11 +133,6 @@
 
   .btn-glow-primary:hover::before {
     box-shadow: 0 0 25px rgba(119, 204, 0, 0.4);
-  }
-
-  .btn-glow-primary:focus-visible {
-    outline: 2px solid #77CC00;
-    outline-offset: 3px;
   }
 
   .btn-glow-secondary {
@@ -141,16 +154,11 @@
   .btn-glow-secondary:hover::before {
     box-shadow: 0 0 12px rgba(255, 255, 255, 0.05);
   }
-
-  .btn-glow-secondary:focus-visible {
-    outline: 2px solid #77CC00;
-    outline-offset: 3px;
-  }
 }
 
 /*
  * ══════════════════════════════════════════════════════════════════
- * iOS Safari Viewport-Fix implementiert (CSS-Kaskade + JS Observer)
+ * iOS Safari Viewport-Fix (CSS-Kaskade + JS Observer)
  * ══════════════════════════════════════════════════════════════════
  */
 @layer utilities {
@@ -166,7 +174,6 @@
     height: calc(var(--vh, 1vh) * 100);
   }
 
-  /* Isolate -webkit-fill-available for iOS Safari specifically */
   @supports (-webkit-touch-callout: none) {
     .min-h-screen {
       /* stylelint-disable-next-line value-no-vendor-prefix */
@@ -178,4 +185,3 @@
     }
   }
 }
-

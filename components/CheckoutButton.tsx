@@ -15,6 +15,9 @@ export default function CheckoutButton() {
       const res = await fetch('/api/checkout', {
         method: 'POST',
         credentials: 'include', // explicitly include cookies for same-origin
+        headers: {
+          'Idempotency-Key': crypto.randomUUID()
+        }
       })
 
       let data: { url?: string; error?: string } = {}

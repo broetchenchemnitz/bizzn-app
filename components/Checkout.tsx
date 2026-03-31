@@ -16,7 +16,7 @@ const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY 
 function PaymentForm() {
   const stripe = useStripe();
   const elements = useElements();
-  const [loading, setLoading] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>();
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -26,7 +26,7 @@ function PaymentForm() {
       return;
     }
 
-    setLoading(true);
+    setIsProcessing(true);
 
     const { error, paymentIntent } = await stripe.confirmPayment({
       elements,
@@ -52,19 +52,27 @@ function PaymentForm() {
       // });
     }
 
-    setLoading(false);
+    setIsProcessing(false);
   };
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6 mt-6">
-      <PaymentElement />
+      <div className="overflow-visible relative z-10">
+        <PaymentElement />
+      </div>
       <button 
         type="submit" 
-        disabled={!stripe || loading}
-        className="mt-2 w-full py-4 px-6 bg-[#77CC00] text-[#1A1A1A] text-lg font-bold rounded-xl hover:bg-[#88e600] disabled:opacity-50 transition-all duration-300 shadow-[0_0_20px_rgba(119,204,0,0.3)] hover:shadow-[0_0_30px_rgba(119,204,0,0.5)] active:scale-[0.98] flex items-center justify-center gap-2"
+        disabled={isProcessing || !stripe || !elements}
+        className="mt-2 w-full py-4 px-6 bg-[#77CC00] text-black text-lg font-bold rounded-xl hover:bg-[#88e600] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-[0_0_20px_rgba(119,204,0,0.3)] hover:shadow-[0_0_30px_rgba(119,204,0,0.5)] active:scale-[0.98] flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#77CC00] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1A1A1A]"
       >
-        {loading ? (
-          <div className="w-5 h-5 border-2 border-[#1A1A1A] border-t-transparent rounded-full animate-spin"></div>
+        {isProcessing ? (
+          <>
+            <svg className="w-5 h-5 animate-spin text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8h8a8 8 0 11-16 0z"></path>
+            </svg>
+            Verarbeite...
+          </>
         ) : (
           'Jetzt sicher bezahlen'
         )}
@@ -78,9 +86,9 @@ export default function Checkout({ clientSecret }: { clientSecret: string, order
   if (!clientSecret) return <p className="text-gray-400 text-center animate-pulse">Lade sicheren Checkout...</p>;
 
   return (
-    <div className="w-full max-w-lg mx-auto p-8 sm:p-10 bg-[#242424] text-white rounded-2xl border border-[#333333] shadow-2xl relative overflow-hidden">
-      {/* Decorative Brand Accent */}
-      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#77CC00] to-transparent opacity-50"></div>
+    <div className="w-full max-w-lg mx-auto bg-[#242424] text-white rounded-2xl border border-[#333333] shadow-2xl relative">
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#77CC00] to-transparent opacity-50 rounded-t-2xl"></div>
+      <div className="p-8 sm:p-10 relative rounded-2xl bg-[#242424]">
       
       <div className="mb-8 text-center">
         <h2 className="text-2xl font-bold mb-2">Checkout</h2>
@@ -89,18 +97,21 @@ export default function Checkout({ clientSecret }: { clientSecret: string, order
 
       <Elements stripe={stripePromise} options={{ 
         clientSecret, 
+        // @ts-expect-error - requested legacy style inject
+        style: { base: { color: '#ffffff', '::placeholder': { color: '#aab7c4' } } },
         appearance: { 
           theme: 'night',
           variables: {
+            borderRadius: '16px',
+            colorBackground: '#242424',
+            colorText: '#ffffff',
             colorPrimary: '#77CC00',
-            colorBackground: '#1A1A1A',
-            colorText: '#FFFFFF',
-            colorDanger: '#FF4444',
+            colorDanger: '#ff4d4f',
             fontFamily: 'system-ui, sans-serif',
             spacingUnit: '4px',
-            borderRadius: '12px',
           },
           rules: {
+            '.invalid': { color: '#ff8080' },
             '.Label': {
               color: '#a3a3a3',
               fontWeight: '500',
@@ -143,6 +154,7 @@ export default function Checkout({ clientSecret }: { clientSecret: string, order
       <div className="mt-8 pt-6 border-t border-[#333] flex justify-center items-center gap-4 text-gray-500 text-xs">
         <span className="flex items-center gap-1">🔒 SSL Encrypted</span>
         <span className="flex items-center gap-1">🛡️ Stripe Secure</span>
+      </div>
       </div>
     </div>
   );

@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useEffect, useState } from 'react'
-import { LogOut } from 'lucide-react'
+import { LogOut, LayoutDashboard } from 'lucide-react'
 import type { User } from '@supabase/supabase-js'
 
 export default function Navbar() {
@@ -35,28 +35,46 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="w-full bg-[#242424] border-b border-white/5 px-4 sm:px-6 py-4 flex justify-between items-center sticky top-0 z-50 min-w-0">
-      <Link href="/" className="flex items-center gap-2">
-        <Image src="/logo.svg" alt="Bizzn Logo" width={100} height={38} priority />
+    <nav className="safari-header w-full px-4 sm:px-6 py-3 flex justify-between items-center sticky top-0 z-50 min-w-0 border-b border-white/5">
+      {/* ── Marken-Logo ── */}
+      <Link href="/" className="flex items-center shrink-0" aria-label="Bizzn – Zur Startseite">
+        <Image
+          src="/logo.svg"
+          alt="Header Logo"
+          width={250}
+          height={250}
+          className="h-10 w-auto md:h-12 lg:h-14 object-contain"
+          priority
+        />
       </Link>
-      <div className="flex items-center gap-4">
+
+      {/* ── Navigation ── */}
+      <div className="flex items-center gap-3">
         {!loading && (
           user ? (
             <>
-              <Link href="/dashboard" className="text-sm font-medium text-gray-400 hover:text-white transition-colors">
-                Dashboard
+              <Link
+                href="/dashboard"
+                className="flex items-center gap-1.5 text-sm font-medium text-white/50 hover:text-white transition-colors"
+              >
+                <LayoutDashboard className="w-4 h-4" />
+                <span className="hidden sm:inline">Dashboard</span>
               </Link>
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-red-400 transition-colors ml-4"
+                className="flex items-center gap-1.5 text-sm font-medium text-white/40 hover:text-red-400 transition-colors ml-2"
+                aria-label="Abmelden"
               >
                 <LogOut className="w-4 h-4" />
-                <span>Logout</span>
+                <span className="hidden sm:inline">Abmelden</span>
               </button>
             </>
           ) : (
-            <Link href="/auth/login" className="px-4 py-2 bg-[#77CC00] hover:bg-[#66b300] text-black text-sm font-bold rounded-lg transition-colors">
-              Sign In
+            <Link
+              href="/auth/login"
+              className="btn-primary btn-glow-primary text-xs sm:text-sm"
+            >
+              Anmelden
             </Link>
           )
         )}

@@ -1,4 +1,4 @@
-# 📍 CURRENT MICRO-STATE: Checkout-UI COMPLETED (Veredelt durch Gem 3). Bereit für QA-Abnahme.
+# 📍 CURRENT MICRO-STATE: Hero and Navbar Logo responsive/LCP bugs fixed.
 
 ## Aufgaben:
 - ✅ Alle Safari- & Viewport-Fixes erfolgreich gemergt.

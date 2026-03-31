@@ -66,8 +66,9 @@ export default function SlugSettingsBlock({ projectId, initialSlug }: SlugSettin
       </div>
 
       {/* Single-line inline input group */}
-      <div className="flex items-stretch h-11 rounded-xl border border-[#333333] bg-[#1A1A1A] overflow-hidden focus-within:ring-1 focus-within:ring-[#77CC00] focus-within:border-[#77CC00] transition-all">
-        {/* Fixed prefix */}
+      <div className="flex items-stretch h-11 rounded-xl border border-[#333333] bg-[#1A1A1A] focus-within:ring-1 focus-within:ring-[#77CC00] focus-within:border-[#77CC00] transition-all relative">
+        <div className="flex items-stretch w-full overflow-hidden rounded-xl">
+          {/* Fixed prefix */}
         <span className="flex items-center pl-3.5 pr-2 text-sm text-gray-600 bg-[#242424] border-r border-[#333333] shrink-0 select-none font-mono">
           bizzn.de/
         </span>
@@ -95,6 +96,7 @@ export default function SlugSettingsBlock({ projectId, initialSlug }: SlugSettin
             'Speichern'
           )}
         </button>
+        </div>
       </div>
 
       {/* Feedback */}
