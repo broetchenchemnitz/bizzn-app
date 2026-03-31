@@ -1,4 +1,4 @@
-# 📍 CURRENT MICRO-STATE: Bugfix Routing - Projekt-ID in Kategorie-Links & Ordnerstruktur korrigiert.
+# 📍 CURRENT MICRO-STATE: UI-Refactoring auf Dark Mode (Kategorie-Detailseite & DishForm) abgeschlossen. Bizzn-Limettengrün integriert.
 
 ## 🚀 MEILENSTEINE (PHASE 1)
 1. [x] **DB-Architektur & Vision-Service:** Setup der Supabase-Tabellen für Kategorien/Gerichte und Integration der Vision API Schnittstelle.

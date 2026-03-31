@@ -3,6 +3,34 @@
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
 
+// ─── GET CATEGORY ─────────────────────────────────────────────────────────────
+export async function getCategory(categoryId: string) {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('categories')
+    .select('id, name')
+    .eq('id', categoryId)
+    .single()
+  return data
+}
+
+// ─── GET DISHES ───────────────────────────────────────────────────────────────
+export async function getDishes(categoryId: string) {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('menu_items')
+    .select('id, name, description, price, is_available')
+    .eq('category_id', categoryId)
+    .order('name', { ascending: true })
+  return (data ?? []).map((d) => ({
+    id: d.id,
+    name: d.name,
+    description: d.description,
+    price: Number(d.price),
+    isActive: d.is_available,
+  }))
+}
+
 // ─── CREATE DISH ──────────────────────────────────────────────────────────────
 export async function createDish(
   categoryId: string,
