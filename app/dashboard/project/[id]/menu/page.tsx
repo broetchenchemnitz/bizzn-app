@@ -84,9 +84,14 @@ export default async function MenuBuilderPage({
           ) : (
             <ul className="space-y-3">
               {safeCategories.map((cat) => (
-                <li key={cat.id} className="group flex justify-between items-center bg-slate-950/60 p-4 rounded-2xl border border-slate-800/60 hover:border-lime-500/30 hover:bg-slate-800/40 transition-all duration-300 shadow-sm">
-                  <span className="font-medium text-slate-200 group-hover:text-lime-400 transition-colors">{cat.name}</span>
-                  <ChevronRight className="w-5 h-5 text-slate-600 group-hover:text-lime-500/70 transition-colors" />
+                <li key={cat.id}>
+                  <Link
+                    href={`/dashboard/project/${params.id}/menu/${cat.id}`}
+                    className="group flex justify-between items-center bg-slate-950/60 p-4 rounded-2xl border border-slate-800/60 hover:border-lime-500/30 hover:bg-slate-800/40 transition-all duration-300 shadow-sm"
+                  >
+                    <span className="font-medium text-slate-200 group-hover:text-lime-400 transition-colors">{cat.name}</span>
+                    <ChevronRight className="w-5 h-5 text-slate-600 group-hover:text-lime-500/70 transition-colors" />
+                  </Link>
                 </li>
               ))}
             </ul>

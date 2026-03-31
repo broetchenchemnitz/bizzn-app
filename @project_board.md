@@ -1,4 +1,4 @@
-# 📍 CURRENT MICRO-STATE: Critical Veto Fix - Artikel-CRUD & Kategorie-Routing implementiert. Warten auf Design.
+# 📍 CURRENT MICRO-STATE: Bugfix Routing - Projekt-ID in Kategorie-Links & Ordnerstruktur korrigiert.
 
 ## 🚀 MEILENSTEINE (PHASE 1)
 1. [x] **DB-Architektur & Vision-Service:** Setup der Supabase-Tabellen für Kategorien/Gerichte und Integration der Vision API Schnittstelle.
