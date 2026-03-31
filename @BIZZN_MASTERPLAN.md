@@ -1,8 +1,9 @@
 # 🎯 BIZZN MASTERPLAN: Gastronomie-Revolution
+
 ## Mission
 Abwerbung von Lieferando-Kunden durch radikale Vereinfachung und Kosteneffizienz.
 
-## Strategischer Hebel (Phase 1)
+## Strategischer Hebel
 **Zero-Friction Onboarding:** Kein manuelles Eintippen von Speisekarten. Wir nutzen AI, um bestehende Strukturen der Konkurrenz zu absorbieren.
 
 ## Tech-Stack
@@ -11,9 +12,12 @@ Abwerbung von Lieferando-Kunden durch radikale Vereinfachung und Kosteneffizienz
 - **AI-Engine:** OpenAI Vision API / Anthropic Claude Vision
 - **Storage:** Supabase Storage (für Menü-Uploads)
 
-## Meilensteine
-1. **Phase 1: Das Gastronomen-Dashboard (MVP)**
-   - Core-Infrastruktur & Auth.
-   - ✨ Magic AI Onboarding (Menü-Import via Vision API).
-   - CRUD für Speisekarten-Management.
-2. **Phase 2: Der Marktplatz** (Details folgen)
+## Phasen & Meilensteine
+
+### PHASE 1: DAS CORE-MVP (Das Gastronomen-Dashboard)
+- Core-Infrastruktur & Authentifizierung.
+- ✨ **Magic AI Onboarding (Menü-Import):** Gastronomen können ein Foto, PDF oder einen Screenshot ihrer bestehenden Lieferando-Speisekarte hochladen. Eine AI (Vision API) parst die Gerichte, Preise und Kategorien automatisch und speichert sie strukturiert in unserer Supabase-Datenbank. Onboarding in 10 Sekunden statt manueller Dateneingabe.
+- CRUD-Interface für finales Speisekarten-Management und Korrekturen.
+
+### PHASE 2: DER MARKTPLATZ
+(Architektur-Details folgen nach Abschluss von Phase 1)
