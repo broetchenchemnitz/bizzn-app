@@ -1,7 +1,7 @@
-# 📍 CURRENT MICRO-STATE: [E2E Payment-Flow Polling Fix] erfolgreich getestet und abgeschlossen. Code gemergt.
+# 📍 CURRENT MICRO-STATE: Masterplan V1.1 synchronisiert. Bereit für Setup der Gastronomen-Authentifizierung.
 
-## Aufgaben:
-- ✅ Alle Safari- & Viewport-Fixes erfolgreich gemergt.
-- ✅ DB-Migration: `payment_intent_id` Feld zu `orders` hinzufügen.
-- ✅ Integration Stripe Checkout Elements UI (Design Refinement applied)
-- ✅ End-to-End Test des Payment-Flows.
+## PHASE 1: DAS CORE-MVP (Gastronomen-Dashboard)
+- [ ] Authentifizierung: Supabase Login/Registrierung NUR für Gastronomen. Middleware-Protection für `/dashboard`.
+- [ ] Backend-Architektur: Supabase-Tabellen (Restaurants, Kategorien, Gerichte, Tische) inkl. RLS-Policies.
+- [ ] Speisekarten-Management: CRUD-Operationen für Gerichte im Dashboard.
+- [ ] QR-Code Generator: Erstellung individueller Tisch-QR-Codes.
