@@ -7,8 +7,8 @@ export default function Home() {
       {/* ── Hero ── */}
       <div className="flex flex-col items-center text-center gap-8 max-w-2xl">
 
-        {/* Vector Logo — crisp on #1A1A1A via lime fill */}
-        <Link href="/" aria-label="Bizzn Home">
+        {/* Vektor-Logo — scharf auf #1A1A1A via Lime-Fill */}
+        <Link href="/" aria-label="Bizzn Startseite">
           <Image
             src="/logo.svg"
             alt="Bizzn Logo"
@@ -21,23 +21,29 @@ export default function Home() {
 
         {/* Headline */}
         <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-white leading-tight">
-          The Operating System{' '}
-          <span className="text-[#77CC00]">for Modern Restaurants</span>
+          Das Betriebssystem{' '}
+          <span className="text-[#77CC00]">für die lokale Gastronomie</span>
         </h1>
 
         {/* Subline */}
         <p className="text-lg text-white/50 max-w-lg leading-relaxed">
-          Manage menus, handle orders, and accept payments — all in one beautifully
-          designed platform built for speed and clarity.
+          Speisekarte pflegen, Bestellungen verwalten, Zahlungen abwickeln —
+          alles in einer Plattform. Kein Chaos, keine Zettelwirtschaft.
         </p>
 
         {/* CTAs */}
         <div className="flex flex-col sm:flex-row gap-3 mt-2">
-          <Link href="/auth/login" className="btn-primary btn-glow-primary px-7 py-3 text-base rounded-xl">
-            Get Started Free
+          <Link
+            href="/auth/login"
+            className="btn-primary btn-glow-primary px-7 py-3 text-base rounded-xl"
+          >
+            Kostenlos starten
           </Link>
-          <Link href="/dashboard" className="btn-secondary px-7 py-3 text-base rounded-xl">
-            View Demo
+          <Link
+            href="/dashboard"
+            className="btn-secondary px-7 py-3 text-base rounded-xl"
+          >
+            Demo ansehen
           </Link>
         </div>
       </div>

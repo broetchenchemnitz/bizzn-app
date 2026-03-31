@@ -1,4 +1,4 @@
-# 📍 CURRENT MICRO-STATE: Globaler Dark Mode (#1A1A1A Base) und echtes Vektor-Logo (logo.svg) via Next.js <Image> Tag überall integriert.
+# 📍 CURRENT MICRO-STATE: Startseite auf Deutsch übersetzt. Korrektes logo.svg via Next.js <Image> integriert.
 
 ## Aufgaben:
 - ✅ Alle Safari- & Viewport-Fixes erfolgreich gemergt.

@@ -9,8 +9,9 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Bizzn – Restaurant SaaS Platform',
-  description: 'The enterprise SaaS platform for modern restaurants. Manage menus, orders, and payments in one place.',
+  title: 'Bizzn – Die Gastronomie-Plattform',
+  description:
+    'Speisekarte, Bestellungen und Zahlungen in einer Plattform. Das Betriebssystem für die moderne Gastronomie.',
 }
 
 export default function RootLayout({
@@ -19,7 +20,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className="dark" style={{ colorScheme: 'dark' }}>
+    <html lang="de" className="dark" style={{ colorScheme: 'dark' }}>
       <body
         className={`${inter.className} bg-[#1A1A1A] text-white min-h-screen flex flex-col antialiased`}
       >
@@ -28,10 +29,11 @@ export default function RootLayout({
         <main className="flex-1 w-full flex flex-col bg-[#1A1A1A]">
           {children}
         </main>
-        {/* ── Global Footer ── */}
+
+        {/* ── Globaler Footer ── */}
         <footer className="w-full bg-[#141414] border-t border-white/5 py-8 px-4 sm:px-6">
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-            <Link href="/" className="flex items-center" aria-label="Bizzn Home">
+            <Link href="/" className="flex items-center" aria-label="Bizzn Startseite">
               <Image
                 src="/logo.svg"
                 alt="Bizzn Logo"
@@ -42,7 +44,7 @@ export default function RootLayout({
               />
             </Link>
             <p className="text-sm text-white/30">
-              © {new Date().getFullYear()} Bizzn. All rights reserved.
+              © {new Date().getFullYear()} Bizzn. Alle Rechte vorbehalten.
             </p>
           </div>
         </footer>

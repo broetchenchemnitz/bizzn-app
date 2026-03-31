@@ -36,8 +36,8 @@ export default function Navbar() {
 
   return (
     <nav className="safari-header w-full px-4 sm:px-6 py-3 flex justify-between items-center sticky top-0 z-50 min-w-0 border-b border-white/5">
-      {/* ── Brand Logo ── */}
-      <Link href="/" className="flex items-center shrink-0" aria-label="Bizzn – Go to homepage">
+      {/* ── Marken-Logo ── */}
+      <Link href="/" className="flex items-center shrink-0" aria-label="Bizzn – Zur Startseite">
         <Image
           src="/logo.svg"
           alt="Bizzn Logo"
@@ -48,7 +48,7 @@ export default function Navbar() {
         />
       </Link>
 
-      {/* ── Nav Actions ── */}
+      {/* ── Navigation ── */}
       <div className="flex items-center gap-3">
         {!loading && (
           user ? (
@@ -63,10 +63,10 @@ export default function Navbar() {
               <button
                 onClick={handleLogout}
                 className="flex items-center gap-1.5 text-sm font-medium text-white/40 hover:text-red-400 transition-colors ml-2"
-                aria-label="Logout"
+                aria-label="Abmelden"
               >
                 <LogOut className="w-4 h-4" />
-                <span className="hidden sm:inline">Logout</span>
+                <span className="hidden sm:inline">Abmelden</span>
               </button>
             </>
           ) : (
@@ -74,7 +74,7 @@ export default function Navbar() {
               href="/auth/login"
               className="btn-primary btn-glow-primary text-xs sm:text-sm"
             >
-              Sign In
+              Anmelden
             </Link>
           )
         )}
