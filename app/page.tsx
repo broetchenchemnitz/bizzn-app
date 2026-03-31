@@ -14,7 +14,7 @@ export default function Home() {
             alt="Hero Logo"
             width={500}
             height={500}
-            className="w-64 md:w-96 lg:max-w-md max-w-full h-auto drop-shadow-2xl"
+            className="w-64 md:w-96 lg:w-[28rem] max-w-full h-auto drop-shadow-2xl"
             priority
           />
         </Link>

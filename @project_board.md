@@ -1,4 +1,4 @@
-# 📍 CURRENT MICRO-STATE: Hero and Navbar Logo responsive/LCP bugs fixed.
+# 📍 CURRENT MICRO-STATE: Hero Logo responsive scaling bug fixed in app/page.tsx.
 
 ## Aufgaben:
 - ✅ Alle Safari- & Viewport-Fixes erfolgreich gemergt.
