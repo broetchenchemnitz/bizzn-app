@@ -11,8 +11,8 @@ Bizzn.de ist das moderne Betriebssystem für die lokale Gastronomie. Es eliminie
 ## PHASE 1: DAS CORE-MVP (Das Gastronomen-Dashboard)
 - [x] Projekt-Setup & Architektur-Richtlinien.
 - [x] UI/UX Grundgerüst (Dark Mode, Vektor-Logos, Responsive Layout).
-- [ ] Authentifizierung: Supabase Login/Registrierung NUR für Gastronomen.
-- [ ] Backend-Architektur: Supabase-Tabellen für "Restaurants", "Kategorien", "Gerichte", "Tische".
+- [x] Authentifizierung: Supabase Login/Registrierung NUR für Gastronomen.
+- [x] Backend-Architektur: Supabase-Tabellen für "Restaurants", "Kategorien", "Gerichte", "Tische".
 - [ ] Speisekarten-Management: CRUD-Operationen (Erstellen, Lesen, Ändern, Löschen) im Dashboard.
 - [ ] QR-Code Generator: Das System generiert individuelle QR-Codes pro Tisch.
 

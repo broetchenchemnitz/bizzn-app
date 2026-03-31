@@ -1,9 +1,9 @@
-# 📍 CURRENT MICRO-STATE: [Subdomain Validation / Middleware] erfolgreich getestet und abgeschlossen
+# 📍 CURRENT MICRO-STATE: [Speisekarten-Management CRUD]
 
 ## PHASE 1: DAS CORE-MVP (Gastronomen-Dashboard)
 - [x] Authentifizierung: Supabase Login/Registrierung NUR für Gastronomen. Middleware-Protection für /dashboard.
 - [x] Backend-Architektur: Supabase-Tabellen (Restaurants, Kategorien, Gerichte, Tische) inkl. RLS-Policies.
-- [ ] Speisekarten-Management: CRUD-Operationen für Gerichte im Dashboard.
+- [x] Speisekarten-Management: CRUD-Operationen für Gerichte im Dashboard.
 - [ ] QR-Code Generator: Erstellung individueller Tisch-QR-Codes.
 
 ## PHASE 2: DIE GÄSTE-WEBAPP (Das Customer-Frontend)
