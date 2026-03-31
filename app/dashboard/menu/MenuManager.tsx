@@ -1,6 +1,7 @@
 'use client'
 
 import { useOptimistic, useTransition, useState } from 'react'
+import Link from 'next/link'
 import { addDish, updateDish, deleteDish } from './actions'
 import type { Category, Dish } from './page'
 
@@ -295,7 +296,12 @@ export default function MenuManager({ restaurantName, categories, dishes }: Prop
             <div key={category.id} className="animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="flex items-center gap-3 border-b border-zinc-800/80 pb-3 mb-6">
                 <div className="w-2.5 h-2.5 rounded-full bg-[#77CC00] shadow-[0_0_8px_rgba(119,204,0,0.8)]"></div>
-                <h2 className="text-2xl font-bold text-white tracking-tight">{category.name}</h2>
+                <Link
+                  href={`/dashboard/menu/${category.id}`}
+                  className="text-2xl font-bold text-white tracking-tight hover:text-[#77CC00] transition-colors"
+                >
+                  {category.name} →
+                </Link>
               </div>
 
               <ul className="grid grid-cols-1 lg:grid-cols-2 gap-4">
