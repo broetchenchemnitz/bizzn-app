@@ -140,8 +140,11 @@ function DishRow({
   async function handleDelete() {
     if (!confirm(`"${dish.name}" wirklich löschen?`)) return
     startTransition(async () => {
-      const result = await deleteDish(dish.id)
-      if (result?.error) setError(result.error)
+      try {
+        await deleteDish(dish.id)
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Fehler beim Löschen.')
+      }
     })
   }
 
@@ -306,9 +309,14 @@ export default function MenuManager({ restaurantName, categories, dishes }: Prop
                       <span className="font-mono text-lg font-medium text-[#77CC00] bg-[#77CC00]/10 px-3 py-1 rounded-lg border border-[#77CC00]/20 whitespace-nowrap">
                         {dish.price.toFixed(2)} €
                       </span>
-                      <button onClick={() => deleteDish(dish.id)} className="text-xs font-semibold uppercase tracking-wider text-red-500/70 hover:text-red-400 hover:bg-red-500/10 px-3 py-2 rounded-lg transition-all border border-transparent hover:border-red-500/20">
-                        Löschen
-                      </button>
+                      <form action={deleteDish.bind(null, dish.id)}>
+                        <button
+                          type="submit"
+                          className="px-3 py-1 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                        >
+                          Löschen
+                        </button>
+                      </form>
                     </div>
                   </li>
                 ))}

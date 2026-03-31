@@ -16,7 +16,8 @@ export async function addDish(formData: FormData): Promise<ActionResult> {
   const name = (formData.get('name') as string)?.trim()
   const description = (formData.get('description') as string)?.trim() || null
   const price = parseFloat(formData.get('price') as string)
-  const category_id = formData.get('category_id') as string
+  const rawCategoryId = formData.get('categoryId')
+  const category_id = (rawCategoryId as string) ?? ''
 
   if (!name || isNaN(price) || price < 0 || !category_id) {
     return { error: 'Bitte alle Pflichtfelder korrekt ausfüllen.' }
@@ -70,18 +71,17 @@ export async function updateDish(
 }
 
 // ─── DELETE DISH ─────────────────────────────────────────────────────────────
-export async function deleteDish(id: string): Promise<ActionResult> {
+export async function deleteDish(id: string): Promise<void> {
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) return { error: 'Nicht angemeldet.' }
+  if (!user) throw new Error('Nicht angemeldet.')
 
   // RLS enforced: only the owner's rows are reachable
   const { error } = await supabase.from('menu_items').delete().eq('id', id)
 
-  if (error) return { error: error.message }
+  if (error) throw new Error(error.message)
 
   revalidatePath('/dashboard/menu')
-  return { success: true }
 }

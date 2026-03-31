@@ -1,4 +1,4 @@
-# 📍 CURRENT MICRO-STATE: Design implementiert. Warten auf QA.
+# 📍 CURRENT MICRO-STATE: Bugfixes RSC-Delete & DB-Mapping implementiert. Bereit für Re-QA.
 
 ## PHASE 1: DAS CORE-MVP (Gastronomen-Dashboard)
 - [x] Authentifizierung: Supabase Login/Registrierung NUR für Gastronomen. Middleware-Protection für /dashboard.
