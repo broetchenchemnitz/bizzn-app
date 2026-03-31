@@ -1,4 +1,4 @@
-# 📍 CURRENT MICRO-STATE: middleware.ts gefixt - Sichere Host-Validierung (IPv6/Localhost) & Header-Preservation integriert (Wartet auf finale QA)
+# 📍 CURRENT MICRO-STATE: middleware.ts Bugfixes implementiert (Query-Params gesichert, Null-Safety hinzugefügt) - Bereit für Re-QA.
 
 ## PHASE 1: DAS CORE-MVP (Gastronomen-Dashboard)
 - [x] Authentifizierung: Supabase Login/Registrierung NUR für Gastronomen. Middleware-Protection für /dashboard.

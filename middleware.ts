@@ -39,23 +39,25 @@ export async function middleware(request: NextRequest) {
   // 5. Subdomain-Routing
   const extractedSubdomain = hostname.split('.')[0]
 
-  if (extractedSubdomain && extractedSubdomain !== 'www') {
+  // 1. Absicherung gegen undefined/null Subdomains
+  if (!extractedSubdomain) {
+    return NextResponse.next()
+  }
+
+  if (extractedSubdomain !== 'www') {
     const url = request.nextUrl.clone()
 
-    // Snippet 2: Header Preservation for Session Fix
-    // Extrahiere und klone die originalen Header
     const requestHeaders = new Headers(request.headers)
-    requestHeaders.set('x-subdomain', extractedSubdomain) // Optional: Custom Header für die App
+    requestHeaders.set('x-subdomain', extractedSubdomain)
 
-    // Das Rewrite MUSS das request-Objekt mit den geklonten Headern übergeben!
-    return NextResponse.rewrite(
-      new URL(`/${extractedSubdomain}${url.pathname}`, request.url),
-      {
-        request: {
-          headers: requestHeaders,
-        },
-      }
-    )
+    // 2. FIX: url.search zwingend anhängen, um Query-Parameter nicht zu droppen!
+    const rewritePath = `/${extractedSubdomain}${url.pathname}${url.search}`
+
+    return NextResponse.rewrite(new URL(rewritePath, request.url), {
+      request: {
+        headers: requestHeaders,
+      },
+    })
   }
 
   return response
