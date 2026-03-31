@@ -1,4 +1,4 @@
-# 📍 CURRENT MICRO-STATE: Phase 1 - Categories UI im Dark Mode implementiert. Warten auf QA.
+# 📍 CURRENT MICRO-STATE: Phase 1 - Backend-Architektur & RLS-Policies (Restaurants, Categories, Menu, Tables) per SQL implementiert. Warten auf QA durch Gem 4.
 
 ## PHASE 1: DAS CORE-MVP (Gastronomen-Dashboard)
 - [x] Authentifizierung: Supabase Login/Registrierung NUR für Gastronomen. Middleware-Protection für /dashboard.
