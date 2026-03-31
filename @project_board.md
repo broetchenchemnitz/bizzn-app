@@ -1,4 +1,4 @@
-# 📍 CURRENT MICRO-STATE: middleware.ts Bugfixes implementiert (Query-Params gesichert, Null-Safety hinzugefügt) - Bereit für Re-QA.
+# 📍 CURRENT MICRO-STATE: middleware.ts Bugfix implementiert (Strikte RFC 1035 Subdomain-Validierung via Regex, max 63 chars, keine Rand-Bindestriche) - Bereit für QA.
 
 ## PHASE 1: DAS CORE-MVP (Gastronomen-Dashboard)
 - [x] Authentifizierung: Supabase Login/Registrierung NUR für Gastronomen. Middleware-Protection für /dashboard.
