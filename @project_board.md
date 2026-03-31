@@ -1,4 +1,4 @@
-# 📍 CURRENT MICRO-STATE: [Speisekarten-Management CRUD]
+# 📍 CURRENT MICRO-STATE: Design implementiert. Warten auf QA.
 
 ## PHASE 1: DAS CORE-MVP (Gastronomen-Dashboard)
 - [x] Authentifizierung: Supabase Login/Registrierung NUR für Gastronomen. Middleware-Protection für /dashboard.

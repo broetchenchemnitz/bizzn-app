@@ -22,7 +22,7 @@ function AddDishForm({ categories }: { categories: Category[] }) {
     setError(null)
     setSuccess(false)
     startTransition(async () => {
-      const result = await addDish({}, formData)
+      const result = await addDish(formData)
       if (result.error) {
         setError(result.error)
       } else {
@@ -261,72 +261,61 @@ export default function MenuManager({ restaurantName, categories, dishes }: Prop
   )
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-4 md:p-8 font-sans">
-      <div className="max-w-4xl mx-auto">
-
-        {/* Header */}
-        <header className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight mb-1">
-            Speisekarten-Management
-          </h1>
-          <p className="text-gray-400">{restaurantName}</p>
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 p-4 md:p-8 selection:bg-[#77CC00]/30 font-sans">
+      <div className="max-w-5xl mx-auto">
+        <header className="mb-10">
+          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white mb-2">Speisekarten-Management</h1>
+          <p className="text-zinc-400">Verwalte deine Gerichte, Preise und Kategorien.</p>
         </header>
 
-        {/* Add Dish Form */}
-        <AddDishForm categories={categories} />
-
-        {/* Dish List grouped by Category */}
-        <section className="space-y-8">
-          <h2 className="text-lg font-bold text-gray-200 border-b border-gray-700 pb-3">
-            Aktuelle Gerichte
-            <span className="ml-3 text-sm font-normal text-gray-500">
-              {dishes.length} gesamt
-            </span>
-          </h2>
-
-          {categories.length === 0 && dishes.length === 0 ? (
-            <div className="text-center py-16 border-2 border-dashed border-gray-700 rounded-2xl">
-              <p className="text-gray-500">Noch keine Kategorien oder Gerichte vorhanden.</p>
+        {/* CRUD Formular */}
+        <form action={async (fd) => { await addDish(fd) }} className="bg-zinc-900/60 border border-zinc-800/60 backdrop-blur-md p-6 md:p-8 rounded-3xl mb-12 flex flex-col gap-5 shadow-2xl shadow-black/40">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <input type="text" name="name" placeholder="Name des Gerichts" className="bg-zinc-950 border border-zinc-800 p-3.5 rounded-xl text-zinc-100 focus:outline-none focus:border-[#77CC00] focus:ring-1 focus:ring-[#77CC00] transition-all placeholder:text-zinc-600 shadow-inner w-full" required />
+            <div className="flex gap-4 w-full">
+              <input type="number" name="price" step="0.01" placeholder="Preis (€)" className="bg-zinc-950 border border-zinc-800 p-3.5 rounded-xl text-zinc-100 w-1/2 focus:outline-none focus:border-[#77CC00] focus:ring-1 focus:ring-[#77CC00] transition-all placeholder:text-zinc-600 shadow-inner font-mono" required />
+              <select name="categoryId" className="bg-zinc-950 border border-zinc-800 p-3.5 rounded-xl text-zinc-100 w-1/2 focus:outline-none focus:border-[#77CC00] focus:ring-1 focus:ring-[#77CC00] transition-all appearance-none shadow-inner cursor-pointer" required>
+                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
             </div>
-          ) : (
-            <>
-              {dishesByCategory.map((cat) => (
-                <div key={cat.id}>
-                  <h3 className="text-sm font-bold text-[#77CC00] uppercase tracking-widest mb-3 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-[#77CC00] inline-block" />
-                    {cat.name}
-                    <span className="text-gray-500 font-normal normal-case tracking-normal">
-                      ({cat.items.length})
-                    </span>
-                  </h3>
-                  {cat.items.length === 0 ? (
-                    <p className="text-gray-600 text-sm ml-4">Noch keine Gerichte in dieser Kategorie.</p>
-                  ) : (
-                    <ul className="space-y-2">
-                      {cat.items.map((dish) => (
-                        <DishRow key={dish.id} dish={dish} categories={categories} />
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              ))}
+          </div>
+          <textarea name="description" placeholder="Schmackhafte Beschreibung (optional)" className="bg-zinc-950 border border-zinc-800 p-3.5 rounded-xl text-zinc-100 focus:outline-none focus:border-[#77CC00] focus:ring-1 focus:ring-[#77CC00] transition-all placeholder:text-zinc-600 min-h-[100px] resize-y shadow-inner"></textarea>
 
-              {uncategorized.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-3">
-                    Ohne Kategorie ({uncategorized.length})
-                  </h3>
-                  <ul className="space-y-2">
-                    {uncategorized.map((dish) => (
-                      <DishRow key={dish.id} dish={dish} categories={categories} />
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </>
-          )}
-        </section>
+          <button type="submit" className="bg-[#77CC00] text-black text-sm uppercase tracking-wide font-bold py-4 px-6 rounded-xl hover:bg-[#88e600] active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(119,204,0,0.2)] hover:shadow-[0_0_30px_rgba(119,204,0,0.4)] mt-2 w-full md:w-auto md:self-end">
+            Gericht hinzufügen
+          </button>
+        </form>
 
+        {/* Gericht-Übersicht gruppiert nach Kategorie */}
+        <div className="space-y-12">
+          {categories.map(category => (
+            <div key={category.id} className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="flex items-center gap-3 border-b border-zinc-800/80 pb-3 mb-6">
+                <div className="w-2.5 h-2.5 rounded-full bg-[#77CC00] shadow-[0_0_8px_rgba(119,204,0,0.8)]"></div>
+                <h2 className="text-2xl font-bold text-white tracking-tight">{category.name}</h2>
+              </div>
+
+              <ul className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {dishes.filter(d => d.category_id === category.id).map(dish => (
+                  <li key={dish.id} className="group bg-zinc-900/40 border border-zinc-800/50 hover:border-[#77CC00]/30 p-5 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hover:bg-zinc-800/60 transition-all duration-300 relative overflow-hidden">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-lg text-zinc-100 group-hover:text-[#77CC00] transition-colors">{dish.name}</h3>
+                      <p className="text-sm text-zinc-400 mt-1 leading-relaxed line-clamp-2">{dish.description}</p>
+                    </div>
+                    <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end mt-3 md:mt-0">
+                      <span className="font-mono text-lg font-medium text-[#77CC00] bg-[#77CC00]/10 px-3 py-1 rounded-lg border border-[#77CC00]/20 whitespace-nowrap">
+                        {dish.price.toFixed(2)} €
+                      </span>
+                      <button onClick={() => deleteDish(dish.id)} className="text-xs font-semibold uppercase tracking-wider text-red-500/70 hover:text-red-400 hover:bg-red-500/10 px-3 py-2 rounded-lg transition-all border border-transparent hover:border-red-500/20">
+                        Löschen
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   )

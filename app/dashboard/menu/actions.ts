@@ -6,10 +6,7 @@ import { revalidatePath } from 'next/cache'
 type ActionResult = { success?: boolean; error?: string }
 
 // ─── ADD DISH ────────────────────────────────────────────────────────────────
-export async function addDish(
-  _prevState: ActionResult,
-  formData: FormData
-): Promise<ActionResult> {
+export async function addDish(formData: FormData): Promise<ActionResult> {
   const supabase = await createClient()
   const {
     data: { user },
