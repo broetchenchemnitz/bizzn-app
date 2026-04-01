@@ -13,7 +13,7 @@
 - [x] Magic Import UI Redesign: Premium glassmorphism card, radial gold gradient bg, layered spinner with blur-glow pulse, elevated upload zone with icon scale/glow hover (app/dashboard/project/[id]/menu/magic-import/page.tsx)
 
 ## 🔄 In Progress
-- 📍 CURRENT MICRO-STATE: MagicImport QA-Fixes (A11y & FileGuard) applied.
+- 📍 CURRENT MICRO-STATE: MagicImport WCAG pass — aria-describedby + aria-invalid linked. Ready for Re-QA.
 
 ## ✅ Done
 - [x] Create Brand Assets (logo.svg, visual identity)

@@ -189,7 +189,9 @@ export default function MagicImportPage() {
             {/* Rejected file feedback */}
             {rejectedMsg && (
               <div
+                id="file-error-msg"
                 role="alert"
+                aria-live="assertive"
                 className="flex items-start gap-3 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs"
               >
                 <svg className="w-4 h-4 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -203,6 +205,8 @@ export default function MagicImportPage() {
             <button
               type="button"
               aria-label="Datei hier ablegen oder zum Hochladen klicken"
+              aria-invalid={rejectedMsg ? 'true' : 'false'}
+              aria-describedby={rejectedMsg ? 'file-error-msg' : undefined}
               onClick={() => fileInputRef.current?.click()}
               onDragEnter={handleDragEnter}
               onDragOver={handleDragOver}
