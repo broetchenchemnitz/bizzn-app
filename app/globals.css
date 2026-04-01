@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Brand Token Definitions (single source of truth) ──────────────── */
+:root {
+  --brand-accent: #C7A17A;   /* Culinary Gold — primary accent */
+  --brand-hover:  #B58E62;   /* Culinary Gold hover state */
+  --brand-dark:   #9A7450;   /* Culinary Gold pressed/active */
+  /* RGB channels for Tailwind opacity modifiers (e.g. bg-brand/10) */
+  --brand-accent-rgb: 199, 161, 122;
+}
+
 /*
  * ══════════════════════════════════════════════════════════════════
  * PROJECT CONSTITUTION — DARK MODE ONLY
@@ -9,7 +18,7 @@
  * Base surface:  #1A1A1A  (html, body, main backgrounds)
  * Card surface:  #242424
  * Raised surface:#2d2d2d
- * Brand accent:  #77CC00  (buttons, links, focus rings)
+ * Brand accent:  #C7A17A  Culinary Gold (via var(--brand-accent))
  * Text primary:  #ffffff
  * Text muted:    rgba(255,255,255,0.45)
  *
@@ -81,7 +90,7 @@
   }
 
   button {
-    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#77CC00] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1A1A1A];
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--brand-accent] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1A1A1A];
   }
 
   a {
@@ -91,13 +100,19 @@
 
 /* ── Brand + surface design tokens (component layer) ─────────────── */
 @layer components {
-  /* Primary CTA — lime green brand accent */
+  /* Primary CTA — Culinary Gold brand accent */
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2
            px-5 py-2.5
-           bg-[#77CC00] hover:bg-[#66b300] active:bg-[#5eaa00]
            text-black text-sm font-bold rounded-lg
            transition-colors duration-150;
+    background-color: var(--brand-accent);
+  }
+  .btn-primary:hover {
+    background-color: var(--brand-hover);
+  }
+  .btn-primary:active {
+    background-color: var(--brand-dark);
   }
 
   /* Ghost / secondary outline */
@@ -125,14 +140,14 @@
     inset: -2px;
     border-radius: inherit;
     background: transparent;
-    box-shadow: 0 0 25px rgba(119, 204, 0, 0);
+    box-shadow: 0 0 25px rgba(var(--brand-accent-rgb), 0);
     z-index: -1;
     pointer-events: none;
     transition: box-shadow 0.3s ease;
   }
 
   .btn-glow-primary:hover::before {
-    box-shadow: 0 0 25px rgba(119, 204, 0, 0.4);
+    box-shadow: 0 0 25px rgba(var(--brand-accent-rgb), 0.4);
   }
 
   .btn-glow-secondary {

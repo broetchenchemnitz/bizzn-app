@@ -61,7 +61,7 @@ export default function ProjectSettingsBlock({ projectId, initialName }: { proje
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 autoFocus
-                className="text-xl font-bold text-white border border-[#444444] bg-[#1A1A1A] rounded-lg px-3 py-1 outline-none focus:border-[#77CC00] focus:ring-1 focus:ring-[#77CC00] max-w-[260px]"
+                className="text-xl font-bold text-white border border-[#444444] bg-[#1A1A1A] rounded-lg px-3 py-1 outline-none focus:border-[#C7A17A] focus:ring-1 focus:ring-[#C7A17A] max-w-[260px]"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') handleRename()
                   if (e.key === 'Escape') { setIsEditing(false); setName(initialName) }
@@ -80,7 +80,7 @@ export default function ProjectSettingsBlock({ projectId, initialName }: { proje
               <h1 className="text-xl font-extrabold tracking-tighter text-white">{initialName}</h1>
               <button
                 onClick={() => setIsEditing(true)}
-                className="p-1 text-gray-700 hover:text-[#77CC00] hover:bg-[#242424] rounded-md transition-colors"
+                className="p-1 text-gray-700 hover:text-[#C7A17A] hover:bg-[#242424] rounded-md transition-colors"
                 title="Projekt umbenennen"
               >
                 <Pencil className="w-3.5 h-3.5" />

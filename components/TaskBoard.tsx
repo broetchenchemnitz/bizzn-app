@@ -103,7 +103,7 @@ export default function TaskBoard({ projectId }: TaskBoardProps) {
         <button
           onClick={addTask}
           disabled={!newTitle.trim()}
-          className="flex items-center gap-1.5 bg-brand hover:bg-[#66b300] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+          className="flex items-center gap-1.5 bg-brand hover:bg-[#B58E62] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
         >
           <Plus className="w-4 h-4" />
           Hinzufügen

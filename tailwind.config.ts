@@ -13,9 +13,9 @@ const config: Config = {
     extend: {
       colors: {
         brand: {
-          DEFAULT: '#77CC00',
-          dark: '#66b300',
-          darker: '#5eaa00',
+          DEFAULT: 'var(--brand-accent)',
+          hover: 'var(--brand-hover)',
+          dark: 'var(--brand-dark)',
         },
         surface: {
           base: '#1A1A1A',

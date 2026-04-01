@@ -1,32 +1,23 @@
-# 🚀 BIZZN.DE - MASTERPLAN & ROADMAP (V1.1)
+# 🎯 BIZZN MASTERPLAN: Gastronomie-Revolution
 
-## VISION
-Bizzn.de ist das moderne Betriebssystem für die lokale Gastronomie. Es eliminiert Zettelwirtschaft und komplexe Alt-Systeme. Hoher Kontrast (Dark Mode, grüne Akzente), absolute Zuverlässigkeit und Mobile-First stehen an erster Stelle. Strikte Trennung zwischen B2B (Dashboard) und B2C (Gäste-Webapp).
+## Mission
+Abwerbung von Lieferando-Kunden durch radikale Vereinfachung und Kosteneffizienz.
 
-## TECH-FUNDAMENT
-- **Frontend:** Next.js, Tailwind CSS.
-- **Backend & Auth:** Supabase (PostgreSQL, strikte Row Level Security zur Trennung von Gastronomen und Gästen).
-- **Payments:** Stripe (Abonnements für Restaurants & Checkout für Gäste).
+## Strategischer Hebel
+**Zero-Friction Onboarding:** Kein manuelles Eintippen von Speisekarten. Wir nutzen AI, um bestehende Strukturen der Konkurrenz zu absorbieren.
 
-## PHASE 1: DAS CORE-MVP (Das Gastronomen-Dashboard)
-- [x] Projekt-Setup & Architektur-Richtlinien.
-- [x] UI/UX Grundgerüst (Dark Mode, Vektor-Logos, Responsive Layout).
-- [ ] Authentifizierung: Supabase Login/Registrierung NUR für Gastronomen.
-- [ ] Backend-Architektur: Supabase-Tabellen für "Restaurants", "Kategorien", "Gerichte", "Tische".
-- [ ] Speisekarten-Management: CRUD-Operationen (Erstellen, Lesen, Ändern, Löschen) im Dashboard.
-- [ ] QR-Code Generator: Das System generiert individuelle QR-Codes pro Tisch.
+## Tech-Stack
+- **Frontend:** Next.js (Dashboard)
+- **Backend/DB:** Supabase (PostgreSQL)
+- **AI-Engine:** OpenAI Vision API / Anthropic Claude Vision
+- **Storage:** Supabase Storage (für Menü-Uploads)
 
-## PHASE 2: DIE GÄSTE-WEBAPP (Das Customer-Frontend)
-- [ ] Dynamisches Routing: Eigene URLs für Gäste (z.B. `bizzn.de/[restaurant-id]/[tisch-nr]`).
-- [ ] Digitale Speisekarte (Read-Only): Extrem schnelle, Mobile-Only optimierte Ansicht für Gäste.
-- [ ] Warenkorb-System: Gäste können Gerichte zu ihrer Tisch-Bestellung hinzufügen.
-- [ ] Live-Sync: Bestellungen der Gäste tauchen in Echtzeit (via Supabase Realtime) im Dashboard des Gastronomen auf.
+## Phasen & Meilensteine
 
-## PHASE 3: TRANSAKTIONEN & PAYMENT
-- [ ] Stripe-Integration (SaaS-Abo-Modell für Restaurants zur Nutzung von Bizzn.de).
-- [ ] Customer Checkout: Gäste können ihre Rechnung direkt am Tisch via Webapp (Apple Pay / Google Pay via Stripe) bezahlen.
-- [ ] Webhook-Handling & End-to-End Tests für absolut sichere Zahlungsflüsse.
+### PHASE 1: DAS CORE-MVP (Das Gastronomen-Dashboard)
+- Core-Infrastruktur & Authentifizierung.
+- ✨ **Magic AI Onboarding (Menü-Import):** Gastronomen können ein Foto, PDF oder einen Screenshot ihrer bestehenden Lieferando-Speisekarte hochladen. Eine AI (Vision API) parst die Gerichte, Preise und Kategorien automatisch und speichert sie strukturiert in unserer Supabase-Datenbank. Onboarding in 10 Sekunden statt manueller Dateneingabe.
+- CRUD-Interface für finales Speisekarten-Management und Korrekturen.
 
-## PHASE 4: RETENTION & SKALIERUNG
-- [ ] PWA-Integration (Progressive Web App): Speichern der App auf dem Homescreen.
-- [ ] Native Apps: Vorbereitung auf React Native / Expo für iOS & Android (Fokus auf Service-Personal & Küchen-Display-Systeme).
+### PHASE 2: DER MARKTPLATZ
+(Architektur-Details folgen nach Abschluss von Phase 1)

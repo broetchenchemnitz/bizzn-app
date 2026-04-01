@@ -63,7 +63,7 @@ function PaymentForm() {
       <button 
         type="submit" 
         disabled={isProcessing || !stripe || !elements}
-        className="mt-2 w-full py-4 px-6 bg-[#77CC00] text-black text-lg font-bold rounded-xl hover:bg-[#88e600] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-[0_0_20px_rgba(119,204,0,0.3)] hover:shadow-[0_0_30px_rgba(119,204,0,0.5)] active:scale-[0.98] flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#77CC00] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1A1A1A]"
+        className="mt-2 w-full py-4 px-6 bg-[#C7A17A] text-black text-lg font-bold rounded-xl hover:bg-[#88e600] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-[0_0_20px_rgba(119,204,0,0.3)] hover:shadow-[0_0_30px_rgba(119,204,0,0.5)] active:scale-[0.98] flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C7A17A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1A1A1A]"
       >
         {isProcessing ? (
           <>
@@ -87,7 +87,7 @@ export default function Checkout({ clientSecret }: { clientSecret: string, order
 
   return (
     <div className="w-full max-w-lg mx-auto bg-[#242424] text-white rounded-2xl border border-[#333333] shadow-2xl relative">
-      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#77CC00] to-transparent opacity-50 rounded-t-2xl"></div>
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#C7A17A] to-transparent opacity-50 rounded-t-2xl"></div>
       <div className="p-8 sm:p-10 relative rounded-2xl bg-[#242424]">
       
       <div className="mb-8 text-center">
@@ -105,7 +105,7 @@ export default function Checkout({ clientSecret }: { clientSecret: string, order
             borderRadius: '16px',
             colorBackground: '#242424',
             colorText: '#ffffff',
-            colorPrimary: '#77CC00',
+            colorPrimary: '#C7A17A',
             colorDanger: '#ff4d4f',
             fontFamily: 'system-ui, sans-serif',
             spacingUnit: '4px',
@@ -127,8 +127,8 @@ export default function Checkout({ clientSecret }: { clientSecret: string, order
               transition: 'all 0.2s ease',
             },
             '.Input:focus': {
-              border: '1px solid #77CC00',
-              boxShadow: '0 0 0 1px #77CC00, 0 4px 12px rgba(119,204,0,0.1)',
+              border: '1px solid #C7A17A',
+              boxShadow: '0 0 0 1px #C7A17A, 0 4px 12px rgba(119,204,0,0.1)',
             },
             '.Tab': {
               backgroundColor: '#1A1A1A',
@@ -140,7 +140,7 @@ export default function Checkout({ clientSecret }: { clientSecret: string, order
               color: '#ffffff',
             },
             '.Tab--selected': {
-              border: '1px solid #77CC00',
+              border: '1px solid #C7A17A',
               backgroundColor: '#1A1A1A',
               color: '#ffffff',
             },

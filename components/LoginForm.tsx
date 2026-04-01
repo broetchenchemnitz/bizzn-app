@@ -13,7 +13,7 @@ function SubmitButton({ label }: { label: string }) {
     <button
       type="submit"
       disabled={pending}
-      className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-gray-950 bg-[#77CC00] hover:bg-[#66B300] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-950 focus:ring-[#77CC00] transition-colors duration-200 flex justify-center items-center disabled:opacity-70"
+      className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-gray-950 bg-[#C7A17A] hover:bg-[#B58E62] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-950 focus:ring-[#C7A17A] transition-colors duration-200 flex justify-center items-center disabled:opacity-70"
     >
       {pending ? <Loader2 className="w-5 h-5 animate-spin" /> : label}
     </button>
@@ -56,7 +56,7 @@ export default function LoginForm() {
               name="email"
               type="email"
               required
-              className="w-full pl-10 pr-4 py-2 bg-gray-950 border border-gray-700 rounded-lg text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-[#77CC00] focus:border-transparent transition-all duration-200"
+              className="w-full pl-10 pr-4 py-2 bg-gray-950 border border-gray-700 rounded-lg text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-[#C7A17A] focus:border-transparent transition-all duration-200"
               placeholder="you@example.com"
             />
           </div>
@@ -71,7 +71,7 @@ export default function LoginForm() {
               name="password"
               type="password"
               required
-              className="w-full pl-10 pr-4 py-2 bg-gray-950 border border-gray-700 rounded-lg text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-[#77CC00] focus:border-transparent transition-all duration-200"
+              className="w-full pl-10 pr-4 py-2 bg-gray-950 border border-gray-700 rounded-lg text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-[#C7A17A] focus:border-transparent transition-all duration-200"
               placeholder="••••••••"
             />
           </div>
@@ -84,7 +84,7 @@ export default function LoginForm() {
         <button
           type="button"
           onClick={() => setIsSignUp(!isSignUp)}
-          className="text-sm text-gray-500 hover:text-[#77CC00] transition-colors"
+          className="text-sm text-gray-500 hover:text-[#C7A17A] transition-colors"
         >
           {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
         </button>

@@ -29,8 +29,8 @@ const STATUS_CONFIG: Record<
   ready: {
     label: 'Bereit zur Abholung',
     icon: <CheckCircle2 className="w-8 h-8" />,
-    color: 'text-[#77CC00]',
-    bg: 'bg-[#F0FBD8] border-[#77CC00]/30',
+    color: 'text-[#C7A17A]',
+    bg: 'bg-[#3D2E1E] border-[#C7A17A]/30',
     step: 3,
   },
   delivered: {
@@ -99,7 +99,7 @@ export default function OrderTracker({ orderId, domain, initialOrder }: Props) {
       {/* Header */}
       <header className="bg-white border-b border-gray-100 shadow-sm">
         <div className="max-w-lg mx-auto px-4 py-4 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-[#77CC00] flex items-center justify-center">
+          <div className="w-9 h-9 rounded-xl bg-[#C7A17A] flex items-center justify-center">
             <ChefHat className="w-5 h-5 text-white" />
           </div>
           <div>
@@ -119,8 +119,8 @@ export default function OrderTracker({ orderId, domain, initialOrder }: Props) {
           {order.status !== 'cancelled' && (
             <div className="flex items-center gap-1 mt-1">
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#77CC00] opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#77CC00]" />
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#C7A17A] opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#C7A17A]" />
               </span>
               <span className="text-xs text-gray-500 ml-1">Live-Status aktiv</span>
             </div>
@@ -136,7 +136,7 @@ export default function OrderTracker({ orderId, domain, initialOrder }: Props) {
                 const isLast = i === STEPS.length - 1
                 return (
                   <div key={step} className="flex items-center flex-1">
-                    <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 transition-colors ${done ? 'bg-[#77CC00]' : 'bg-gray-200'}`}>
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 transition-colors ${done ? 'bg-[#C7A17A]' : 'bg-gray-200'}`}>
                       {done ? (
                         <CheckCircle2 className="w-4 h-4 text-white" />
                       ) : (
@@ -144,7 +144,7 @@ export default function OrderTracker({ orderId, domain, initialOrder }: Props) {
                       )}
                     </div>
                     {!isLast && (
-                      <div className={`flex-1 h-1 transition-colors ${currentStep > i ? 'bg-[#77CC00]' : 'bg-gray-200'}`} />
+                      <div className={`flex-1 h-1 transition-colors ${currentStep > i ? 'bg-[#C7A17A]' : 'bg-gray-200'}`} />
                     )}
                   </div>
                 )
@@ -177,7 +177,7 @@ export default function OrderTracker({ orderId, domain, initialOrder }: Props) {
           </div>
           <div className="flex justify-between text-sm border-t border-gray-100 pt-2 mt-2">
             <span className="font-bold">Gesamt</span>
-            <span className="font-extrabold text-[#77CC00]">{formatEur(order.total_amount)}</span>
+            <span className="font-extrabold text-[#C7A17A]">{formatEur(order.total_amount)}</span>
           </div>
         </div>
 

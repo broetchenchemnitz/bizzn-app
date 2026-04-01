@@ -103,7 +103,7 @@ export default function MenuBoard({ projectId, projectName, domain, categories, 
       <header className="sticky top-0 z-30 bg-white border-b border-gray-100 shadow-sm">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[#77CC00] flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-[#C7A17A] flex items-center justify-center">
               <ChefHat className="w-5 h-5 text-white" />
             </div>
             <div>
@@ -114,7 +114,7 @@ export default function MenuBoard({ projectId, projectName, domain, categories, 
           {totalItems > 0 && (
             <button
               onClick={() => setShowCart(true)}
-              className="relative flex items-center gap-2 bg-[#77CC00] hover:bg-[#66b300] text-white font-bold text-sm px-4 py-2 rounded-xl transition-colors"
+              className="relative flex items-center gap-2 bg-[#C7A17A] hover:bg-[#B58E62] text-white font-bold text-sm px-4 py-2 rounded-xl transition-colors"
             >
               <ShoppingCart className="w-4 h-4" />
               <span>{totalItems}</span>
@@ -149,7 +149,7 @@ export default function MenuBoard({ projectId, projectName, domain, categories, 
                             {item.description}
                           </p>
                         )}
-                        <p className="text-sm font-bold text-[#77CC00] mt-1">
+                        <p className="text-sm font-bold text-[#C7A17A] mt-1">
                           {formatEur(item.price)}
                         </p>
                       </div>
@@ -164,7 +164,7 @@ export default function MenuBoard({ projectId, projectName, domain, categories, 
                           <span className="text-sm font-bold w-4 text-center">{inCart.quantity}</span>
                           <button
                             onClick={() => changeQty(item.id, 1)}
-                            className="w-8 h-8 rounded-lg bg-[#77CC00] hover:bg-[#66b300] text-white flex items-center justify-center transition-colors"
+                            className="w-8 h-8 rounded-lg bg-[#C7A17A] hover:bg-[#B58E62] text-white flex items-center justify-center transition-colors"
                           >
                             <Plus className="w-3.5 h-3.5" />
                           </button>
@@ -172,7 +172,7 @@ export default function MenuBoard({ projectId, projectName, domain, categories, 
                       ) : (
                         <button
                           onClick={() => addToCart(item)}
-                          className="shrink-0 w-9 h-9 rounded-xl bg-[#F0FBD8] hover:bg-[#77CC00] hover:text-white text-[#77CC00] flex items-center justify-center transition-colors"
+                          className="shrink-0 w-9 h-9 rounded-xl bg-[#3D2E1E] hover:bg-[#C7A17A] hover:text-white text-[#C7A17A] flex items-center justify-center transition-colors"
                         >
                           <Plus className="w-4 h-4" />
                         </button>
@@ -218,18 +218,18 @@ export default function MenuBoard({ projectId, projectName, domain, categories, 
 
             <div className="border-t border-gray-100 pt-4 mb-6 flex justify-between font-extrabold text-lg">
               <span>Gesamt</span>
-              <span className="text-[#77CC00]">{formatEur(totalCents)}</span>
+              <span className="text-[#C7A17A]">{formatEur(totalCents)}</span>
             </div>
 
             {/* Checkout form */}
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Order type selector — hidden in kiosk mode */}
               {kioskMode ? (
-                <div className="flex items-center gap-2 bg-[#F0FBD8] border border-[#77CC00]/30 rounded-xl px-4 py-3">
+                <div className="flex items-center gap-2 bg-[#3D2E1E] border border-[#C7A17A]/30 rounded-xl px-4 py-3">
                   <span className="text-lg">📱</span>
                   <span className="text-sm font-bold text-[#4a8500]">Vor Ort bestellen</span>
                   {tableNumber && (
-                    <span className="ml-auto text-xs bg-[#77CC00] text-white font-bold px-3 py-1 rounded-full">
+                    <span className="ml-auto text-xs bg-[#C7A17A] text-white font-bold px-3 py-1 rounded-full">
                       Tisch {tableNumber}
                     </span>
                   )}
@@ -243,8 +243,8 @@ export default function MenuBoard({ projectId, projectName, domain, categories, 
                       onClick={() => setOrderType(type)}
                       className={`py-2 rounded-xl text-xs font-bold border transition-colors ${
                         orderType === type
-                          ? 'bg-[#77CC00] border-[#66b300] text-white'
-                          : 'bg-white border-gray-200 text-gray-600 hover:border-[#77CC00]'
+                          ? 'bg-[#C7A17A] border-[#B58E62] text-white'
+                          : 'bg-white border-gray-200 text-gray-600 hover:border-[#C7A17A]'
                       }`}
                     >
                       {type === 'takeaway' ? '🛍️ Abholung' : type === 'delivery' ? '🛵 Lieferung' : '📱 Vor Ort'}
@@ -260,7 +260,7 @@ export default function MenuBoard({ projectId, projectName, domain, categories, 
                   placeholder="Tischnummer *"
                   value={tableNumber}
                   onChange={(e) => setTableNumber(e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#77CC00]"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#C7A17A]"
                   required
                 />
               )}
@@ -270,7 +270,7 @@ export default function MenuBoard({ projectId, projectName, domain, categories, 
                 placeholder="Dein Name *"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#77CC00]"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#C7A17A]"
                 required
               />
               <input
@@ -278,7 +278,7 @@ export default function MenuBoard({ projectId, projectName, domain, categories, 
                 placeholder="Telefon / E-Mail (optional)"
                 value={customerContact}
                 onChange={(e) => setCustomerContact(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#77CC00]"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#C7A17A]"
               />
 
               {formError && (
@@ -288,7 +288,7 @@ export default function MenuBoard({ projectId, projectName, domain, categories, 
               <button
                 type="submit"
                 disabled={isPending || cart.length === 0}
-                className="w-full bg-[#77CC00] hover:bg-[#66b300] disabled:opacity-50 text-white font-bold py-4 rounded-xl text-base transition-colors flex items-center justify-center gap-2"
+                className="w-full bg-[#C7A17A] hover:bg-[#B58E62] disabled:opacity-50 text-white font-bold py-4 rounded-xl text-base transition-colors flex items-center justify-center gap-2"
               >
                 {isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <ShoppingCart className="w-5 h-5" />}
                 {isPending ? 'Wird gesendet…' : `Jetzt bestellen · ${formatEur(totalCents)}`}
@@ -303,7 +303,7 @@ export default function MenuBoard({ projectId, projectName, domain, categories, 
         <div className="fixed bottom-6 left-0 right-0 flex justify-center z-20 px-4">
           <button
             onClick={() => setShowCart(true)}
-            className="bg-[#77CC00] hover:bg-[#66b300] text-white font-bold px-8 py-4 rounded-2xl shadow-xl text-base transition-colors flex items-center gap-3"
+            className="bg-[#C7A17A] hover:bg-[#B58E62] text-white font-bold px-8 py-4 rounded-2xl shadow-xl text-base transition-colors flex items-center gap-3"
           >
             <ShoppingCart className="w-5 h-5" />
             {totalItems} Artikel · {formatEur(totalCents)}

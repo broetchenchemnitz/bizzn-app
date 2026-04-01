@@ -1,0 +1,29 @@
+'use client'
+
+import Image from 'next/image'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+
+export default function FooterWrapper() {
+  const pathname = usePathname()
+  if (pathname === '/') return null
+  return (
+    <footer className="w-full bg-[#141414] border-t border-white/5 py-8 px-4 sm:px-6">
+      <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+        <Link href="/" className="flex items-center" aria-label="Bizzn Startseite">
+          <Image
+            src="/logo.svg"
+            alt="Bizzn Logo"
+            width={90}
+            height={34}
+            className="h-8 w-auto"
+            priority={false}
+          />
+        </Link>
+        <p className="text-sm text-white/30">
+          © {new Date().getFullYear()} Bizzn. Alle Rechte vorbehalten.
+        </p>
+      </div>
+    </footer>
+  )
+}
