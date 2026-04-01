@@ -11,9 +11,10 @@
 - [x] Dashboard UI Polish: KPI glow shadows, extrabold typography, animated status pings, SlugSettingsBlock inline input group (deployed c0fe6cc..74f9506)
 - [x] Radical Dashboard Grid Redesign: 12-col grid layout (col-span-8 main + col-span-4 sidebar), topnav with live badge, channels in sidebar, condensed ProjectSettingsBlock (deployed 74f9506..aebe3a9)
 - [x] Magic Import UI Redesign: Premium glassmorphism card, radial gold gradient bg, layered spinner with blur-glow pulse, elevated upload zone with icon scale/glow hover (app/dashboard/project/[id]/menu/magic-import/page.tsx)
+- [x] Magic Import QA: WCAG A11y (semantic button, aria-live, aria-describedby, aria-invalid, aria-atomic), FileGuard (10MB, type validation, input reset) — merged to main
 
 ## 🔄 In Progress
-- 📍 CURRENT MICRO-STATE: MagicImport fully WCAG-compliant (b9095c3) — always-in-DOM aria-live="polite", aria-atomic, aria-describedby, aria-invalid. ✅ QA-Ready.
+- 📍 CURRENT MICRO-STATE: fix/magic-import-qa-logic merged → main. AI-Import backend (Gemini 1.5 Flash) bereits vorhanden unter /api/magic-import. Nächste Phase offen.
 
 ## ✅ Done
 - [x] Create Brand Assets (logo.svg, visual identity)
