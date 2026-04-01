@@ -104,9 +104,15 @@
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2
            px-5 py-2.5
-           bg-brand hover:bg-brand-hover active:bg-brand-dark
            text-black text-sm font-bold rounded-lg
            transition-colors duration-150;
+    background-color: var(--brand-accent);
+  }
+  .btn-primary:hover {
+    background-color: var(--brand-hover);
+  }
+  .btn-primary:active {
+    background-color: var(--brand-dark);
   }
 
   /* Ghost / secondary outline */
