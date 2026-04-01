@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowLeft, UtensilsCrossed, ChevronRight, FolderOpen } from 'lucide-react'
+import { ArrowLeft, UtensilsCrossed, ChevronRight, FolderOpen, Sparkles } from 'lucide-react'
 import { createClient } from '@/lib/supabase-server'
 import { notFound, redirect } from 'next/navigation'
 import { getMenuCategories } from '@/app/actions/menu'
@@ -55,13 +55,20 @@ export default async function MenuBuilderPage({
 
         {/* Header */}
         <div className="bg-[#242424] border border-gray-800 rounded-3xl p-6 sm:p-8 shadow-2xl flex items-center gap-5">
-          <div className="w-14 h-14 bg-[#C7A17A]/10 rounded-2xl flex items-center justify-center border border-[#C7A17A]/20 shadow-inner">
+          <div className="w-14 h-14 bg-[#C7A17A]/10 rounded-2xl flex items-center justify-center border border-[#C7A17A]/20 shadow-inner shrink-0">
             <UtensilsCrossed className="text-[#C7A17A] w-7 h-7" />
           </div>
-          <div>
+          <div className="flex-1 min-w-0">
             <h1 className="text-2xl font-bold text-white mb-1">Speisekarte verwalten</h1>
             <p className="text-gray-400">{project.name}</p>
           </div>
+          <Link
+            href={`/dashboard/project/${params.id}/menu/magic-import`}
+            className="shrink-0 inline-flex items-center gap-2 text-sm font-semibold text-[#C7A17A] bg-[#C7A17A]/10 border border-[#C7A17A]/25 px-4 py-2.5 rounded-xl hover:bg-[#C7A17A]/20 hover:border-[#C7A17A]/50 transition-all duration-300 group"
+          >
+            <Sparkles className="w-4 h-4 group-hover:scale-110 transition-transform duration-300" />
+            Magic Import
+          </Link>
         </div>
 
         {/* Add Category */}

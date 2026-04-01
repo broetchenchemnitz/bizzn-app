@@ -1,4 +1,4 @@
-# 📍 CURRENT MICRO-STATE: Dark Mode vollständig implementiert (#77CC00-Design-Tokens). Warten auf QA.
+# 📍 CURRENT MICRO-STATE: [x] Feature: Magic Import UI implementiert. [ ] Integration: API-Route /api/ai/import validieren.
 
 ## 🚀 MEILENSTEINE (PHASE 1)
 1. [x] **DB-Architektur & Vision-Service:** Setup der Supabase-Tabellen für Kategorien/Gerichte und Integration der Vision API Schnittstelle.
@@ -6,5 +6,6 @@
 3. [x] **Artikel-CRUD:** `createDish`, `updateDish`, `deleteDish` Server Actions in `app/lib/actions/dishActions.ts`.
 4. [x] **Kategorie-Detail-Page:** `app/dashboard/menu/[categoryId]/page.tsx` mit Dish-Liste + Delete-Forms.
 5. [x] **DishForm Component:** `app/dashboard/menu/[categoryId]/DishForm.tsx` Client Component.
-6. [ ] **Magic Import UI:** Entwicklung der Upload-Komponente für Fotos/PDFs inklusive Echtzeit-Parsing-Status.
-7. [ ] **Review & Edit Dashboard:** Interface zur finalen Kontrolle der von der AI erkannten Daten vor dem DB-Commit.
+6. [x] **Magic Import UI:** Entwicklung der Upload-Komponente für Fotos/PDFs inklusive Echtzeit-Parsing-Status.
+7. [x] **AI-Backend & Database Integration:** `app/api/ai/import/route.ts` implemented — OpenAI gpt-4o-mini extraction + Supabase `menu_items` insertion.
+8. [ ] **Review & Edit Dashboard:** Interface zur finalen Kontrolle der von der AI erkannten Daten vor dem DB-Commit.
