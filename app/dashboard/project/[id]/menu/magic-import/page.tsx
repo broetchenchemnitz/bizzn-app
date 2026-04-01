@@ -186,20 +186,27 @@ export default function MagicImportPage() {
         {/* ── IDLE DROP ZONE ── */}
         {status === 'idle' && (
           <div className="flex flex-col gap-3">
-            {/* Rejected file feedback */}
-            {rejectedMsg && (
-              <div
-                id="file-error-msg"
-                role="alert"
-                aria-live="assertive"
-                className="flex items-start gap-3 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs"
-              >
-                <svg className="w-4 h-4 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                </svg>
-                <span>{rejectedMsg}</span>
-              </div>
-            )}
+            {/* Rejected file feedback — always in DOM so screen readers register the aria-live region at mount */}
+            <div
+              id="file-error-msg"
+              role="alert"
+              aria-live="polite"
+              aria-atomic="true"
+              className={`flex items-start gap-3 px-4 py-3 rounded-xl text-xs transition-all duration-300 ${
+                rejectedMsg
+                  ? 'bg-red-500/10 border border-red-500/20 text-red-400'
+                  : 'invisible h-0 p-0 overflow-hidden'
+              }`}
+            >
+              {rejectedMsg && (
+                <>
+                  <svg className="w-4 h-4 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                  </svg>
+                  <span>{rejectedMsg}</span>
+                </>
+              )}
+            </div>
 
             {/* Semantic button dropzone */}
             <button
