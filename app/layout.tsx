@@ -26,7 +26,7 @@ export default function RootLayout({
       >
         <ViewportFix />
         <Navbar />
-        <main className="flex-1 w-full flex flex-col bg-[#1A1A1A]">
+        <main className="flex-1 w-full flex flex-col">
           {children}
         </main>
 

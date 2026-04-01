@@ -20,7 +20,7 @@ export default function Home() {
   }
 
   return (
-    <main className="relative flex flex-col items-center justify-center min-h-screen bg-[#0a0a0a] px-4 py-16 overflow-hidden">
+    <div className="relative flex flex-col items-center justify-center min-h-[calc(100vh-64px)] bg-[#0a0a0a] px-4 py-16 overflow-hidden">
 
       {/* Ambient glow background */}
       <div
@@ -155,6 +155,6 @@ export default function Home() {
       <footer className="absolute bottom-6 left-0 right-0 text-center text-xs text-white/20">
         © 2026 Bizzn.de – Made for Restaurants.
       </footer>
-    </main>
+    </div>
   )
 }
