@@ -6,16 +6,21 @@ import { useState } from 'react'
 
 export default function Home() {
   const [email, setEmail] = useState('')
-  const [submitted, setSubmitted] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSuccess, setIsSuccess] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!email.trim()) return
-    setLoading(true)
-    await new Promise((r) => setTimeout(r, 800))
-    setSubmitted(true)
-    setLoading(false)
+    setIsSubmitting(true)
+
+    // TODO: Hier den echten API-Call einbauen:
+    // z.B. INSERT in Supabase-Tabelle "waitlist" ODER
+    // POST an Resend-API für Bestätigungs-E-Mail an kontakt@bizzn.de
+    await new Promise((resolve) => setTimeout(resolve, 1500))
+
+    setIsSuccess(true)
+    setIsSubmitting(false)
   }
 
   return (
@@ -49,9 +54,9 @@ export default function Home() {
           <Image
             src="/logo.svg"
             alt="Bizzn Logo"
-            width={180}
-            height={180}
-            className="w-36 md:w-44 h-auto"
+            width={256}
+            height={256}
+            className="w-[280px] md:w-[400px] lg:w-[500px] h-auto mx-auto -mb-8 md:-mb-16 lg:-mb-24"
             priority
           />
         </Link>
@@ -75,39 +80,44 @@ export default function Home() {
         </div>
 
         {/* H1 */}
-        <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight">
-          Das Gastro-OS{' '}
+        <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight leading-tight text-gray-200">
+          Dein eigenes Lieferportal.{' '}
           <span style={{ color: 'var(--brand-accent)' }}>
-            der nächsten Generation.
+            Ohne horrende Provisionen.
           </span>
         </h1>
 
         {/* Subtext */}
-        <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: '18px', lineHeight: '1.7', maxWidth: '480px' }}>
+        <p className="text-gray-300 text-lg md:text-xl max-w-2xl mx-auto mt-4" style={{ lineHeight: '1.7' }}>
           Wir bauen die fairste, smarteste und schnellste Plattform für Restaurants.
           Kein Lieferando-Monopol mehr.{' '}
-          <span style={{ color: 'rgba(255,255,255,0.8)', fontWeight: 500 }}>
+          <span className="text-gray-100 font-semibold">
             Deine Daten, deine Kunden, dein Umsatz.
           </span>
         </p>
 
         {/* Email Form */}
         <div style={{ width: '100%', maxWidth: '440px' }}>
-          {submitted ? (
+          {isSuccess ? (
             <div style={{
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '12px',
-              padding: '16px 24px',
+              gap: '8px',
+              padding: '20px 28px',
               borderRadius: '16px',
               border: '1px solid rgba(199,161,122,0.3)',
               background: 'rgba(199,161,122,0.08)',
-              color: 'var(--brand-accent)',
-              fontSize: '14px',
-              fontWeight: 500,
+              textAlign: 'center',
             }}>
-              ✓ Du bist auf der Liste! Wir melden uns bald.
+              <span style={{ fontSize: '32px', lineHeight: 1 }}>🎉</span>
+              <p className="text-xl font-bold" style={{ margin: 0, lineHeight: '1.5', color: 'var(--brand-accent)' }}>
+                Danke! Du stehst auf der Liste.<br />
+                <span style={{ fontWeight: 400, fontSize: '15px', color: 'rgba(199,161,122,0.75)' }}>
+                  Wir melden uns in Kürze.
+                </span>
+              </p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -118,65 +128,68 @@ export default function Home() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="deine@email.de"
                 required
-                disabled={loading}
+                disabled={isSubmitting}
+                className="placeholder:text-gray-500"
                 style={{
                   width: '100%',
                   padding: '14px 20px',
                   borderRadius: '12px',
-                  background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid rgba(255,255,255,0.12)',
-                  color: '#fff',
+                  background: 'rgba(255,255,255,0.07)',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  color: '#d1d5db',
                   fontSize: '15px',
                   outline: 'none',
                   boxSizing: 'border-box',
+                  opacity: isSubmitting ? 0.5 : 1,
+                  transition: 'opacity 0.2s',
                 }}
                 onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--brand-accent)')}
-                onBlur={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)')}
+                onBlur={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)')}
               />
               <button
                 id="early-access-submit"
                 type="submit"
-                disabled={loading || !email.trim()}
+                disabled={isSubmitting || !email.trim()}
                 style={{
                   width: '100%',
                   padding: '14px 24px',
                   borderRadius: '12px',
-                  background: loading || !email.trim() ? 'rgba(199,161,122,0.4)' : 'var(--brand-accent)',
-                  color: '#000',
+                  background: isSubmitting || !email.trim() ? 'rgba(199,161,122,0.4)' : 'var(--brand-accent)',
+                  color: '#111111',
                   fontSize: '15px',
                   fontWeight: 700,
-                  cursor: loading || !email.trim() ? 'not-allowed' : 'pointer',
+                  cursor: isSubmitting || !email.trim() ? 'not-allowed' : 'pointer',
                   border: 'none',
-                  transition: 'background 0.2s',
+                  transition: 'background 0.2s, opacity 0.2s',
+                  opacity: isSubmitting ? 0.7 : 1,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '8px',
                 }}
                 onMouseEnter={(e) => {
-                  if (!loading && email.trim()) e.currentTarget.style.background = 'var(--brand-hover)'
+                  if (!isSubmitting && email.trim()) e.currentTarget.style.background = 'var(--brand-hover)'
                 }}
                 onMouseLeave={(e) => {
-                  if (!loading && email.trim()) e.currentTarget.style.background = 'var(--brand-accent)'
+                  if (!isSubmitting && email.trim()) e.currentTarget.style.background = 'var(--brand-accent)'
                 }}
               >
-                {loading ? 'Wird gespeichert…' : 'Vorabzugang sichern'}
+                {isSubmitting ? 'Wird eingetragen…' : 'Vorabzugang sichern'}
               </button>
             </form>
           )}
 
-          <p style={{ marginTop: '12px', fontSize: '12px', color: 'rgba(255,255,255,0.25)', textAlign: 'center' }}>
+          <p className="text-gray-500" style={{ marginTop: '12px', fontSize: '12px', textAlign: 'center' }}>
             Kein Spam. Keine Weitergabe. Nur ein Bescheid, wenn wir live gehen.
           </p>
         </div>
 
         {/* Trust signals */}
-        <div style={{
+        <div className="text-gray-400" style={{
           display: 'flex',
           flexWrap: 'wrap',
           gap: '24px',
           justifyContent: 'center',
-          color: 'rgba(255,255,255,0.3)',
           fontSize: '13px',
           fontWeight: 500,
         }}>
@@ -188,21 +201,21 @@ export default function Home() {
         {/* Login link */}
         <Link
           href="/auth/login"
-          style={{ fontSize: '13px', color: 'rgba(255,255,255,0.3)', textDecoration: 'underline' }}
+          className="text-gray-400 hover:text-gray-200 transition-colors"
+          style={{ fontSize: '13px', textDecoration: 'underline' }}
         >
           Bereits registriert? Einloggen →
         </Link>
       </div>
 
       {/* Footer */}
-      <p style={{
+      <p className="text-gray-500" style={{
         position: 'absolute',
         bottom: '24px',
         left: 0,
         right: 0,
         textAlign: 'center',
         fontSize: '12px',
-        color: 'rgba(255,255,255,0.18)',
       }}>
         © 2026 Bizzn.de – Made for Restaurants.
       </p>
