@@ -63,8 +63,17 @@ export default function MagicImportPage() {
     e.preventDefault();
     e.stopPropagation();
     setIsDragActive(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file) processFile(file);
+    const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+    const validFiles = Array.from(e.dataTransfer.files).filter((file) => {
+      if (!allowedTypes.includes(file.type)) {
+        console.error(`QA-Block: Typ ${file.type} abgelehnt.`);
+        return false;
+      }
+      return true;
+    });
+    if (validFiles.length > 0) {
+      processFile(validFiles[0]);
+    }
   };
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -152,6 +161,7 @@ export default function MagicImportPage() {
           <div
             role="button"
             tabIndex={0}
+            aria-label="Datei hier ablegen oder zum Hochladen klicken"
             onDragEnter={handleDragEnter}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
@@ -159,7 +169,7 @@ export default function MagicImportPage() {
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
-                document.getElementById('file-upload')?.click();
+                fileInputRef.current?.click();
               }
             }}
             className={`relative group border rounded-2xl p-14 text-center overflow-hidden transition duration-500 ease-out transform-gpu focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#77CC00] focus-visible:ring-offset-2 ${
