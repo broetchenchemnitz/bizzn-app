@@ -35,7 +35,7 @@ export default async function DashboardPage({
     <div className="min-h-screen bg-[#1A1A1A] p-4 sm:p-8">
       <div className="max-w-5xl mx-auto space-y-5">
         {isSuccess && (
-          <div className="p-4 bg-[#1a2e00] text-[#77CC00] rounded-xl border border-[#77CC00]/30 text-sm font-medium">
+          <div className="p-4 bg-[#2A1E0E] text-[#C7A17A] rounded-xl border border-[#C7A17A]/30 text-sm font-medium">
             ✅ Zahlung erfolgreich! Dein neuer Projekt-Workspace wird eingerichtet.
           </div>
         )}
@@ -69,7 +69,7 @@ export default async function DashboardPage({
         {/* Projects card */}
         <div className="bg-[#242424] rounded-3xl border border-white/5 shadow-lg p-6">
           <h2 className="text-base font-extrabold tracking-tighter text-white mb-4 flex items-center gap-2">
-            <FolderGit2 className="w-4 h-4 text-[#77CC00]" />
+            <FolderGit2 className="w-4 h-4 text-[#C7A17A]" />
             Aktive Projekte
           </h2>
 
@@ -87,9 +87,9 @@ export default async function DashboardPage({
                 <Link
                   href={`/dashboard/project/${project.id}`}
                   key={project.id}
-                  className="block p-4 bg-[#1A1A1A] border border-white/5 rounded-2xl hover:border-[#77CC00]/50 hover:shadow-[0_0_20px_rgba(119,204,0,0.15)] transition-all duration-300 cursor-pointer group"
+                  className="block p-4 bg-[#1A1A1A] border border-white/5 rounded-2xl hover:border-[#C7A17A]/50 hover:shadow-[0_0_20px_rgba(119,204,0,0.15)] transition-all duration-300 cursor-pointer group"
                 >
-                  <h3 className="font-semibold text-white group-hover:text-[#77CC00] transition-colors">{project.name}</h3>
+                  <h3 className="font-semibold text-white group-hover:text-[#C7A17A] transition-colors">{project.name}</h3>
                   <div className="flex justify-between items-center mt-4">
                     <span className="text-[11px] px-2 py-0.5 bg-[#242424] text-gray-400 rounded-full border border-[#333333]">
                       {project.status}

@@ -46,8 +46,8 @@ const COLUMNS: KdsColumn[] = [
     status: 'ready',
     label: 'Bereit',
     icon: <CheckCircle2 className="w-4 h-4" />,
-    headerClass: 'text-[#77CC00]',
-    badgeClass: 'bg-[#F0FBD8] border-[#77CC00]/30 text-[#4a8500]',
+    headerClass: 'text-[#C7A17A]',
+    badgeClass: 'bg-[#3D2E1E] border-[#C7A17A]/30 text-[#4a8500]',
     nextStatus: 'delivered',
     nextLabel: 'Ausgeliefert ✓',
   },
@@ -71,7 +71,7 @@ const ACTIVE_STATUSES: OrderStatus[] = ['pending', 'preparing', 'ready']
 function PayoutBadge({ status }: { status: OrderRow['payout_status'] }) {
   if (status === 'paid') {
     return (
-      <span className="flex items-center gap-1 text-[10px] font-bold text-[#4a8500] bg-[#F0FBD8] border border-[#77CC00]/30 px-2 py-0.5 rounded-full">
+      <span className="flex items-center gap-1 text-[10px] font-bold text-[#4a8500] bg-[#3D2E1E] border border-[#C7A17A]/30 px-2 py-0.5 rounded-full">
         <Banknote className="w-2.5 h-2.5" />
         Ausgezahlt
       </span>
@@ -158,7 +158,7 @@ function OrderCard({ order, col, projectId }: OrderCardProps) {
             col.nextStatus === 'preparing'
               ? 'bg-blue-600 hover:bg-blue-700 text-white'
               : col.nextStatus === 'ready'
-              ? 'bg-[#77CC00] hover:bg-[#66b300] text-white'
+              ? 'bg-[#C7A17A] hover:bg-[#B58E62] text-white'
               : 'bg-gray-800 hover:bg-gray-900 text-white'
           } disabled:opacity-50`}
         >
@@ -290,10 +290,10 @@ export default function KitchenDisplay({ projectId }: KitchenDisplayProps) {
   return (
     <div className="space-y-5">
       {/* Live bar */}
-      <div className="flex items-center gap-3 bg-[#F0FBD8] border border-[#77CC00]/30 rounded-xl px-4 py-3 flex-wrap">
+      <div className="flex items-center gap-3 bg-[#3D2E1E] border border-[#C7A17A]/30 rounded-xl px-4 py-3 flex-wrap">
         <span className="relative flex h-2.5 w-2.5 shrink-0">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#77CC00] opacity-75" />
-          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#77CC00]" />
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#C7A17A] opacity-75" />
+          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#C7A17A]" />
         </span>
         <span className="text-sm font-semibold text-[#4a8500]">
           {activeCount === 0 ? 'Keine aktiven Bestellungen' : `${activeCount} aktive Bestellung${activeCount !== 1 ? 'en' : ''}`}
@@ -301,7 +301,7 @@ export default function KitchenDisplay({ projectId }: KitchenDisplayProps) {
         <span className="text-xs text-[#4a8500]/70 ml-auto">Echtzeit aktiv</span>
         {/* Payout summary */}
         {(deliveredPaid > 0 || deliveredPending > 0) && (
-          <div className="flex items-center gap-2 ml-0 text-xs text-gray-500 border-l border-[#77CC00]/20 pl-3 flex-wrap">
+          <div className="flex items-center gap-2 ml-0 text-xs text-gray-500 border-l border-[#C7A17A]/20 pl-3 flex-wrap">
             {deliveredPaid > 0 && (
               <span className="flex items-center gap-1 text-[#4a8500] font-semibold">
                 <Banknote className="w-3 h-3" /> {deliveredPaid} ausgezahlt

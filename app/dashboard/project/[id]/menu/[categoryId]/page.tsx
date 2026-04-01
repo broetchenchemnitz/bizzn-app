@@ -64,8 +64,8 @@ export default async function CategoryDetailPage({
         {/* Header */}
         <div className="bg-[#242424] rounded-2xl border border-gray-800 p-8">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-[#77CC00]/10 flex items-center justify-center shrink-0">
-              <UtensilsCrossed className="w-6 h-6 text-[#77CC00]" />
+            <div className="w-12 h-12 rounded-xl bg-[#C7A17A]/10 flex items-center justify-center shrink-0">
+              <UtensilsCrossed className="w-6 h-6 text-[#C7A17A]" />
             </div>
             <div>
               <h1 className="text-xl font-bold text-white">{category.name}</h1>
@@ -84,7 +84,7 @@ export default async function CategoryDetailPage({
         <div className="bg-[#242424] rounded-2xl border border-gray-800 p-6">
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-base font-semibold text-white">Speisen</h2>
-            <span className="text-xs font-semibold text-[#77CC00] bg-[#77CC00]/10 px-2.5 py-1 rounded-full border border-[#77CC00]/20">
+            <span className="text-xs font-semibold text-[#C7A17A] bg-[#C7A17A]/10 px-2.5 py-1 rounded-full border border-[#C7A17A]/20">
               {safeItems.length} gesamt
             </span>
           </div>
@@ -98,12 +98,12 @@ export default async function CategoryDetailPage({
           ) : (
             <ul className="divide-y divide-gray-800">
               {safeItems.map((item) => (
-                <li key={item.id} className="py-4 flex items-start justify-between gap-4 group hover:bg-[#77CC00]/5 rounded-lg px-2 transition-colors">
+                <li key={item.id} className="py-4 flex items-start justify-between gap-4 group hover:bg-[#C7A17A]/5 rounded-lg px-2 transition-colors">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-white group-hover:text-[#77CC00] transition-colors">{item.name}</span>
+                      <span className="font-semibold text-white group-hover:text-[#C7A17A] transition-colors">{item.name}</span>
                       {item.is_active ? (
-                        <span className="inline-flex items-center gap-1 text-xs text-[#77CC00] bg-[#77CC00]/10 px-2 py-0.5 rounded-full border border-[#77CC00]/20">
+                        <span className="inline-flex items-center gap-1 text-xs text-[#C7A17A] bg-[#C7A17A]/10 px-2 py-0.5 rounded-full border border-[#C7A17A]/20">
                           <CheckCircle2 className="w-3 h-3" /> Aktiv
                         </span>
                       ) : (
@@ -116,7 +116,7 @@ export default async function CategoryDetailPage({
                       <p className="text-sm text-gray-400 mt-0.5 truncate">{item.description}</p>
                     )}
                   </div>
-                  <span className="text-base font-bold text-[#77CC00] whitespace-nowrap tabular-nums">
+                  <span className="text-base font-bold text-[#C7A17A] whitespace-nowrap tabular-nums">
                     {formatPrice(item.price)}
                   </span>
                 </li>

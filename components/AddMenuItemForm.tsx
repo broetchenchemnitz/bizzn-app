@@ -66,7 +66,7 @@ export default function AddMenuItemForm({ categoryId }: AddMenuItemFormProps) {
             onChange={(e) => setName(e.target.value)}
             placeholder="z. B. Wiener Schnitzel"
             required
-            className="w-full px-4 py-2.5 text-sm bg-[#1a1a1a] border border-gray-700 text-white placeholder-gray-600 rounded-xl outline-none focus:border-[#77CC00] focus:ring-2 focus:ring-[#77CC00]/20 transition-all"
+            className="w-full px-4 py-2.5 text-sm bg-[#1a1a1a] border border-gray-700 text-white placeholder-gray-600 rounded-xl outline-none focus:border-[#C7A17A] focus:ring-2 focus:ring-[#C7A17A]/20 transition-all"
             disabled={isLoading}
           />
         </div>
@@ -84,7 +84,7 @@ export default function AddMenuItemForm({ categoryId }: AddMenuItemFormProps) {
               onChange={(e) => setPriceEur(e.target.value)}
               placeholder="12.90"
               required
-              className="w-full pl-9 pr-4 py-2.5 text-sm bg-[#1a1a1a] border border-gray-700 text-white placeholder-gray-600 rounded-xl outline-none focus:border-[#77CC00] focus:ring-2 focus:ring-[#77CC00]/20 transition-all"
+              className="w-full pl-9 pr-4 py-2.5 text-sm bg-[#1a1a1a] border border-gray-700 text-white placeholder-gray-600 rounded-xl outline-none focus:border-[#C7A17A] focus:ring-2 focus:ring-[#C7A17A]/20 transition-all"
               disabled={isLoading}
             />
           </div>
@@ -101,7 +101,7 @@ export default function AddMenuItemForm({ categoryId }: AddMenuItemFormProps) {
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Kurze Beschreibung des Gerichts…"
           rows={2}
-          className="w-full px-4 py-2.5 text-sm bg-[#1a1a1a] border border-gray-700 text-white placeholder-gray-600 rounded-xl outline-none focus:border-[#77CC00] focus:ring-2 focus:ring-[#77CC00]/20 transition-all resize-none"
+          className="w-full px-4 py-2.5 text-sm bg-[#1a1a1a] border border-gray-700 text-white placeholder-gray-600 rounded-xl outline-none focus:border-[#C7A17A] focus:ring-2 focus:ring-[#C7A17A]/20 transition-all resize-none"
           disabled={isLoading}
         />
       </div>
@@ -113,7 +113,7 @@ export default function AddMenuItemForm({ categoryId }: AddMenuItemFormProps) {
           className="flex items-center gap-2 text-sm font-medium text-gray-300 select-none hover:text-white transition-colors"
         >
           {isActive
-            ? <ToggleRight className="w-6 h-6 text-[#77CC00]" />
+            ? <ToggleRight className="w-6 h-6 text-[#C7A17A]" />
             : <ToggleLeft className="w-6 h-6 text-gray-500" />}
           {isActive ? 'Aktiv (auf Karte sichtbar)' : 'Inaktiv (ausgeblendet)'}
         </button>
@@ -121,7 +121,7 @@ export default function AddMenuItemForm({ categoryId }: AddMenuItemFormProps) {
         <button
           type="submit"
           disabled={isLoading || !name.trim() || !priceEur}
-          className="flex items-center gap-2 bg-[#77CC00] hover:bg-[#66b300] text-black font-semibold px-6 py-2.5 rounded-xl text-sm transition-colors disabled:opacity-50 shadow-sm"
+          className="flex items-center gap-2 bg-[#C7A17A] hover:bg-[#B58E62] text-black font-semibold px-6 py-2.5 rounded-xl text-sm transition-colors disabled:opacity-50 shadow-sm"
         >
           {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
           Speise hinzufügen

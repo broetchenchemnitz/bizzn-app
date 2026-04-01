@@ -26,8 +26,8 @@ function KpiCard({ icon, label, value, sub, accent = false }: KpiCardProps) {
     <div
       className={`rounded-2xl border transition-all relative ${
         accent
-          ? 'bg-[#77CC00] border-[#5eaa00] shadow-[0_0_20px_rgba(119,204,0,0.35)] text-black'
-          : 'bg-[#242424] border-[#77CC00]/30 shadow-[0_0_20px_rgba(119,204,0,0.15)] text-white hover:border-[#77CC00]/50'
+          ? 'bg-[#C7A17A] border-[#9A7450] shadow-[0_0_20px_rgba(119,204,0,0.35)] text-black'
+          : 'bg-[#242424] border-[#C7A17A]/30 shadow-[0_0_20px_rgba(119,204,0,0.15)] text-white hover:border-[#C7A17A]/50'
       }`}
     >
       <div className="p-5 flex flex-col gap-3 relative overflow-hidden rounded-2xl">
@@ -37,9 +37,9 @@ function KpiCard({ icon, label, value, sub, accent = false }: KpiCardProps) {
               accent ? 'bg-black/15' : 'bg-[#1A1A1A]'
             }`}
           >
-            <span className={`${accent ? 'text-black' : 'text-[#77CC00]'} [&>svg]:w-5 [&>svg]:h-5`}>{icon}</span>
+            <span className={`${accent ? 'text-black' : 'text-[#C7A17A]'} [&>svg]:w-5 [&>svg]:h-5`}>{icon}</span>
           </div>
-          <ArrowUpRight className={`w-3.5 h-3.5 ${accent ? 'text-black/40' : 'text-[#77CC00]/40'}`} />
+          <ArrowUpRight className={`w-3.5 h-3.5 ${accent ? 'text-black/40' : 'text-[#C7A17A]/40'}`} />
         </div>
         <div>
           <p className={`text-xs font-medium tracking-wide uppercase ${
@@ -48,7 +48,7 @@ function KpiCard({ icon, label, value, sub, accent = false }: KpiCardProps) {
             {label}
           </p>
           <p className={`text-4xl font-extrabold tracking-tight mt-1 leading-none ${
-            accent ? 'text-black' : 'text-[#77CC00] drop-shadow-[0_0_8px_rgba(119,204,0,0.5)]'
+            accent ? 'text-black' : 'text-[#C7A17A] drop-shadow-[0_0_8px_rgba(119,204,0,0.5)]'
           }`}>
             {value}
           </p>
@@ -247,7 +247,7 @@ export default function RestaurantOverview({ projectId }: RestaurantOverviewProp
       <div className="grid grid-cols-2 gap-3 pt-2">
         <Link
           href={`/dashboard/project/${projectId}/orders`}
-          className="btn-glow-primary flex items-center justify-center gap-2 bg-[#77CC00] text-[#1A1A1A] font-extrabold rounded-full px-5 sm:px-8 py-3.5 sm:py-4 text-sm transition-all duration-300 hover:scale-[1.02] active:scale-95 z-0"
+          className="btn-glow-primary flex items-center justify-center gap-2 bg-[#C7A17A] text-[#1A1A1A] font-extrabold rounded-full px-5 sm:px-8 py-3.5 sm:py-4 text-sm transition-all duration-300 hover:scale-[1.02] active:scale-95 z-0"
         >
           <ShoppingBag className="w-4 h-4 shrink-0" />
           <span className="hidden sm:inline">Bestellungen</span>

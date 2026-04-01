@@ -65,15 +65,15 @@ export default async function ProjectWorkspacePage({
         <span className="text-[#444]">/</span>
         <span className="text-sm font-semibold text-white truncate">{project.name}</span>
 
-        <span className="ml-auto flex items-center gap-1.5 bg-[#1a2e00] border border-[#77CC00]/25 text-[#77CC00] text-[11px] font-bold px-2.5 py-1 rounded-full shrink-0">
+        <span className="ml-auto flex items-center gap-1.5 bg-[#2A1E0E] border border-[#C7A17A]/25 text-[#C7A17A] text-[11px] font-bold px-2.5 py-1 rounded-full shrink-0">
           <span className="relative flex h-1.5 w-1.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#77CC00] opacity-75" />
-            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#77CC00]" />
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#C7A17A] opacity-75" />
+            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#C7A17A]" />
           </span>
           <span className="hidden sm:inline">Echtzeit aktiv</span>
         </span>
 
-        <span className="hidden sm:inline text-[10px] font-bold text-[#77CC00] bg-[#1a2e00] px-2.5 py-1 rounded-full border border-[#77CC00]/20 tracking-wide uppercase">
+        <span className="hidden sm:inline text-[10px] font-bold text-[#C7A17A] bg-[#2A1E0E] px-2.5 py-1 rounded-full border border-[#C7A17A]/20 tracking-wide uppercase">
           Gastro-OS v1
         </span>
       </StickyHeader>
@@ -114,17 +114,17 @@ export default async function ProjectWorkspacePage({
                   ].map(({ label, active }) => (
                     <div
                       key={label}
-                      className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-[#1A1A1A] border border-[#333333] hover:border-[#77CC00]/30 hover:text-white transition-all"
+                      className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-[#1A1A1A] border border-[#333333] hover:border-[#C7A17A]/30 hover:text-white transition-all"
                     >
                       <span className="text-sm text-gray-300">{label}</span>
                       <div className="flex items-center gap-1.5">
                         <span className="relative flex h-2 w-2">
                           {active && (
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#77CC00] opacity-60" />
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#C7A17A] opacity-60" />
                           )}
-                          <span className={`relative inline-flex rounded-full h-2 w-2 ${active ? 'bg-[#77CC00]' : 'bg-gray-700'}`} />
+                          <span className={`relative inline-flex rounded-full h-2 w-2 ${active ? 'bg-[#C7A17A]' : 'bg-gray-700'}`} />
                         </span>
-                        <span className={`text-[11px] font-semibold ${active ? 'text-[#77CC00]' : 'text-gray-600'}`}>
+                        <span className={`text-[11px] font-semibold ${active ? 'text-[#C7A17A]' : 'text-gray-600'}`}>
                           {active ? 'Aktiv' : 'Inaktiv'}
                         </span>
                       </div>

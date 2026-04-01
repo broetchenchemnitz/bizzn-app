@@ -42,21 +42,21 @@ export default async function MenuBuilderPage({
   const safeCategories: MenuCategory[] = categories ?? []
 
   return (
-    <div className="min-h-screen bg-[#1a1a1a] p-4 md:p-8 font-sans selection:bg-[#77CC00]/30">
+    <div className="min-h-screen bg-[#1a1a1a] p-4 md:p-8 font-sans selection:bg-[#C7A17A]/30">
       <div className="max-w-3xl mx-auto space-y-6">
 
         {/* Back link */}
         <Link
           href={`/dashboard/project/${params.id}`}
-          className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-[#77CC00] bg-[#242424] border border-gray-800 px-4 py-2 rounded-xl transition-all hover:border-[#77CC00]/30 w-fit"
+          className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-[#C7A17A] bg-[#242424] border border-gray-800 px-4 py-2 rounded-xl transition-all hover:border-[#C7A17A]/30 w-fit"
         >
           <ArrowLeft className="w-4 h-4" /> Zurück zum Restaurant
         </Link>
 
         {/* Header */}
         <div className="bg-[#242424] border border-gray-800 rounded-3xl p-6 sm:p-8 shadow-2xl flex items-center gap-5">
-          <div className="w-14 h-14 bg-[#77CC00]/10 rounded-2xl flex items-center justify-center border border-[#77CC00]/20 shadow-inner">
-            <UtensilsCrossed className="text-[#77CC00] w-7 h-7" />
+          <div className="w-14 h-14 bg-[#C7A17A]/10 rounded-2xl flex items-center justify-center border border-[#C7A17A]/20 shadow-inner">
+            <UtensilsCrossed className="text-[#C7A17A] w-7 h-7" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white mb-1">Speisekarte verwalten</h1>
@@ -74,7 +74,7 @@ export default async function MenuBuilderPage({
         <div className="bg-[#242424] border border-gray-800 rounded-3xl p-6 sm:p-8 shadow-2xl">
           <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-800">
             <h2 className="text-lg font-semibold text-white">Kategorien</h2>
-            <span className="bg-[#77CC00]/10 text-[#77CC00] text-xs font-bold px-3 py-1 rounded-full border border-[#77CC00]/20">
+            <span className="bg-[#C7A17A]/10 text-[#C7A17A] text-xs font-bold px-3 py-1 rounded-full border border-[#C7A17A]/20">
               {safeCategories.length} gesamt
             </span>
           </div>
@@ -90,10 +90,10 @@ export default async function MenuBuilderPage({
                 <li key={cat.id}>
                   <Link
                     href={`/dashboard/project/${params.id}/menu/${cat.id}`}
-                    className="group flex justify-between items-center bg-[#1a1a1a] p-4 rounded-2xl border border-gray-800 hover:border-[#77CC00]/40 hover:bg-[#77CC00]/5 transition-all duration-300 shadow-sm"
+                    className="group flex justify-between items-center bg-[#1a1a1a] p-4 rounded-2xl border border-gray-800 hover:border-[#C7A17A]/40 hover:bg-[#C7A17A]/5 transition-all duration-300 shadow-sm"
                   >
-                    <span className="font-medium text-gray-200 group-hover:text-[#77CC00] transition-colors">{cat.name}</span>
-                    <ChevronRight className="w-5 h-5 text-gray-600 group-hover:text-[#77CC00]/70 transition-colors" />
+                    <span className="font-medium text-gray-200 group-hover:text-[#C7A17A] transition-colors">{cat.name}</span>
+                    <ChevronRight className="w-5 h-5 text-gray-600 group-hover:text-[#C7A17A]/70 transition-colors" />
                   </Link>
                 </li>
               ))}

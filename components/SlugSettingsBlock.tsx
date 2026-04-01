@@ -50,14 +50,14 @@ export default function SlugSettingsBlock({ projectId, initialSlug }: SlugSettin
     <div className="w-full space-y-3">
       {/* Header */}
       <div className="flex items-center gap-2 mb-1">
-        <Globe className="w-4 h-4 text-[#77CC00]" />
+        <Globe className="w-4 h-4 text-[#C7A17A]" />
         <span className="text-sm font-semibold text-white">Storefront Web-Adresse</span>
         {savedSlug && (
           <a
             href={`https://${savedSlug}.bizzn.de`}
             target="_blank"
             rel="noopener noreferrer"
-            className="ml-auto flex items-center gap-1 text-xs text-[#77CC00] hover:underline font-mono"
+            className="ml-auto flex items-center gap-1 text-xs text-[#C7A17A] hover:underline font-mono"
           >
             {savedSlug}.bizzn.de
             <ExternalLink className="w-3 h-3" />
@@ -66,7 +66,7 @@ export default function SlugSettingsBlock({ projectId, initialSlug }: SlugSettin
       </div>
 
       {/* Single-line inline input group */}
-      <div className="flex items-stretch h-11 rounded-xl border border-[#333333] bg-[#1A1A1A] focus-within:ring-1 focus-within:ring-[#77CC00] focus-within:border-[#77CC00] transition-all relative">
+      <div className="flex items-stretch h-11 rounded-xl border border-[#333333] bg-[#1A1A1A] focus-within:ring-1 focus-within:ring-[#C7A17A] focus-within:border-[#C7A17A] transition-all relative">
         <div className="flex items-stretch w-full overflow-hidden rounded-xl">
           {/* Fixed prefix */}
         <span className="flex items-center pl-3.5 pr-2 text-sm text-gray-600 bg-[#242424] border-r border-[#333333] shrink-0 select-none font-mono">
@@ -86,7 +86,7 @@ export default function SlugSettingsBlock({ projectId, initialSlug }: SlugSettin
         <button
           onClick={handleSave}
           disabled={isPending || !isDirty || !slug}
-          className="px-4 bg-[#77CC00] hover:bg-[#66b300] disabled:opacity-30 text-black text-xs font-bold transition-colors flex items-center gap-1.5 shrink-0 border-l border-[#5eaa00]"
+          className="px-4 bg-[#C7A17A] hover:bg-[#B58E62] disabled:opacity-30 text-black text-xs font-bold transition-colors flex items-center gap-1.5 shrink-0 border-l border-[#9A7450]"
         >
           {isPending ? (
             <Loader2 className="w-3.5 h-3.5 animate-spin" />

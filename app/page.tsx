@@ -22,7 +22,7 @@ export default function Home() {
         {/* Headline */}
         <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-white leading-tight">
           Das Betriebssystem{' '}
-          <span className="text-[#77CC00]">für die lokale Gastronomie</span>
+          <span className="text-[#C7A17A]">für die lokale Gastronomie</span>
         </h1>
 
         {/* Subline */}

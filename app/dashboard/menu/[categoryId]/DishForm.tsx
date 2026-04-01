@@ -40,7 +40,7 @@ export default function DishForm({ categoryId }: Props) {
           name="name"
           required
           placeholder="z.B. Margherita"
-          className="w-full bg-gray-900 border border-gray-600 text-white placeholder-gray-500 rounded-lg px-4 py-3 focus:outline-none focus:border-[#77CC00] focus:ring-1 focus:ring-[#77CC00] transition-all"
+          className="w-full bg-gray-900 border border-gray-600 text-white placeholder-gray-500 rounded-lg px-4 py-3 focus:outline-none focus:border-[#C7A17A] focus:ring-1 focus:ring-[#C7A17A] transition-all"
         />
       </div>
 
@@ -52,7 +52,7 @@ export default function DishForm({ categoryId }: Props) {
           name="description"
           rows={3}
           placeholder="Zutaten und Besonderheiten (optional)"
-          className="w-full bg-gray-900 border border-gray-600 text-white placeholder-gray-500 rounded-lg px-4 py-3 focus:outline-none focus:border-[#77CC00] focus:ring-1 focus:ring-[#77CC00] transition-all resize-y"
+          className="w-full bg-gray-900 border border-gray-600 text-white placeholder-gray-500 rounded-lg px-4 py-3 focus:outline-none focus:border-[#C7A17A] focus:ring-1 focus:ring-[#C7A17A] transition-all resize-y"
         />
       </div>
 
@@ -67,7 +67,7 @@ export default function DishForm({ categoryId }: Props) {
           min="0"
           required
           placeholder="0.00"
-          className="w-full bg-gray-900 border border-gray-600 text-white placeholder-gray-500 rounded-lg px-4 py-3 focus:outline-none focus:border-[#77CC00] focus:ring-1 focus:ring-[#77CC00] transition-all font-mono"
+          className="w-full bg-gray-900 border border-gray-600 text-white placeholder-gray-500 rounded-lg px-4 py-3 focus:outline-none focus:border-[#C7A17A] focus:ring-1 focus:ring-[#C7A17A] transition-all font-mono"
         />
       </div>
 
@@ -77,7 +77,7 @@ export default function DishForm({ categoryId }: Props) {
         </p>
       )}
       {success && (
-        <p className="text-sm text-[#77CC00] bg-[#77CC00]/10 border border-[#77CC00]/20 px-4 py-2.5 rounded-lg">
+        <p className="text-sm text-[#C7A17A] bg-[#C7A17A]/10 border border-[#C7A17A]/20 px-4 py-2.5 rounded-lg">
           ✓ Speise erfolgreich hinzugefügt.
         </p>
       )}
@@ -85,7 +85,7 @@ export default function DishForm({ categoryId }: Props) {
       <button
         type="submit"
         disabled={pending}
-        className="bg-[#77CC00] text-black font-bold px-6 py-3 rounded-lg hover:bg-[#88e600] active:scale-[0.98] transition-all disabled:opacity-50"
+        className="bg-[#C7A17A] text-black font-bold px-6 py-3 rounded-lg hover:bg-[#88e600] active:scale-[0.98] transition-all disabled:opacity-50"
       >
         {pending ? 'Speichert…' : '+ Speise hinzufügen'}
       </button>

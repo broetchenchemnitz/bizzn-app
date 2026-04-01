@@ -54,14 +54,14 @@ export default async function OrdersPage({
         {/* Header */}
         <div className="bg-[#242424] rounded-2xl border border-gray-800 p-8">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-[#77CC00]/10 flex items-center justify-center shrink-0">
-              <MonitorCheck className="w-6 h-6 text-[#77CC00]" />
+            <div className="w-12 h-12 rounded-xl bg-[#C7A17A]/10 flex items-center justify-center shrink-0">
+              <MonitorCheck className="w-6 h-6 text-[#C7A17A]" />
             </div>
             <div>
               <h1 className="text-xl font-bold text-white">Kitchen Display System</h1>
               <p className="text-sm text-gray-400 mt-0.5">{project.name} · Live Bestellmanagement</p>
             </div>
-            <span className="ml-auto text-xs font-semibold text-[#77CC00] bg-[#77CC00]/10 px-3 py-1 rounded-full border border-[#77CC00]/20">
+            <span className="ml-auto text-xs font-semibold text-[#C7A17A] bg-[#C7A17A]/10 px-3 py-1 rounded-full border border-[#C7A17A]/20">
               Gastro-OS v1
             </span>
           </div>

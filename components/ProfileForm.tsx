@@ -76,7 +76,7 @@ export default function ProfileForm({ initialName, email }: ProfileFormProps) {
         <button
           type="submit"
           disabled={isSaving || name.trim() === initialName}
-          className="flex items-center gap-2 bg-brand hover:bg-[#66b300] text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-60"
+          className="flex items-center gap-2 bg-brand hover:bg-[#B58E62] text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-60"
         >
           {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
           {isSaving ? 'Speichern...' : 'Speichern'}

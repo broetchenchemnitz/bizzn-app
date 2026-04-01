@@ -41,13 +41,13 @@ export default function AddCategoryForm({ projectId }: AddCategoryFormProps) {
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="z. B. Vorspeisen, Hauptgericht, Getränke…"
-          className="flex-1 px-4 py-3 text-sm bg-[#1a1a1a] text-white placeholder-gray-600 border border-gray-700 rounded-xl outline-none focus:border-[#77CC00] focus:ring-2 focus:ring-[#77CC00]/20 transition-all"
+          className="flex-1 px-4 py-3 text-sm bg-[#1a1a1a] text-white placeholder-gray-600 border border-gray-700 rounded-xl outline-none focus:border-[#C7A17A] focus:ring-2 focus:ring-[#C7A17A]/20 transition-all"
           disabled={isLoading}
         />
         <button
           type="submit"
           disabled={isLoading || !name.trim()}
-          className="flex items-center justify-center gap-2 bg-[#77CC00] hover:bg-[#66b300] active:scale-[0.98] text-black font-bold px-6 py-3 rounded-xl text-sm transition-all disabled:opacity-50 shadow-sm whitespace-nowrap"
+          className="flex items-center justify-center gap-2 bg-[#C7A17A] hover:bg-[#B58E62] active:scale-[0.98] text-black font-bold px-6 py-3 rounded-xl text-sm transition-all disabled:opacity-50 shadow-sm whitespace-nowrap"
         >
           {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
           Hinzufügen

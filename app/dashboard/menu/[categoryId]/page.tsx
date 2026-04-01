@@ -27,18 +27,18 @@ export default async function CategoryPage({ params }: { params: { categoryId: s
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
             {dishes.map((dish) => (
-              <div key={dish.id} className="bg-gray-900 border border-gray-800 rounded-xl p-5 flex justify-between items-start hover:border-[#77CC00] hover:shadow-[0_0_15px_rgba(119,204,0,0.1)] transition-all duration-300 group">
+              <div key={dish.id} className="bg-gray-900 border border-gray-800 rounded-xl p-5 flex justify-between items-start hover:border-[#C7A17A] hover:shadow-[0_0_15px_rgba(119,204,0,0.1)] transition-all duration-300 group">
                 <div>
                   <div className="flex items-center gap-3">
-                    <h3 className="text-lg font-bold text-white group-hover:text-[#77CC00] transition-colors">{dish.name}</h3>
+                    <h3 className="text-lg font-bold text-white group-hover:text-[#C7A17A] transition-colors">{dish.name}</h3>
                     {dish.isActive && (
-                      <span className="px-2 py-0.5 text-xs font-semibold bg-[#77CC00]/10 text-[#77CC00] rounded-full border border-[#77CC00]/20">
+                      <span className="px-2 py-0.5 text-xs font-semibold bg-[#C7A17A]/10 text-[#C7A17A] rounded-full border border-[#C7A17A]/20">
                         Aktiv
                       </span>
                     )}
                   </div>
                   <p className="text-gray-400 text-sm mt-1">{dish.description}</p>
-                  <p className="text-[#77CC00] font-medium mt-3">{dish.price.toFixed(2)} €</p>
+                  <p className="text-[#C7A17A] font-medium mt-3">{dish.price.toFixed(2)} €</p>
                 </div>
                 <form action={deleteDish.bind(null, dish.id)}>
                   <button type="submit" className="text-gray-500 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all p-2">
