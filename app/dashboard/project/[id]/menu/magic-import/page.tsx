@@ -52,7 +52,12 @@ export default function MagicImportPage() {
   };
 
   const handleDragEnter = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setIsDragActive(true); };
-  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragActive(true); };
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'copy';
+    setIsDragActive(true);
+  };
   const handleDragLeave = (e: React.DragEvent) => { e.preventDefault(); setIsDragActive(false); };
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
