@@ -17,7 +17,7 @@ export default async function DashboardLayout({
   }
 
   return (
-    <section className="dashboard-layout min-h-screen bg-gray-900 text-white">
+    <section className="dashboard-layout min-h-screen bg-[#1a1a1a] text-white">
       {/* Future Dashboard Navigation/Sidebar can be injected here.
         For now, just render the protected child routes.
       */}

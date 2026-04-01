@@ -37,38 +37,38 @@ export default async function OrdersPage({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
+    <div className="min-h-screen bg-[#1a1a1a] p-6 md:p-8">
       <div className="max-w-6xl mx-auto space-y-6">
 
         {/* Back link */}
         <div>
           <Link
             href={`/dashboard/project/${params.id}`}
-            className="inline-flex items-center text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors bg-white px-4 py-2 rounded-lg border border-gray-200 shadow-sm hover:bg-gray-50 group"
+            className="inline-flex items-center text-sm font-medium text-gray-400 hover:text-white transition-colors bg-[#242424] px-4 py-2 rounded-lg border border-gray-800 hover:border-gray-600 group"
           >
-            <ArrowLeft className="w-4 h-4 mr-2 text-gray-400 group-hover:text-gray-600 transition-colors" />
+            <ArrowLeft className="w-4 h-4 mr-2 text-gray-500 group-hover:text-white transition-colors" />
             Zurück zum Dashboard
           </Link>
         </div>
 
         {/* Header */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+        <div className="bg-[#242424] rounded-2xl border border-gray-800 p-8">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-[#F0FBD8] flex items-center justify-center shrink-0">
+            <div className="w-12 h-12 rounded-xl bg-[#77CC00]/10 flex items-center justify-center shrink-0">
               <MonitorCheck className="w-6 h-6 text-[#77CC00]" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Kitchen Display System</h1>
-              <p className="text-sm text-gray-500 mt-0.5">{project.name} · Live Bestellmanagement</p>
+              <h1 className="text-xl font-bold text-white">Kitchen Display System</h1>
+              <p className="text-sm text-gray-400 mt-0.5">{project.name} · Live Bestellmanagement</p>
             </div>
-            <span className="ml-auto text-xs font-semibold text-[#77CC00] bg-[#F0FBD8] px-3 py-1 rounded-full border border-[#77CC00]/20">
+            <span className="ml-auto text-xs font-semibold text-[#77CC00] bg-[#77CC00]/10 px-3 py-1 rounded-full border border-[#77CC00]/20">
               Gastro-OS v1
             </span>
           </div>
         </div>
 
         {/* KDS Board */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+        <div className="bg-[#242424] rounded-2xl border border-gray-800 p-8">
           <KitchenDisplay projectId={params.id} />
         </div>
 
