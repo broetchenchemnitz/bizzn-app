@@ -46,7 +46,14 @@ export async function updateSession(request: NextRequest) {
   }
 
   // 2. Prevent authenticated users from seeing auth pages
-  if (user && request.nextUrl.pathname.startsWith('/auth')) {
+  //    Exception: /auth/confirm and /auth/impersonate must always be reachable
+  //    (they handle session switching for admin impersonation)
+  const isAuthPage = request.nextUrl.pathname.startsWith('/auth')
+  const isPassthroughAuthRoute =
+    request.nextUrl.pathname.startsWith('/auth/confirm') ||
+    request.nextUrl.pathname.startsWith('/auth/impersonate')
+
+  if (user && isAuthPage && !isPassthroughAuthRoute) {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
     return NextResponse.redirect(url)

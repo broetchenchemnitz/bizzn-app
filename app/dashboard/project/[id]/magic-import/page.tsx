@@ -53,10 +53,10 @@ export default function MagicImportPage() {
         router.push(`/dashboard/project/${projectId}/menu`);
         router.refresh();
       }, 1500);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Import Error:", error);
       setStatus("error");
-      toast.error(error.message || "Ein unerwarteter Fehler ist aufgetreten.");
+      toast.error(error instanceof Error ? error.message : "Ein unerwarteter Fehler ist aufgetreten.");
     } finally {
       setIsLoading(false);
     }

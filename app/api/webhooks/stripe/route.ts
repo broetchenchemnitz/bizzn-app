@@ -52,14 +52,33 @@ export async function POST(request: NextRequest) {
       status: 'active',
     }
 
-    const { error } = await supabase.from('projects').insert(insertData)
+    const { data: newProject, error: projectError } = await supabase
+      .from('projects')
+      .insert(insertData)
+      .select('id')
+      .single()
 
-    if (error) {
-      console.error('Webhook DB insert failed:', error.message, error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
+    if (projectError) {
+      console.error('Webhook DB insert failed:', projectError.message, projectError)
+      return NextResponse.json({ error: projectError.message }, { status: 500 })
     }
 
-    console.log('Webhook: project inserted successfully for userId:', userId)
+    // M3: Auto-assign owner role for the project creator
+    const { error: memberError } = await supabase
+      .from('project_members')
+      .insert({
+        project_id: newProject.id,
+        user_id: userId,
+        role: 'owner',
+      })
+
+    if (memberError) {
+      console.error('Webhook: failed to assign owner role:', memberError.message)
+      // Non-fatal — project exists, role can be repaired; return 200 to avoid Stripe retry
+      return NextResponse.json({ received: true, warning: 'Owner role assignment failed' })
+    }
+
+    console.log('Webhook: project inserted + owner assigned for userId:', userId)
   }
 
   if (event.type === 'account.updated') {
@@ -83,6 +102,35 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('Webhook: stripe account status synced for:', account.id)
+  }
+
+  // Subscription lifecycle — status changes & cancellations
+  if (
+    event.type === 'customer.subscription.updated' ||
+    event.type === 'customer.subscription.deleted'
+  ) {
+    const subscription = event.data.object as Stripe.Subscription
+    const supabase = createAdminClient()
+
+    const updatePayload: Record<string, unknown> = {
+      subscription_status: subscription.status,
+    }
+    if (event.type === 'customer.subscription.deleted') {
+      updatePayload.plan_type = 'free'
+    }
+
+    const { error } = await supabase
+      .from('projects')
+      .update(updatePayload)
+      .eq('stripe_subscription_id', subscription.id)
+
+    if (error) {
+      console.error('Webhook: failed to sync subscription status:', error.message)
+      // Return 200 to prevent Stripe retry loops on data errors
+      return NextResponse.json({ received: true, warning: error.message })
+    }
+
+    console.log(`Webhook: subscription ${event.type} synced for:`, subscription.id)
   }
 
   return NextResponse.json({ received: true })

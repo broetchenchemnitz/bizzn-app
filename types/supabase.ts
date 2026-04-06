@@ -20,6 +20,16 @@ export interface Database {
           stripe_account_id: string | null
           stripe_charges_enabled: boolean | null
           stripe_payouts_enabled: boolean | null
+          // M14: Restaurant-Profilfelder
+          description: string | null
+          address: string | null
+          phone: string | null
+          cuisine_type: string | null
+          cover_image_url: string | null
+          opening_hours: Record<string, string> | null
+          // M16: Willkommensrabatt
+          welcome_discount_enabled: boolean
+          welcome_discount_pct: number
         }
         Insert: {
           id?: string
@@ -31,6 +41,16 @@ export interface Database {
           stripe_account_id?: string | null
           stripe_charges_enabled?: boolean | null
           stripe_payouts_enabled?: boolean | null
+          // M14: Restaurant-Profilfelder
+          description?: string | null
+          address?: string | null
+          phone?: string | null
+          cuisine_type?: string | null
+          cover_image_url?: string | null
+          opening_hours?: Record<string, string> | null
+          // M16: Willkommensrabatt
+          welcome_discount_enabled?: boolean
+          welcome_discount_pct?: number
         }
         Update: {
           id?: string
@@ -42,8 +62,111 @@ export interface Database {
           stripe_account_id?: string | null
           stripe_charges_enabled?: boolean | null
           stripe_payouts_enabled?: boolean | null
+          // M14: Restaurant-Profilfelder
+          description?: string | null
+          address?: string | null
+          phone?: string | null
+          cuisine_type?: string | null
+          cover_image_url?: string | null
+          opening_hours?: Record<string, string> | null
+          // M16: Willkommensrabatt
+          welcome_discount_enabled?: boolean
+          welcome_discount_pct?: number
         }
         Relationships: []
+      }
+      project_members: {
+        Row: {
+          id: string
+          project_id: string
+          user_id: string
+          role: 'owner' | 'admin' | 'staff'
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          user_id: string
+          role: 'owner' | 'admin' | 'staff'
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          user_id?: string
+          role?: 'owner' | 'admin' | 'staff'
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'project_members_project_id_fkey'
+            columns: ['project_id']
+            referencedRelation: 'projects'
+            referencedColumns: ['id']
+          }
+        ]
+      }
+      // M15: Kunden-Auth
+      customer_profiles: {
+        Row: {
+          id: string
+          name: string
+          phone: string | null
+          created_at: string
+        }
+        Insert: {
+          id: string
+          name: string
+          phone?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          phone?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      restaurant_customers: {
+        Row: {
+          id: string
+          project_id: string
+          user_id: string
+          marketing_consent_push: boolean
+          marketing_consent_email: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          user_id: string
+          marketing_consent_push?: boolean
+          marketing_consent_email?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          user_id?: string
+          marketing_consent_push?: boolean
+          marketing_consent_email?: boolean
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'restaurant_customers_project_id_fkey'
+            columns: ['project_id']
+            referencedRelation: 'projects'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'restaurant_customers_user_id_fkey'
+            columns: ['user_id']
+            referencedRelation: 'users'
+            referencedColumns: ['id']
+          }
+        ]
       }
       menu_categories: {
         Row: {
@@ -84,6 +207,7 @@ export interface Database {
           description: string
           price: number
           is_active: boolean
+          image_url: string | null
           created_at: string
         }
         Insert: {
@@ -93,6 +217,7 @@ export interface Database {
           description?: string
           price: number
           is_active?: boolean
+          image_url?: string | null
           created_at?: string
         }
         Update: {
@@ -102,6 +227,7 @@ export interface Database {
           description?: string
           price?: number
           is_active?: boolean
+          image_url?: string | null
           created_at?: string
         }
         Relationships: [
@@ -124,6 +250,9 @@ export interface Database {
           order_type: 'delivery' | 'takeaway' | 'in-store'
           table_number: string | null
           payout_status: 'pending' | 'paid'
+          // M16: Rabatt
+          discount_pct: number
+          discount_amount_cents: number
           created_at: string
         }
         Insert: {
@@ -136,6 +265,9 @@ export interface Database {
           order_type?: 'delivery' | 'takeaway' | 'in-store'
           table_number?: string | null
           payout_status?: 'pending' | 'paid'
+          // M16: Rabatt
+          discount_pct?: number
+          discount_amount_cents?: number
           created_at?: string
         }
         Update: {
@@ -148,6 +280,9 @@ export interface Database {
           order_type?: 'delivery' | 'takeaway' | 'in-store'
           table_number?: string | null
           payout_status?: 'pending' | 'paid'
+          // M16: Rabatt
+          discount_pct?: number
+          discount_amount_cents?: number
           created_at?: string
         }
         Relationships: [

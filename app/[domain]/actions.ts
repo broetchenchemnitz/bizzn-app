@@ -29,6 +29,28 @@ export interface PlaceOrderInput {
   items: CartItem[]
 }
 
+// ─── M16: Erstbesteller-Prüfung ──────────────────────────────────────────────
+
+/**
+ * Prüft ob der Kunde (identifiziert via customerContact) Erstbesteller ist.
+ * Fallback: immer false wenn kein Kontakt angegeben — kein Rabatt ohne Identifikation.
+ */
+async function isFirstTimeCustomer(
+  supabase: ReturnType<typeof createAnonSupabase>,
+  projectId: string,
+  customerContact: string
+): Promise<boolean> {
+  if (!customerContact.trim()) return false
+
+  const { count } = await supabase
+    .from('orders')
+    .select('id', { count: 'exact', head: true })
+    .eq('project_id', projectId)
+    .eq('customer_contact', customerContact.trim())
+
+  return (count ?? 0) === 0
+}
+
 export async function placeOrder(
   input: PlaceOrderInput
 ): Promise<{ orderId: string | null; error: string | null }> {
@@ -36,12 +58,32 @@ export async function placeOrder(
 
   if (!items.length) return { orderId: null, error: 'Warenkorb ist leer.' }
 
-  const totalAmount = items.reduce(
+  const subtotalCents = items.reduce(
     (sum, i) => sum + i.priceInCents * i.quantity,
     0
   )
 
   const supabase = createAnonSupabase()
+
+  // ── M16: Projekt-Rabatteinstellungen lesen ───────────────────────────────
+  const { data: project } = await supabase
+    .from('projects')
+    .select('welcome_discount_enabled, welcome_discount_pct')
+    .eq('id', projectId)
+    .single()
+
+  let discountPct = 0
+  let discountAmountCents = 0
+
+  if (project?.welcome_discount_enabled && project.welcome_discount_pct > 0) {
+    const isFirst = await isFirstTimeCustomer(supabase, projectId, customerContact)
+    if (isFirst) {
+      discountPct = project.welcome_discount_pct
+      discountAmountCents = Math.round(subtotalCents * discountPct / 100)
+    }
+  }
+
+  const totalAmount = subtotalCents - discountAmountCents
 
   // Insert order
   const orderInsert: OrderInsert = {
@@ -52,6 +94,8 @@ export async function placeOrder(
     customer_contact: customerContact,
     order_type: orderType,
     table_number: tableNumber ?? null,
+    discount_pct: discountPct,
+    discount_amount_cents: discountAmountCents,
   }
 
   const { data: order, error: orderError } = await supabase
@@ -83,4 +127,25 @@ export async function placeOrder(
   }
 
   return { orderId: order.id, error: null }
+}
+
+// ─── M16: Rabatt-Info für den Storefront laden ────────────────────────────────
+
+export interface DiscountInfo {
+  enabled: boolean
+  pct: number
+}
+
+export async function getProjectDiscountInfo(projectId: string): Promise<DiscountInfo> {
+  const supabase = createAnonSupabase()
+  const { data } = await supabase
+    .from('projects')
+    .select('welcome_discount_enabled, welcome_discount_pct')
+    .eq('id', projectId)
+    .single()
+
+  return {
+    enabled: data?.welcome_discount_enabled ?? false,
+    pct: data?.welcome_discount_pct ?? 10,
+  }
 }

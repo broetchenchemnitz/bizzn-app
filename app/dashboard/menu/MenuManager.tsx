@@ -1,6 +1,5 @@
 'use client'
 
-
 import Link from 'next/link'
 import { addDish, deleteDish } from './actions'
 import type { Category, Dish } from './page'
@@ -11,77 +10,148 @@ interface Props {
   dishes: Dish[]
 }
 
-
-// ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export default function MenuManager({ restaurantName: _restaurantName, categories, dishes }: Props) {
-
+export default function MenuManager({ restaurantName, categories, dishes }: Props) {
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 p-4 md:p-8 selection:bg-[#C7A17A]/30 font-sans">
-      <div className="max-w-5xl mx-auto">
-        <header className="mb-10">
-          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white mb-2">Speisekarten-Management</h1>
-          <p className="text-zinc-400">Verwalte deine Gerichte, Preise und Kategorien.</p>
+    <div className="min-h-full bg-[#1A1A1A] text-white font-sans selection:bg-[#C7A17A] selection:text-[#1A1A1A]">
+      <div className="max-w-5xl mx-auto space-y-8">
+
+        <header>
+          <h1 className="text-3xl font-extrabold text-[#C7A17A]">
+            Speisekarten-Management
+          </h1>
+          <p className="text-gray-400 mt-2">
+            Verwalte deine Gerichte, Preise und Kategorien für{' '}
+            <span className="text-white font-medium">{restaurantName}</span>.
+          </p>
         </header>
 
-        {/* CRUD Formular */}
-        <form action={async (fd) => { await addDish(fd) }} className="bg-zinc-900/60 border border-zinc-800/60 backdrop-blur-md p-6 md:p-8 rounded-3xl mb-12 flex flex-col gap-5 shadow-2xl shadow-black/40">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <input type="text" name="name" placeholder="Name des Gerichts" className="bg-zinc-950 border border-zinc-800 p-3.5 rounded-xl text-zinc-100 focus:outline-none focus:border-[#C7A17A] focus:ring-1 focus:ring-[#C7A17A] transition-all placeholder:text-zinc-600 shadow-inner w-full" required />
-            <div className="flex gap-4 w-full">
-              <input type="number" name="price" step="0.01" placeholder="Preis (€)" className="bg-zinc-950 border border-zinc-800 p-3.5 rounded-xl text-zinc-100 w-1/2 focus:outline-none focus:border-[#C7A17A] focus:ring-1 focus:ring-[#C7A17A] transition-all placeholder:text-zinc-600 shadow-inner font-mono" required />
-              <select name="categoryId" className="bg-zinc-950 border border-zinc-800 p-3.5 rounded-xl text-zinc-100 w-1/2 focus:outline-none focus:border-[#C7A17A] focus:ring-1 focus:ring-[#C7A17A] transition-all appearance-none shadow-inner cursor-pointer" required>
-                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            </div>
+        {/* ── CRUD Formular ───────────────────────────────────────────────── */}
+        <form
+          action={async (fd) => { await addDish(fd) }}
+          className="bg-[#242424] border border-[#333333] rounded-xl p-6 shadow-lg space-y-4"
+        >
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <input
+              required
+              id="dish-name"
+              name="name"
+              placeholder="Name des Gerichts"
+              className="w-full bg-[#1A1A1A] border border-[#333333] rounded-md p-3 text-white placeholder:text-gray-600 focus:outline-none focus:border-[#C7A17A] focus:ring-1 focus:ring-[#C7A17A] transition-colors"
+            />
+            <input
+              required
+              id="dish-price"
+              name="price"
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="Preis (z.B. 12.50)"
+              className="w-full bg-[#1A1A1A] border border-[#333333] rounded-md p-3 text-white placeholder:text-gray-600 focus:outline-none focus:border-[#C7A17A] focus:ring-1 focus:ring-[#C7A17A] transition-colors font-mono"
+            />
+            <select
+              required
+              id="dish-category"
+              name="categoryId"
+              defaultValue=""
+              className="w-full bg-[#1A1A1A] border border-[#333333] rounded-md p-3 text-white focus:outline-none focus:border-[#C7A17A] focus:ring-1 focus:ring-[#C7A17A] transition-colors appearance-none cursor-pointer"
+            >
+              <option value="" disabled>Kategorie wählen</option>
+              {categories.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
           </div>
-          <textarea name="description" placeholder="Schmackhafte Beschreibung (optional)" className="bg-zinc-950 border border-zinc-800 p-3.5 rounded-xl text-zinc-100 focus:outline-none focus:border-[#C7A17A] focus:ring-1 focus:ring-[#C7A17A] transition-all placeholder:text-zinc-600 min-h-[100px] resize-y shadow-inner"></textarea>
 
-          <button type="submit" className="bg-[#C7A17A] text-black text-sm uppercase tracking-wide font-bold py-4 px-6 rounded-xl hover:bg-[#88e600] active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(119,204,0,0.2)] hover:shadow-[0_0_30px_rgba(119,204,0,0.4)] mt-2 w-full md:w-auto md:self-end">
+          <textarea
+            id="dish-description"
+            name="description"
+            placeholder="Optionale Beschreibung"
+            rows={2}
+            className="w-full bg-[#1A1A1A] border border-[#333333] rounded-md p-3 text-white placeholder:text-gray-600 focus:outline-none focus:border-[#C7A17A] focus:ring-1 focus:ring-[#C7A17A] transition-colors resize-y"
+          />
+
+          <button
+            id="btn-add-dish"
+            type="submit"
+            className="w-full md:w-auto bg-[#C7A17A] hover:bg-[#B58E62] text-[#1A1A1A] font-semibold py-2.5 px-6 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#242424] focus:ring-[#C7A17A]"
+          >
             Gericht hinzufügen
           </button>
         </form>
 
-        {/* Gericht-Übersicht gruppiert nach Kategorie */}
-        <div className="space-y-12">
-          {categories.map(category => (
-            <div key={category.id} className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="flex items-center gap-3 border-b border-zinc-800/80 pb-3 mb-6">
-                <div className="w-2.5 h-2.5 rounded-full bg-[#C7A17A] shadow-[0_0_8px_rgba(119,204,0,0.8)]"></div>
-                <Link
-                  href={`/dashboard/menu/${category.id}`}
-                  className="text-2xl font-bold text-white tracking-tight hover:text-[#C7A17A] transition-colors"
-                >
-                  {category.name} →
-                </Link>
-              </div>
+        {/* ── Kategorien-Gruppen ───────────────────────────────────────────── */}
+        {categories.length === 0 ? (
+          <div className="text-center py-16 border-2 border-dashed border-[#333333] rounded-xl">
+            <p className="text-gray-500 text-sm">
+              Noch keine Kategorien vorhanden. Lege zuerst eine Kategorie an.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {categories.map(category => {
+              const categoryDishes = dishes.filter(d => d.category_id === category.id)
 
-              <ul className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {dishes.filter(d => d.category_id === category.id).map(dish => (
-                  <li key={dish.id} className="group bg-zinc-900/40 border border-zinc-800/50 hover:border-[#C7A17A]/30 p-5 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hover:bg-zinc-800/60 transition-all duration-300 relative overflow-hidden">
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-lg text-zinc-100 group-hover:text-[#C7A17A] transition-colors">{dish.name}</h3>
-                      <p className="text-sm text-zinc-400 mt-1 leading-relaxed line-clamp-2">{dish.description}</p>
-                    </div>
-                    <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end mt-3 md:mt-0">
-                      <span className="font-mono text-lg font-medium text-[#C7A17A] bg-[#C7A17A]/10 px-3 py-1 rounded-lg border border-[#C7A17A]/20 whitespace-nowrap">
-                        {dish.price.toFixed(2)} €
-                      </span>
-                      <form action={deleteDish.bind(null, dish.id)}>
-                        <button
-                          type="submit"
-                          className="px-3 py-1 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+              return (
+                <div
+                  key={category.id}
+                  className="bg-[#242424] border border-[#333333] rounded-xl overflow-hidden shadow-lg"
+                >
+                  {/* Category Header */}
+                  <div className="bg-[#1A1A1A] px-6 py-4 border-b border-[#333333] flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full bg-[#C7A17A] shadow-[0_0_8px_rgba(199,161,122,0.6)] flex-shrink-0" />
+                    <Link
+                      href={`/dashboard/menu/${category.id}`}
+                      className="text-lg font-bold text-white hover:text-[#C7A17A] transition-colors"
+                    >
+                      {category.name}
+                    </Link>
+                    <span className="ml-auto text-xs text-gray-500 bg-[#242424] px-2 py-0.5 rounded-full border border-[#333333]">
+                      {categoryDishes.length} {categoryDishes.length === 1 ? 'Gericht' : 'Gerichte'}
+                    </span>
+                  </div>
+
+                  {/* Dishes List */}
+                  {categoryDishes.length === 0 ? (
+                    <p className="px-6 py-4 text-sm text-gray-600 italic">
+                      Noch keine Gerichte in dieser Kategorie.
+                    </p>
+                  ) : (
+                    <ul className="divide-y divide-[#333333]">
+                      {categoryDishes.map(dish => (
+                        <li
+                          key={dish.id}
+                          className="px-6 py-4 hover:bg-[#1A1A1A]/60 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4"
                         >
-                          Löschen
-                        </button>
-                      </form>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-white">{dish.name}</h3>
+                            {dish.description && (
+                              <p className="text-gray-400 text-sm mt-0.5 line-clamp-2">
+                                {dish.description}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3 flex-shrink-0">
+                            <span className="text-[#C7A17A] font-bold font-mono bg-[#1A1A1A] border border-[#333333] px-3 py-1.5 rounded-md text-sm">
+                              {dish.price.toFixed(2)} €
+                            </span>
+                            <form action={deleteDish.bind(null, dish.id)}>
+                              <button
+                                type="submit"
+                                className="text-red-400 bg-red-950/30 hover:bg-red-900/50 hover:text-red-300 px-3 py-1.5 rounded-md transition-colors text-sm font-medium border border-red-900/50 focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                              >
+                                Löschen
+                              </button>
+                            </form>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
     </div>
   )

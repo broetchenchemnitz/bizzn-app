@@ -1,12 +1,18 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import type { Database } from '@/types/supabase';
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
 
 export async function POST(req: Request) {
-  const supabase = createRouteHandlerClient({ cookies });
+  const cookieStore = cookies();
+  const supabase = createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { cookies: { getAll: () => cookieStore.getAll() } }
+  );
   
   try {
     const { rawText } = await req.json();
@@ -15,6 +21,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'No input provided' }, { status: 400 });
     }
 
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
@@ -32,7 +39,7 @@ export async function POST(req: Request) {
     // DB-Insertion: Speichert die erkannten Gerichte direkt in die Tabelle menu_items
     const { data, error } = await supabase
       .from('menu_items')
-      .insert(parsedData.items.map((item: any) => ({ 
+      .insert(parsedData.items.map((item: { name: string; description: string; price: string }) => ({ 
         ...item, 
         created_at: new Date().toISOString() 
       })))
@@ -42,8 +49,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, data });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('AI Import Error:', error);
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Internal Server Error';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

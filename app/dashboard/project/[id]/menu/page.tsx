@@ -1,9 +1,11 @@
 import Link from 'next/link'
-import { ArrowLeft, UtensilsCrossed, ChevronRight, FolderOpen, Sparkles } from 'lucide-react'
+import { ArrowLeft, UtensilsCrossed, FolderOpen, Sparkles, Eye } from 'lucide-react'
+import MenuPreviewButton from '@/components/MenuPreviewButton'
 import { createClient } from '@/lib/supabase-server'
 import { notFound, redirect } from 'next/navigation'
-import { getMenuCategories } from '@/app/actions/menu'
+import { getMenuCategories, getMenuItems } from '@/app/actions/menu'
 import AddCategoryForm from '@/components/AddCategoryForm'
+import EditCategoryInline from '@/components/EditCategoryInline'
 import type { Database } from '@/types/supabase'
 
 type ProjectRow = Database['public']['Tables']['projects']['Row']
@@ -41,6 +43,15 @@ export default async function MenuBuilderPage({
   const { data: categories } = await getMenuCategories(params.id)
   const safeCategories: MenuCategory[] = categories ?? []
 
+  // Load item counts for each category in parallel
+  const itemCounts = await Promise.all(
+    safeCategories.map(async (cat) => {
+      const { data } = await getMenuItems(cat.id)
+      return { categoryId: cat.id, count: data?.length ?? 0 }
+    })
+  )
+  const countMap = Object.fromEntries(itemCounts.map(({ categoryId, count }) => [categoryId, count]))
+
   return (
     <div className="min-h-screen bg-[#1a1a1a] p-4 md:p-8 font-sans selection:bg-[#C7A17A]/30">
       <div className="max-w-3xl mx-auto space-y-6">
@@ -61,14 +72,35 @@ export default async function MenuBuilderPage({
           <div className="flex-1 min-w-0">
             <h1 className="text-2xl font-bold text-white mb-1">Speisekarte verwalten</h1>
             <p className="text-gray-400">{project.name}</p>
+            {project.slug && (
+              <p className="text-xs text-gray-600 mt-0.5 font-mono">{project.slug}.bizzn.de</p>
+            )}
           </div>
-          <Link
-            href={`/dashboard/project/${params.id}/menu/magic-import`}
-            className="shrink-0 inline-flex items-center gap-2 text-sm font-semibold text-[#C7A17A] bg-[#C7A17A]/10 border border-[#C7A17A]/25 px-4 py-2.5 rounded-xl hover:bg-[#C7A17A]/20 hover:border-[#C7A17A]/50 transition-all duration-300 group"
-          >
-            <Sparkles className="w-4 h-4 group-hover:scale-110 transition-transform duration-300" />
-            Magic Import
-          </Link>
+          {/* Action buttons */}
+          <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+            {/* Vorschau */}
+            {project.slug ? (
+              <MenuPreviewButton slug={project.slug} />
+            ) : (
+              <Link
+                id="menu-preview-no-slug"
+                href={`/dashboard/project/${params.id}/settings`}
+                className="inline-flex items-center gap-2 text-sm text-gray-500 bg-gray-800/50 border border-gray-800 px-4 py-2.5 rounded-xl hover:border-[#C7A17A]/30 hover:text-[#C7A17A] transition-all duration-200"
+                title="Web-Adresse zuerst in Einstellungen setzen"
+              >
+                <Eye className="w-4 h-4" />
+                <span className="hidden sm:inline">Vorschau</span>
+              </Link>
+            )}
+            {/* Magic Import */}
+            <Link
+              href={`/dashboard/project/${params.id}/menu/magic-import`}
+              className="shrink-0 inline-flex items-center gap-2 text-sm font-semibold text-[#C7A17A] bg-[#C7A17A]/10 border border-[#C7A17A]/25 px-4 py-2.5 rounded-xl hover:bg-[#C7A17A]/20 hover:border-[#C7A17A]/50 transition-all duration-300 group"
+            >
+              <Sparkles className="w-4 h-4 group-hover:scale-110 transition-transform duration-300" />
+              <span className="hidden sm:inline">Magic Import</span>
+            </Link>
+          </div>
         </div>
 
         {/* Add Category */}
@@ -90,19 +122,17 @@ export default async function MenuBuilderPage({
             <div className="flex flex-col items-center justify-center py-10 border-2 border-dashed border-gray-700 rounded-2xl">
               <FolderOpen className="w-10 h-10 text-gray-600 mb-3" />
               <p className="text-gray-500 text-sm">Noch keine Kategorien angelegt.</p>
+              <p className="text-gray-600 text-xs mt-1">Lege eine Kategorie an oder nutze den Magic Import.</p>
             </div>
           ) : (
-            <ul className="space-y-3">
+            <ul className="space-y-2">
               {safeCategories.map((cat) => (
-                <li key={cat.id}>
-                  <Link
-                    href={`/dashboard/project/${params.id}/menu/${cat.id}`}
-                    className="group flex justify-between items-center bg-[#1a1a1a] p-4 rounded-2xl border border-gray-800 hover:border-[#C7A17A]/40 hover:bg-[#C7A17A]/5 transition-all duration-300 shadow-sm"
-                  >
-                    <span className="font-medium text-gray-200 group-hover:text-[#C7A17A] transition-colors">{cat.name}</span>
-                    <ChevronRight className="w-5 h-5 text-gray-600 group-hover:text-[#C7A17A]/70 transition-colors" />
-                  </Link>
-                </li>
+                <EditCategoryInline
+                  key={cat.id}
+                  category={cat}
+                  projectId={params.id}
+                  itemCount={countMap[cat.id]}
+                />
               ))}
             </ul>
           )}

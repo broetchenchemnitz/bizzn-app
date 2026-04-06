@@ -1,247 +1,424 @@
 'use client';
-import React, { useState, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
 
-type ImportStatus = 'idle' | 'analyzing' | 'success' | 'error';
+import { useState, useRef, useCallback } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Loader2,
+  Sparkles,
+  CheckCircle2,
+  AlertCircle,
+  ArrowLeft,
+  UploadCloud,
+  FileText,
+  ImageIcon,
+  X,
+} from 'lucide-react';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+type ImportStatus = 'idle' | 'loading' | 'success' | 'error';
 
 interface ImportResult {
   categoriesCreated: number;
   itemsCreated: number;
 }
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'application/pdf'];
+// ─── Constants ────────────────────────────────────────────────────────────────
+const ACCEPTED_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+const MAX_FILE_SIZE_MB = 10;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
+// ─── Component ────────────────────────────────────────────────────────────────
 export default function MagicImportPage() {
-  const params = useParams<{ id: string }>();
+  const params = useParams();
   const router = useRouter();
+  const projectId = params.id as string;
+
+  // Text tab state
+  const [rawText, setRawText] = useState('');
+
+  // File tab state
+  const [file, setFile] = useState<File | null>(null);
+  const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [isDragActive, setIsDragActive] = useState(false);
+  // Shared state
   const [status, setStatus] = useState<ImportStatus>('idle');
+  const [errorMsg, setErrorMsg] = useState('');
   const [result, setResult] = useState<ImportResult | null>(null);
-  const [errorMsg, setErrorMsg] = useState<string>('');
-  const [rejectedMsg, setRejectedMsg] = useState<string>('');
-  const [fileName, setFileName] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<'text' | 'file'>('file');
 
-  const validateFile = (file: File): string | null => {
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      return `Dateityp „${file.type || file.name.split('.').pop()}" wird nicht unterstützt. Erlaubt: PDF, JPG, PNG.`;
+  // ── File helpers ──────────────────────────────────────────────────────────
+  const validateFile = (f: File): string | null => {
+    if (!ACCEPTED_TYPES.includes(f.type)) {
+      return 'Nur PDF, JPEG, PNG oder WebP Dateien erlaubt.';
     }
-    if (file.size > MAX_FILE_SIZE) {
-      return `Datei zu groß (${(file.size / (1024 * 1024)).toFixed(1)} MB). Maximum: 10 MB.`;
+    if (f.size > MAX_FILE_SIZE_BYTES) {
+      return `Datei zu groß. Maximal ${MAX_FILE_SIZE_MB} MB erlaubt.`;
     }
     return null;
   };
 
-  const processFile = async (file: File) => {
-    setRejectedMsg('');
-    const validationError = validateFile(file);
-    if (validationError) {
-      setRejectedMsg(validationError);
+  const handleFileSelect = (f: File) => {
+    const err = validateFile(f);
+    if (err) {
+      setStatus('error');
+      setErrorMsg(err);
       return;
     }
-
-    setFileName(file.name);
-    setStatus('analyzing');
+    setFile(f);
+    setStatus('idle');
     setErrorMsg('');
+  };
 
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('projectId', params.id);
+  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setDragOver(false);
+    const dropped = e.dataTransfer.files[0];
+    if (dropped) handleFileSelect(dropped);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Import: File (Gemini Vision) ──────────────────────────────────────────
+  const handleFileImport = async () => {
+    if (!file) return;
+
+    setStatus('loading');
+    setResult(null);
 
     try {
-      const res = await fetch('/api/magic-import', {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('projectId', projectId);
+
+      const response = await fetch('/api/magic-import', {
         method: 'POST',
         body: formData,
       });
 
-      const data = await res.json();
-
-      if (!res.ok || data.error) {
-        setErrorMsg(data.error ?? 'Unbekannter Fehler.');
-        setStatus('error');
-        return;
-      }
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Import fehlgeschlagen');
 
       setResult({ categoriesCreated: data.categoriesCreated, itemsCreated: data.itemsCreated });
       setStatus('success');
-    } catch {
-      setErrorMsg('Netzwerkfehler. Bitte erneut versuchen.');
+
+      setTimeout(() => {
+        router.push(`/dashboard/project/${projectId}/menu`);
+        router.refresh();
+      }, 2500);
+    } catch (err: unknown) {
       setStatus('error');
+      setErrorMsg(err instanceof Error ? err.message : 'Unbekannter Fehler beim Import.');
     }
   };
 
-  const handleDragEnter = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setIsDragActive(true); };
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    e.dataTransfer.dropEffect = 'copy';
-    setIsDragActive(true);
-  };
-  const handleDragLeave = (e: React.DragEvent) => { e.preventDefault(); setIsDragActive(false); };
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragActive(false);
-    setRejectedMsg('');
+  // ── Import: Text (AI text extraction) ────────────────────────────────────
+  const handleTextImport = async () => {
+    if (!rawText.trim()) return;
 
-    const files = Array.from(e.dataTransfer.files);
-    const validFiles = files.filter((file) => validateFile(file) === null);
-    const rejectedFiles = files.filter((file) => validateFile(file) !== null);
+    setStatus('loading');
+    setResult(null);
 
-    if (rejectedFiles.length > 0) {
-      const error = validateFile(rejectedFiles[0]);
-      setRejectedMsg(error ?? 'Eine oder mehrere Dateien wurden abgelehnt.');
+    try {
+      const response = await fetch('/api/magic-import/text', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rawText, projectId }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Import fehlgeschlagen');
+
+      setResult({ categoriesCreated: data.categoriesCreated, itemsCreated: data.itemsCreated });
+      setStatus('success');
+
+      setTimeout(() => {
+        router.push(`/dashboard/project/${projectId}/menu`);
+        router.refresh();
+      }, 2500);
+    } catch (err: unknown) {
+      setStatus('error');
+      setErrorMsg(err instanceof Error ? err.message : 'Unbekannter Fehler beim Import.');
     }
-
-    if (validFiles.length > 0) {
-      processFile(validFiles[0]);
-    }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    // Reset input so the same file can be reselected after rejection
-    e.target.value = '';
-    if (file) processFile(file);
+  const isLoading = status === 'loading';
+  const fileIconMap: Record<string, React.ReactNode> = {
+    'application/pdf': <FileText className="w-8 h-8 text-[#C7A17A]" />,
+    'image/jpeg': <ImageIcon className="w-8 h-8 text-[#C7A17A]" />,
+    'image/png': <ImageIcon className="w-8 h-8 text-[#C7A17A]" />,
+    'image/webp': <ImageIcon className="w-8 h-8 text-[#C7A17A]" />,
   };
 
+  // ─── Render ───────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#050505] bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(212,175,55,0.07),rgba(255,255,255,0))] text-gray-200 flex items-center justify-center p-6 antialiased selection:bg-[#D4AF37]/30">
-      <div className="bg-[#0f0f0f]/90 backdrop-blur-2xl border border-white/[0.04] rounded-[2rem] shadow-[0_30px_60px_-15px_rgba(0,0,0,1)] ring-1 ring-white/[0.02] overflow-hidden transition-all duration-700 w-full max-w-2xl p-10 md:p-12">
+    <div className="relative min-h-screen bg-[#1A1A1A] overflow-hidden">
+      {/* Gold radial background glow */}
+      <div
+        className="pointer-events-none absolute inset-0 z-0"
+        style={{
+          background:
+            'radial-gradient(ellipse 60% 40% at 50% 0%, rgba(199,161,122,0.10) 0%, transparent 70%)',
+        }}
+        aria-hidden="true"
+      />
 
-        <div className="mb-10 text-center">
-          <h2 className="text-[10px] text-[#C7A17A] font-bold tracking-[0.3em] uppercase mb-3 opacity-90">Menü-Digitalisierung</h2>
-          <h1 className="text-3xl md:text-5xl font-extralight tracking-tighter text-white">Magic Import</h1>
+      <div className="relative z-10 max-w-3xl mx-auto px-4 py-8 space-y-6">
+        {/* Back button */}
+        <Button
+          variant="ghost"
+          id="magic-import-back-btn"
+          onClick={() => router.push(`/dashboard/project/${projectId}/menu`)}
+          className="gap-2 text-gray-400 hover:text-[#C7A17A] hover:bg-[#C7A17A]/5 transition-all"
+          disabled={isLoading}
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Zurück zur Speisekarte
+        </Button>
+
+        {/* Header */}
+        <div className="space-y-1">
+          <h1 className="text-4xl font-extrabold tracking-tighter text-white flex items-center gap-3">
+            <span
+              className="inline-flex items-center justify-center w-10 h-10 rounded-2xl bg-[#C7A17A]/15 border border-[#C7A17A]/25"
+              aria-hidden="true"
+            >
+              <Sparkles className="w-5 h-5 text-[#C7A17A]" />
+            </span>
+            Magic AI Import
+          </h1>
+          <p className="text-gray-400 text-lg pl-1">
+            Speisekarte hochladen — KI erledigt den Rest.
+          </p>
         </div>
 
-        {/* Hidden file input */}
-        <input
-          id="file-upload"
-          ref={fileInputRef}
-          type="file"
-          accept="image/jpeg,image/png,application/pdf"
-          className="hidden"
-          onChange={handleFileChange}
-        />
-
-        {/* ── ANALYZING ── */}
-        {status === 'analyzing' && (
-          <div className="flex flex-col items-center justify-center min-h-[240px] text-center">
-            <div className="relative w-12 h-12 mb-8">
-              <div className="absolute inset-0 rounded-full border-[1.5px] border-white/10"></div>
-              <div className="absolute inset-0 rounded-full border-[1.5px] border-[#C7A17A] border-t-transparent animate-spin"></div>
-              <div className="absolute inset-0 rounded-full bg-[#C7A17A]/10 animate-pulse blur-md"></div>
-            </div>
-            <p className="text-gray-300 font-light tracking-widest text-sm uppercase animate-pulse mb-2">
-              Analysiere Speisekarte<span className="text-[#C7A17A]">...</span>
-            </p>
-            {fileName && (
-              <p className="text-gray-600 text-xs mt-1 max-w-xs truncate">{fileName}</p>
-            )}
-          </div>
-        )}
-
-        {/* ── SUCCESS ── */}
-        {status === 'success' && result && (
-          <div className="flex flex-col items-center justify-center min-h-[240px] text-center">
-            <div className="w-14 h-14 rounded-full bg-[#C7A17A]/10 border border-[#C7A17A]/30 flex items-center justify-center mb-6">
-              <svg className="w-7 h-7 text-[#C7A17A]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <p className="text-white text-lg font-light mb-1">Import erfolgreich</p>
-            <p className="text-gray-500 text-sm mb-8">
-              <span className="text-[#C7A17A] font-medium">{result.categoriesCreated}</span> Kategorien ·{' '}
-              <span className="text-[#C7A17A] font-medium">{result.itemsCreated}</span> Gerichte angelegt
-            </p>
-            <button
-              onClick={() => router.push(`/dashboard/project/${params.id}/menu`)}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#C7A17A]/10 border border-[#C7A17A]/25 text-[#C7A17A] text-sm font-medium hover:bg-[#C7A17A]/20 hover:border-[#C7A17A]/50 transition-all duration-300"
+        {/* Main Card */}
+        <div
+          className="rounded-3xl border border-[#C7A17A]/15 bg-black/50 backdrop-blur-xl shadow-[0_0_60px_rgba(199,161,122,0.07)] p-6 sm:p-8 space-y-6"
+          role="main"
+        >
+          <Tabs
+            value={activeTab}
+            onValueChange={(v) => {
+              setActiveTab(v as 'text' | 'file');
+              setStatus('idle');
+              setErrorMsg('');
+            }}
+            className="w-full"
+          >
+            <TabsList
+              className="grid w-full grid-cols-2 mb-6 bg-white/5 border border-white/10 p-1 rounded-2xl"
+              aria-label="Import-Methode wählen"
             >
-              Zur Speisekarte →
-            </button>
-          </div>
-        )}
+              <TabsTrigger
+                value="file"
+                id="tab-file"
+                className="rounded-xl text-sm font-semibold data-[state=active]:bg-[#C7A17A] data-[state=active]:text-black data-[state=active]:shadow-md transition-all"
+              >
+                📄 PDF / Bild
+              </TabsTrigger>
+              <TabsTrigger
+                value="text"
+                id="tab-text"
+                className="rounded-xl text-sm font-semibold data-[state=active]:bg-[#C7A17A] data-[state=active]:text-black data-[state=active]:shadow-md transition-all"
+              >
+                ✏️ Text einfügen
+              </TabsTrigger>
+            </TabsList>
 
-        {/* ── ERROR ── */}
-        {status === 'error' && (
-          <div className="flex flex-col items-center justify-center min-h-[240px] text-center">
-            <div className="w-14 h-14 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-6">
-              <svg className="w-7 h-7 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </div>
-            <p className="text-red-400 text-sm mb-6 max-w-sm">{errorMsg}</p>
-            <button
-              onClick={() => setStatus('idle')}
-              className="text-sm text-gray-500 hover:text-gray-300 transition-colors underline underline-offset-4"
-            >
-              Erneut versuchen
-            </button>
-          </div>
-        )}
+            {/* ── TAB: File Upload ─────────────────────────────────────── */}
+            <TabsContent value="file" className="space-y-5">
+              {/* Drop zone */}
+              <div
+                id="magic-import-dropzone"
+                role="button"
+                tabIndex={0}
+                aria-label="Datei hier ablegen oder klicken zum Auswählen"
+                aria-describedby="dropzone-hint"
+                onClick={() => !isLoading && fileInputRef.current?.click()}
+                onKeyDown={(e) => {
+                  if ((e.key === 'Enter' || e.key === ' ') && !isLoading)
+                    fileInputRef.current?.click();
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDragOver(true);
+                }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={handleDrop}
+                className={`
+                  relative flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed
+                  p-10 cursor-pointer transition-all duration-300 select-none outline-none
+                  focus-visible:ring-2 focus-visible:ring-[#C7A17A]/50
+                  ${dragOver
+                    ? 'border-[#C7A17A] bg-[#C7A17A]/10 scale-[1.01]'
+                    : file
+                    ? 'border-[#C7A17A]/40 bg-[#C7A17A]/5'
+                    : 'border-white/10 bg-white/2 hover:border-[#C7A17A]/30 hover:bg-[#C7A17A]/5'
+                  }
+                  ${isLoading ? 'pointer-events-none opacity-60' : ''}
+                `}
+              >
+                {file ? (
+                  <>
+                    {fileIconMap[file.type] ?? <FileText className="w-8 h-8 text-[#C7A17A]" />}
+                    <div className="text-center">
+                      <p className="font-semibold text-white">{file.name}</p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        {(file.size / 1024 / 1024).toFixed(2)} MB
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      aria-label="Datei entfernen"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setFile(null);
+                        setStatus('idle');
+                        if (fileInputRef.current) fileInputRef.current.value = '';
+                      }}
+                      className="absolute top-3 right-3 p-1 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-16 h-16 rounded-2xl bg-[#C7A17A]/10 border border-[#C7A17A]/20 flex items-center justify-center transition-transform group-hover:scale-110">
+                      <UploadCloud className="w-7 h-7 text-[#C7A17A]" />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-white font-semibold">
+                        {dragOver ? 'Jetzt loslassen!' : 'Datei hierher ziehen'}
+                      </p>
+                      <p id="dropzone-hint" className="text-gray-500 text-sm mt-1">
+                        oder klicken zum Auswählen
+                      </p>
+                    </div>
+                    <p className="text-xs text-gray-600">
+                      PDF · JPEG · PNG · WebP — max. {MAX_FILE_SIZE_MB} MB
+                    </p>
+                  </>
+                )}
+              </div>
 
-        {/* ── IDLE DROP ZONE ── */}
-        {status === 'idle' && (
-          <div className="flex flex-col gap-3">
-            {/* Rejected file feedback — always in DOM so screen readers register the aria-live region at mount */}
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                id="magic-import-file-input"
+                accept=".pdf,image/jpeg,image/png,image/webp"
+                aria-hidden="true"
+                tabIndex={-1}
+                className="sr-only"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleFileSelect(f);
+                }}
+              />
+
+              <Button
+                id="magic-import-file-submit"
+                onClick={handleFileImport}
+                disabled={isLoading || !file}
+                aria-busy={isLoading}
+                className="w-full bg-[#C7A17A] hover:bg-[#B58E62] text-black font-extrabold py-6 text-base rounded-2xl transition-all hover:scale-[1.01] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-[0_0_20px_rgba(199,161,122,0.15)] hover:shadow-[0_0_30px_rgba(199,161,122,0.25)]"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" aria-hidden="true" />
+                    Gemini analysiert deine Speisekarte…
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="mr-2 h-5 w-5" aria-hidden="true" />
+                    Mit KI importieren
+                  </>
+                )}
+              </Button>
+            </TabsContent>
+
+            {/* ── TAB: Text ─────────────────────────────────────────────── */}
+            <TabsContent value="text" className="space-y-4">
+              <Textarea
+                id="magic-import-textarea"
+                placeholder="Beispiel: Pizza Margherita — Tomaten, Mozzarella, Basilikum … 8,50 €&#10;Rinderfilet mit Trüffelbutter … 34,50 €"
+                aria-label="Speisekarten-Text eingeben"
+                className="min-h-[260px] bg-black/40 border-white/10 text-white placeholder:text-gray-600 focus:border-[#C7A17A] focus:ring-1 focus:ring-[#C7A17A]/30 transition-colors rounded-2xl resize-none"
+                value={rawText}
+                onChange={(e) => setRawText(e.target.value)}
+                disabled={isLoading}
+              />
+
+              <Button
+                id="magic-import-text-submit"
+                onClick={handleTextImport}
+                disabled={isLoading || !rawText.trim()}
+                aria-busy={isLoading}
+                className="w-full bg-[#C7A17A] hover:bg-[#B58E62] text-black font-extrabold py-6 text-base rounded-2xl transition-all hover:scale-[1.01] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-[0_0_20px_rgba(199,161,122,0.15)] hover:shadow-[0_0_30px_rgba(199,161,122,0.25)]"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" aria-hidden="true" />
+                    Extrahiere Daten…
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="mr-2 h-5 w-5" aria-hidden="true" />
+                    Menü aus Text importieren
+                  </>
+                )}
+              </Button>
+            </TabsContent>
+          </Tabs>
+
+          {/* ── Status Messages ────────────────────────────────────────── */}
+          {status === 'success' && result && (
             <div
-              id="file-error-msg"
-              role="alert"
+              role="status"
               aria-live="polite"
               aria-atomic="true"
-              className={`flex items-start gap-3 px-4 py-3 rounded-xl text-xs transition-all duration-300 ${
-                rejectedMsg
-                  ? 'bg-red-500/10 border border-red-500/20 text-red-400'
-                  : 'invisible h-0 p-0 overflow-hidden'
-              }`}
+              className="p-4 rounded-2xl bg-[#C7A17A]/10 border border-[#C7A17A]/30 flex items-start gap-3 text-[#C7A17A] animate-in fade-in slide-in-from-bottom-2 duration-300"
             >
-              {rejectedMsg && (
-                <>
-                  <svg className="w-4 h-4 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                  </svg>
-                  <span>{rejectedMsg}</span>
-                </>
-              )}
-            </div>
-
-            {/* Semantic button dropzone */}
-            <button
-              type="button"
-              aria-label="Datei hier ablegen oder zum Hochladen klicken"
-              aria-invalid={rejectedMsg ? 'true' : 'false'}
-              aria-describedby={rejectedMsg ? 'file-error-msg' : undefined}
-              onClick={() => fileInputRef.current?.click()}
-              onDragEnter={handleDragEnter}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              className={`relative group w-full border rounded-2xl p-14 text-center overflow-hidden transition duration-500 ease-out transform-gpu outline-none focus-visible:ring-2 focus-visible:ring-[#C7A17A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f0f0f] ${
-                isDragActive
-                  ? 'border-[#C7A17A]/40 bg-[#C7A17A]/[0.03] scale-[1.02] shadow-[inset_0_0_30px_rgba(199,161,122,0.05)]'
-                  : 'border-white/10 bg-white/[0.01] hover:border-white/20 hover:bg-white/[0.02] hover:shadow-[0_0_20px_rgba(255,255,255,0.02)]'
-              }`}
-            >
-              <div className="text-white/20 group-hover:text-[#C7A17A] group-hover:-translate-y-2 group-hover:scale-110 transition-all duration-500 w-14 h-14 mx-auto mb-6 flex items-center justify-center relative">
-                <div className="absolute inset-0 bg-[#C7A17A]/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                <svg className="w-10 h-10 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                </svg>
+              <CheckCircle2 className="w-6 h-6 shrink-0 mt-0.5" aria-hidden="true" />
+              <div>
+                <p className="font-bold text-base">Import erfolgreich! ✨</p>
+                <p className="text-sm opacity-80 mt-0.5">
+                  {result.categoriesCreated} Kategorie{result.categoriesCreated !== 1 ? 'n' : ''} &amp;{' '}
+                  {result.itemsCreated} Gericht{result.itemsCreated !== 1 ? 'e' : ''} in dein Menü geladen.
+                  Du wirst weitergeleitet…
+                </p>
               </div>
-              <p className="text-sm text-gray-500 font-light tracking-wide">
-                PDF oder Bild hier ablegen oder{' '}
-                <span className="text-[#C7A17A] font-medium relative after:absolute after:bottom-0 after:left-0 after:w-full after:h-[1px] after:bg-[#C7A17A]">
-                  durchsuchen
-                </span>
-              </p>
-              <p className="text-xs text-gray-700 mt-3">PDF, JPG, PNG · max. 10 MB</p>
-            </button>
-          </div>
-        )}
+            </div>
+          )}
 
+          {status === 'error' && (
+            <div
+              role="alert"
+              aria-live="assertive"
+              aria-atomic="true"
+              className="p-4 rounded-2xl bg-red-500/10 border border-red-500/30 flex items-start gap-3 text-red-400 animate-in fade-in slide-in-from-bottom-2 duration-300"
+            >
+              <AlertCircle className="w-6 h-6 shrink-0 mt-0.5" aria-hidden="true" />
+              <div>
+                <p className="font-semibold">Import fehlgeschlagen</p>
+                <p className="text-sm opacity-80 mt-0.5">{errorMsg}</p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Hint card */}
+        <div className="rounded-2xl border border-white/5 bg-white/2 p-5 text-sm text-gray-500 space-y-2">
+          <p className="font-semibold text-gray-400">💡 Tipps für den besten Import</p>
+          <ul className="list-disc list-inside space-y-1">
+            <li>Ein klares PDF oder Foto deiner Speisekarte liefert die besten Ergebnisse.</li>
+            <li>Preise im Format &quot;8,50 €&quot; oder &quot;8.50&quot; werden automatisch erkannt.</li>
+            <li>Nach dem Import kannst du alles im Menü-Manager korrigieren.</li>
+          </ul>
+        </div>
       </div>
     </div>
   );

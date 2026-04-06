@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase-server'
+import { createClient } from '@/utils/supabase/server'
 import { FolderGit2, Settings } from 'lucide-react'
 import Link from 'next/link'
 import type { Database } from '@/types/supabase'
@@ -8,35 +8,34 @@ import ManageSubscriptionButton from '@/components/ManageSubscriptionButton'
 type ProjectRow = Database['public']['Tables']['projects']['Row']
 
 export const dynamic = 'force-dynamic'
-
-export const metadata = {
-  title: 'Dashboard | Bizzn',
-}
+export const metadata = { title: 'Dashboard | Bizzn' }
 
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | string[] | undefined }
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   const { data: projectsRaw, error } = await supabase
-    .from('projects')
-    .select('*')
-    .order('created_at', { ascending: false })
+    .from('projects').select('*').order('created_at', { ascending: false })
 
   const projects = projectsRaw as ProjectRow[] | null
 
-  const isSuccess = searchParams?.success === 'true'
-  const isCanceled = searchParams?.canceled === 'true'
+  // Next.js 15: searchParams müssen awaited werden
+  const resolvedParams = await searchParams
+  const isSuccess = resolvedParams?.success === 'true'
+  const isCanceled = resolvedParams?.canceled === 'true'
 
   return (
     <div className="min-h-screen bg-[#1A1A1A] p-4 sm:p-8">
-      <div className="max-w-5xl mx-auto space-y-5">
+      <div className="max-w-5xl mx-auto space-y-8">
+
+        {/* Notifications */}
         {isSuccess && (
           <div className="p-4 bg-[#2A1E0E] text-[#C7A17A] rounded-xl border border-[#C7A17A]/30 text-sm font-medium">
-            ✅ Zahlung erfolgreich! Dein neuer Projekt-Workspace wird eingerichtet.
+            ✅ Zahlung erfolgreich! Dein neuer Betrieb wird eingerichtet.
           </div>
         )}
         {isCanceled && (
@@ -45,57 +44,65 @@ export default async function DashboardPage({
           </div>
         )}
 
-        {/* Header card */}
-        <div className="flex justify-between items-center bg-[#242424] rounded-3xl border border-white/5 shadow-lg p-6">
+        {/* Header Card */}
+        <div className="bg-[#242424] border border-[#333333] rounded-xl p-6 sm:p-8 shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div>
-            <h1 className="text-2xl font-extrabold tracking-tighter text-white">Dashboard</h1>
-            <p className="text-gray-400 font-medium tracking-wide text-sm mt-1">
-              Willkommen zurück, {(user?.user_metadata?.full_name as string | undefined) || user?.email || 'User'}.
+            <h1 className="text-3xl font-bold text-white mb-2">Dashboard</h1>
+            <p className="text-gray-400">
+              Willkommen zurück,{' '}
+              {(user?.user_metadata?.full_name as string | undefined) || user?.email || 'User'}.
             </p>
           </div>
-          <div className="flex items-start gap-3">
+          <div className="flex flex-wrap gap-3 w-full md:w-auto">
             <Link
+              id="btn-settings-link"
               href="/dashboard/settings"
-              className="flex items-center gap-2 bg-[#1A1A1A] hover:bg-[#333333] text-gray-300 border border-white/5 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300"
+              className="flex flex-1 md:flex-none justify-center items-center gap-2 bg-[#1A1A1A] border border-[#333333] text-gray-300 hover:text-[#C7A17A] hover:border-[#C7A17A] transition-all px-4 py-2.5 rounded-lg font-medium text-sm"
             >
-              <Settings className="w-4 h-4 text-gray-500" />
+              <Settings className="w-4 h-4" />
               Einstellungen
             </Link>
-            <ManageSubscriptionButton />
-            <CheckoutButton />
+            <div className="flex-1 md:flex-none">
+              <ManageSubscriptionButton />
+            </div>
+            <div className="flex-1 md:flex-none">
+              <CheckoutButton />
+            </div>
           </div>
         </div>
 
-        {/* Projects card */}
-        <div className="bg-[#242424] rounded-3xl border border-white/5 shadow-lg p-6">
-          <h2 className="text-base font-extrabold tracking-tighter text-white mb-4 flex items-center gap-2">
-            <FolderGit2 className="w-4 h-4 text-[#C7A17A]" />
-            Aktive Projekte
-          </h2>
+        {/* Projects Card */}
+        <div className="bg-[#242424] border border-[#333333] rounded-xl p-6 sm:p-8 shadow-lg">
+          <div className="flex items-center gap-2 mb-6">
+            <FolderGit2 className="text-[#C7A17A] w-5 h-5" />
+            <h2 className="text-xl font-bold text-white">Meine Betriebe</h2>
+          </div>
 
           {error ? (
             <div className="p-4 bg-red-950 text-red-400 rounded-xl text-sm border border-red-900">
               Fehler beim Laden: {error.message}
             </div>
           ) : !projects || projects.length === 0 ? (
-            <div className="text-center py-12 border-2 border-dashed border-[#333333] rounded-xl">
-              <p className="text-gray-500 mb-4 text-sm">Keine Projekte gefunden. Erstelle dein erstes Projekt.</p>
+            <div className="text-center py-10 border-2 border-dashed border-[#333333] rounded-xl">
+              <p className="text-gray-500 text-sm">Noch keine Betriebe gefunden.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {projects.map((project) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {projects.map((p) => (
                 <Link
-                  href={`/dashboard/project/${project.id}`}
-                  key={project.id}
-                  className="block p-4 bg-[#1A1A1A] border border-white/5 rounded-2xl hover:border-[#C7A17A]/50 hover:shadow-[0_0_20px_rgba(119,204,0,0.15)] transition-all duration-300 cursor-pointer group"
+                  key={p.id}
+                  href={`/dashboard/project/${p.id}`}
+                  className="block bg-[#1A1A1A] border border-[#333333] hover:border-[#C7A17A]/50 transition-all rounded-xl p-6 group hover:shadow-[0_0_15px_rgba(199,161,122,0.05)]"
                 >
-                  <h3 className="font-semibold text-white group-hover:text-[#C7A17A] transition-colors">{project.name}</h3>
-                  <div className="flex justify-between items-center mt-4">
-                    <span className="text-[11px] px-2 py-0.5 bg-[#242424] text-gray-400 rounded-full border border-[#333333]">
-                      {project.status}
+                  <h3 className="font-semibold text-lg text-white mb-6 group-hover:text-[#C7A17A] transition-colors">
+                    {p.name}
+                  </h3>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="bg-[#242424] px-3 py-1 rounded-full border border-[#333333] text-gray-400">
+                      {p.status}
                     </span>
-                    <span className="text-xs text-gray-600">
-                      {new Date(project.created_at).toLocaleDateString('de-DE')}
+                    <span className="text-gray-500">
+                      {new Date(p.created_at).toLocaleDateString('de-DE')}
                     </span>
                   </div>
                 </Link>
@@ -103,6 +110,7 @@ export default async function DashboardPage({
             </div>
           )}
         </div>
+
       </div>
     </div>
   )

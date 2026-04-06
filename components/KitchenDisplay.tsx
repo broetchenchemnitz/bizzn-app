@@ -1,17 +1,14 @@
 "use client"
 
-import { useEffect, useState, useTransition } from 'react'
+import { useEffect, useState, useTransition, useCallback } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
-import { Clock, CheckCircle2, ChefHat, Bell, Loader2, Banknote, Hourglass } from 'lucide-react'
+import { Clock, CheckCircle2, ChefHat, Bell, Loader2, Banknote, Hourglass, Wifi, WifiOff, RefreshCw } from 'lucide-react'
 import { updateOrderStatus } from '@/app/actions/orders'
 import type { Database } from '@/types/supabase'
 
 type OrderRow = Database['public']['Tables']['orders']['Row']
 type OrderStatus = OrderRow['status']
-
-// ---------------------------------------------------------------------------
-// Column definitions (3 active + 1 delivered/archive)
-// ---------------------------------------------------------------------------
+type ConnectionStatus = 'CONNECTING' | 'ONLINE' | 'OFFLINE'
 
 interface KdsColumn {
   status: OrderStatus
@@ -19,327 +16,187 @@ interface KdsColumn {
   icon: React.ReactNode
   headerClass: string
   badgeClass: string
-  nextStatus: OrderStatus | null
-  nextLabel: string | null
 }
 
+// ── COLUMNS config ──────────────────────────────────────────────────
 const COLUMNS: KdsColumn[] = [
-  {
-    status: 'pending',
-    label: 'Neu',
-    icon: <Bell className="w-4 h-4" />,
-    headerClass: 'text-amber-600',
-    badgeClass: 'bg-amber-50 border-amber-200 text-amber-700',
-    nextStatus: 'preparing',
-    nextLabel: 'Zubereiten →',
-  },
-  {
-    status: 'preparing',
-    label: 'In Zubereitung',
-    icon: <ChefHat className="w-4 h-4" />,
-    headerClass: 'text-blue-600',
-    badgeClass: 'bg-blue-50 border-blue-200 text-blue-700',
-    nextStatus: 'ready',
-    nextLabel: 'Fertig →',
-  },
-  {
-    status: 'ready',
-    label: 'Bereit',
-    icon: <CheckCircle2 className="w-4 h-4" />,
-    headerClass: 'text-[#C7A17A]',
-    badgeClass: 'bg-[#3D2E1E] border-[#C7A17A]/30 text-[#4a8500]',
-    nextStatus: 'delivered',
-    nextLabel: 'Ausgeliefert ✓',
-  },
-  {
-    status: 'delivered',
-    label: 'Ausgeliefert',
-    icon: <Banknote className="w-4 h-4" />,
-    headerClass: 'text-gray-600',
-    badgeClass: 'bg-gray-50 border-gray-200 text-gray-600',
-    nextStatus: null,
-    nextLabel: null,
-  },
+  { status: 'pending',   label: 'Neu',            icon: <Bell className="w-5 h-5" />,         headerClass: 'text-amber-400',  badgeClass: 'bg-amber-950/60 border-amber-500/20 text-amber-400' },
+  { status: 'preparing', label: 'In Zubereitung', icon: <ChefHat className="w-5 h-5" />,      headerClass: 'text-blue-400',   badgeClass: 'bg-blue-950/60 border-blue-500/20 text-blue-400' },
+  { status: 'ready',     label: 'Bereit',         icon: <CheckCircle2 className="w-5 h-5" />, headerClass: 'text-[#C7A17A]',  badgeClass: 'bg-[#3D2E1E] border-[#C7A17A]/30 text-[#C7A17A]' },
+  { status: 'delivered', label: 'Ausgeliefert',   icon: <Banknote className="w-5 h-5" />,     headerClass: 'text-white/40',   badgeClass: 'bg-white/5 border-white/10 text-white/50' },
 ]
 
-const ACTIVE_STATUSES: OrderStatus[] = ['pending', 'preparing', 'ready']
-
-// ---------------------------------------------------------------------------
-// Payout status badge
-// ---------------------------------------------------------------------------
-
-function PayoutBadge({ status }: { status: OrderRow['payout_status'] }) {
+function PayoutBadge({ status }: { status: string }) {
   if (status === 'paid') {
     return (
-      <span className="flex items-center gap-1 text-[10px] font-bold text-[#4a8500] bg-[#3D2E1E] border border-[#C7A17A]/30 px-2 py-0.5 rounded-full">
-        <Banknote className="w-2.5 h-2.5" />
-        Ausgezahlt
+      <span className="px-2 py-1 rounded-md text-xs font-medium bg-[#3D2E1E] border border-[#C7A17A]/30 text-[#C7A17A]">
+        Bezahlt
       </span>
     )
   }
   return (
-    <span className="flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
-      <Hourglass className="w-2.5 h-2.5" />
+    <span className="px-2 py-1 rounded-md text-xs font-medium bg-amber-950/60 border border-amber-500/20 text-amber-400">
       Ausstehend
     </span>
   )
 }
 
-// ---------------------------------------------------------------------------
-// Order card
-// ---------------------------------------------------------------------------
-
-interface OrderCardProps {
-  order: OrderRow
-  col: KdsColumn
-  projectId: string
-}
-
-function OrderCard({ order, col, projectId }: OrderCardProps) {
+function OrderCard({ order, onUpdate }: { order: OrderRow; onUpdate: (id: string, status: OrderStatus) => void }) {
   const [isPending, startTransition] = useTransition()
-  const [localError, setLocalError] = useState<string | null>(null)
 
-  const handleAdvance = () => {
-    if (!col.nextStatus) return
-    const next = col.nextStatus
-    setLocalError(null)
-    startTransition(async () => {
-      const result = await updateOrderStatus(order.id, projectId, next)
-      if (result.error) setLocalError(result.error)
-    })
+  const handleNextStatus = () => {
+    const currentIndex = COLUMNS.findIndex(c => c.status === order.status)
+    if (currentIndex < COLUMNS.length - 1) {
+      const nextStatus = COLUMNS[currentIndex + 1].status
+      startTransition(() => {
+        onUpdate(order.id, nextStatus)
+      })
+    }
   }
 
-  const timeStr = new Date(order.created_at).toLocaleTimeString('de-DE', {
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-
-  const formatEur = (cents: number) =>
-    `€ ${(cents / 100).toLocaleString('de-DE', { minimumFractionDigits: 2 })}`
-
   return (
-    <div className={`rounded-xl border p-4 bg-white shadow-sm space-y-3 ${col.badgeClass}`}>
-      <div className="flex items-start justify-between">
+    <div className="glass-card bg-[#242424] border border-white/5 shadow-xl rounded-xl p-4 flex flex-col gap-3 fade-in-up hover:border-white/10 smooth-transition relative overflow-hidden group">
+      <div className="flex justify-between items-start">
         <div>
-          <p className="font-bold text-gray-900 text-base leading-tight">
-            {order.customer_name || 'Gast'}
-          </p>
-          <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
+          <h3 className="text-white font-bold text-lg">#{order.id.slice(0, 5).toUpperCase()}</h3>
+          <p className="text-white/50 text-sm flex items-center gap-1 mt-1">
             <Clock className="w-3 h-3" />
-            {timeStr} · {order.order_type === 'delivery' ? '🛵 Lieferung' : order.order_type === 'takeaway' ? '🛍️ Abholung' : '📱 In-Store'}
-            {order.table_number && (
-              <span className="ml-1 font-mono text-[10px] bg-gray-100 px-1.5 py-0.5 rounded">
-                Tisch {order.table_number}
-              </span>
-            )}
+            {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </p>
         </div>
-        <span className="text-sm font-bold text-gray-800 tabular-nums whitespace-nowrap">
-          {formatEur(order.total_amount)}
-        </span>
+        <div className="text-right">
+          <p className="text-white font-semibold">{order.total_amount?.toFixed(2)} €</p>
+          <div className="mt-2">
+            <PayoutBadge status={order.payout_status ?? 'pending'} />
+          </div>
+        </div>
       </div>
 
-      {/* Payout badge — only on delivered orders */}
-      {order.status === 'delivered' && (
-        <div className="flex items-center">
-          <PayoutBadge status={order.payout_status} />
-        </div>
-      )}
+      <div className="py-2 border-y border-white/5">
+        <p className="text-white/70 text-sm">
+          {order.customer_name ?? 'Gast'}
+        </p>
+      </div>
 
-      {localError && (
-        <p className="text-xs text-red-500 bg-red-50 px-2 py-1 rounded">{localError}</p>
-      )}
-
-      {col.nextStatus && (
+      {order.status !== 'delivered' && (
         <button
-          onClick={handleAdvance}
+          onClick={handleNextStatus}
           disabled={isPending}
-          className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
-            col.nextStatus === 'preparing'
-              ? 'bg-blue-600 hover:bg-blue-700 text-white'
-              : col.nextStatus === 'ready'
-              ? 'bg-[#C7A17A] hover:bg-[#B58E62] text-white'
-              : 'bg-gray-800 hover:bg-gray-900 text-white'
-          } disabled:opacity-50`}
+          className="mt-2 w-full py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white text-sm font-medium smooth-transition flex items-center justify-center gap-2 border border-white/5 hover:border-white/20 disabled:opacity-50"
         >
-          {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-          {col.nextLabel}
+          {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Nächster Schritt →'}
         </button>
       )}
     </div>
   )
 }
 
-// ---------------------------------------------------------------------------
-// Main component
-// ---------------------------------------------------------------------------
-
-interface KitchenDisplayProps {
-  projectId: string
-}
-
-// Start of today in UTC (resets the delivered archive each day)
-function startOfTodayISO() {
-  const d = new Date()
-  d.setUTCHours(0, 0, 0, 0)
-  return d.toISOString()
-}
-
-export default function KitchenDisplay({ projectId }: KitchenDisplayProps) {
+export default function KitchenDisplay({ projectId }: { projectId: string }) {
   const [orders, setOrders] = useState<OrderRow[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('CONNECTING')
+
+  const supabase = createBrowserClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+
+  const fetchOrders = useCallback(async () => {
+    const { data } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('project_id', projectId)
+      .order('created_at', { ascending: true })
+
+    if (data) setOrders(data)
+  }, [projectId, supabase])
 
   useEffect(() => {
-    const supabase = createBrowserClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
-
-    const fetchOrders = async () => {
-      // Load active orders + today's delivered orders (for payout transparency)
-      const [activeRes, deliveredRes] = await Promise.all([
-        supabase
-          .from('orders')
-          .select('*')
-          .eq('project_id', projectId)
-          .in('status', ACTIVE_STATUSES)
-          .order('created_at', { ascending: true }),
-        supabase
-          .from('orders')
-          .select('*')
-          .eq('project_id', projectId)
-          .eq('status', 'delivered')
-          .gte('created_at', startOfTodayISO())
-          .order('created_at', { ascending: true }),
-      ])
-
-      setOrders([...(activeRes.data ?? []), ...(deliveredRes.data ?? [])])
-      setIsLoading(false)
-    }
-
     void fetchOrders()
 
     const channel = supabase
       .channel(`kds-${projectId}`)
-      .on<OrderRow>(
+      .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'orders',
-          filter: `project_id=eq.${projectId}`,
-        },
-        (payload) => {
-          setOrders((prev) => {
-            if (payload.eventType === 'INSERT') {
-              const newOrder = payload.new
-              // Show if active or delivered today
-              const isActive = ACTIVE_STATUSES.includes(newOrder.status)
-              const isDeliveredToday =
-                newOrder.status === 'delivered' &&
-                newOrder.created_at >= startOfTodayISO()
-              if (!isActive && !isDeliveredToday) return prev
-              return [...prev, newOrder].sort(
-                (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-              )
-            }
-            if (payload.eventType === 'UPDATE') {
-              const updated = payload.new
-              const isActive = ACTIVE_STATUSES.includes(updated.status)
-              const isDeliveredToday =
-                updated.status === 'delivered' &&
-                updated.created_at >= startOfTodayISO()
-
-              if (!isActive && !isDeliveredToday) {
-                // e.g. cancelled — remove from board
-                return prev.filter((o) => o.id !== updated.id)
-              }
-              // Update in place (covers payout_status changes too)
-              const exists = prev.find((o) => o.id === updated.id)
-              if (exists) return prev.map((o) => (o.id === updated.id ? updated : o))
-              // Newly delivered — add to board
-              return [...prev, updated].sort(
-                (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-              )
-            }
-            // DELETE
-            return prev.filter((o) => o.id !== (payload.old as Partial<OrderRow>).id)
-          })
-        }
+        { event: '*', schema: 'public', table: 'orders', filter: `project_id=eq.${projectId}` },
+        () => { void fetchOrders() }
       )
-      .subscribe()
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') setConnectionStatus('ONLINE')
+        if (status === 'CHANNEL_ERROR' || status === 'CLOSED') setConnectionStatus('OFFLINE')
+      })
 
     return () => {
       void supabase.removeChannel(channel)
     }
-  }, [projectId])
+  }, [projectId, supabase, fetchOrders])
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-20 text-gray-400 gap-2">
-        <Loader2 className="w-5 h-5 animate-spin" />
-        <span className="text-sm">Laden…</span>
-      </div>
-    )
+  const handleUpdateStatus = async (id: string, newStatus: OrderStatus) => {
+    // Optimistic update
+    setOrders(current => current.map(o => o.id === id ? { ...o, status: newStatus } : o))
+    await updateOrderStatus(id, projectId, newStatus)
   }
 
-  const activeCount = orders.filter((o) => ACTIVE_STATUSES.includes(o.status)).length
-  const deliveredPaid = orders.filter((o) => o.status === 'delivered' && o.payout_status === 'paid').length
-  const deliveredPending = orders.filter((o) => o.status === 'delivered' && o.payout_status === 'pending').length
-
   return (
-    <div className="space-y-5">
-      {/* Live bar */}
-      <div className="flex items-center gap-3 bg-[#3D2E1E] border border-[#C7A17A]/30 rounded-xl px-4 py-3 flex-wrap">
-        <span className="relative flex h-2.5 w-2.5 shrink-0">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#C7A17A] opacity-75" />
-          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#C7A17A]" />
-        </span>
-        <span className="text-sm font-semibold text-[#4a8500]">
-          {activeCount === 0 ? 'Keine aktiven Bestellungen' : `${activeCount} aktive Bestellung${activeCount !== 1 ? 'en' : ''}`}
-        </span>
-        <span className="text-xs text-[#4a8500]/70 ml-auto">Echtzeit aktiv</span>
-        {/* Payout summary */}
-        {(deliveredPaid > 0 || deliveredPending > 0) && (
-          <div className="flex items-center gap-2 ml-0 text-xs text-gray-500 border-l border-[#C7A17A]/20 pl-3 flex-wrap">
-            {deliveredPaid > 0 && (
-              <span className="flex items-center gap-1 text-[#4a8500] font-semibold">
-                <Banknote className="w-3 h-3" /> {deliveredPaid} ausgezahlt
-              </span>
-            )}
-            {deliveredPending > 0 && (
-              <span className="flex items-center gap-1 text-amber-700 font-semibold">
-                <Hourglass className="w-3 h-3" /> {deliveredPending} ausstehend
-              </span>
-            )}
+    <div className="bg-transparent flex flex-col h-full w-full">
+      {/* Header Bar */}
+      <div className="bg-[#1e1e1e]/80 backdrop-blur-md border-b border-white/5 p-4 flex justify-between items-center z-10 shrink-0">
+        <div className="flex items-center gap-4">
+          <div className="bg-black/40 p-2 rounded-lg border border-white/5">
+            <ChefHat className="text-[#C7A17A] w-6 h-6" />
           </div>
-        )}
+          <div>
+            <h2 className="text-white font-bold text-lg tracking-tight">Küchen-Monitor</h2>
+            <p className="text-white/40 text-xs font-medium uppercase tracking-wider mt-0.5">Live Kitchen Sync</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-6">
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm font-medium shadow-inner ${
+            connectionStatus === 'ONLINE'
+              ? 'bg-emerald-950/60 border-emerald-500/20 text-emerald-400'
+              : connectionStatus === 'CONNECTING'
+              ? 'bg-amber-950/60 border-amber-500/20 text-amber-400'
+              : 'bg-red-950/60 border-red-500/20 text-red-400'
+          }`}>
+            {connectionStatus === 'ONLINE'      && <Wifi className="w-4 h-4" />}
+            {connectionStatus === 'CONNECTING'  && <RefreshCw className="w-4 h-4 animate-spin" />}
+            {connectionStatus === 'OFFLINE'     && <WifiOff className="w-4 h-4" />}
+            <span>
+              {connectionStatus === 'ONLINE' ? 'Verbunden' : connectionStatus === 'CONNECTING' ? 'Verbindet...' : 'Getrennt'}
+            </span>
+          </div>
+          <div className="text-white font-medium bg-white/5 px-4 py-1.5 rounded-full border border-white/5 text-sm">
+            <span className="text-white/50 mr-2">Aktive Bons:</span>
+            {orders.filter(o => o.status !== 'delivered').length}
+          </div>
+        </div>
       </div>
 
-      {/* Kanban columns — 4 columns on xl, 2 on md */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+      {/* Columns Grid */}
+      <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 p-6 overflow-x-auto overflow-y-hidden">
         {COLUMNS.map((col) => {
-          const colOrders = orders.filter((o) => o.status === col.status)
+          const colOrders = orders.filter(o => o.status === col.status)
           return (
-            <div key={col.status} className="bg-gray-50 rounded-2xl border border-gray-100 p-4">
-              <div className={`flex items-center justify-between mb-4 ${col.headerClass}`}>
-                <div className="flex items-center gap-2 font-bold text-sm">
+            <div key={col.status} className="flex flex-col h-full bg-white/[0.02] rounded-2xl border border-white/5 p-4 relative">
+              <div className="flex justify-between items-center mb-6 shrink-0">
+                <div className={`flex items-center gap-2 font-bold uppercase tracking-wider text-sm ${col.headerClass}`}>
                   {col.icon}
                   {col.label}
                 </div>
-                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${col.badgeClass}`}>
+                <div className="bg-white/5 text-white/50 border border-white/10 rounded-full px-3 py-0.5 text-xs font-bold">
                   {colOrders.length}
-                </span>
+                </div>
               </div>
 
-              <div className="space-y-3 min-h-[100px]">
+              <div className="flex-1 overflow-y-auto space-y-4 pr-1 pb-4">
                 {colOrders.length === 0 ? (
-                  <p className="text-xs text-gray-400 text-center py-8 border-2 border-dashed border-gray-200 rounded-xl">
-                    {col.status === 'delivered' ? 'Heute noch keine Lieferungen' : 'Keine Bestellungen'}
-                  </p>
+                  <div className="border border-dashed border-white/10 text-white/30 rounded-xl p-8 flex flex-col items-center justify-center text-center h-40">
+                    <Hourglass className="w-8 h-8 mb-2 opacity-20" />
+                    <p className="text-sm font-medium">Keine Aufträge</p>
+                  </div>
                 ) : (
-                  colOrders.map((order) => (
-                    <OrderCard key={order.id} order={order} col={col} projectId={projectId} />
+                  colOrders.map(order => (
+                    <OrderCard key={order.id} order={order} onUpdate={handleUpdateStatus} />
                   ))
                 )}
               </div>

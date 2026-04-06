@@ -16,6 +16,7 @@ const config: Config = {
           DEFAULT: 'var(--brand-accent)',
           hover: 'var(--brand-hover)',
           dark: 'var(--brand-dark)',
+          gold: '#C7A17A',
         },
         surface: {
           base: '#1A1A1A',
@@ -24,6 +25,39 @@ const config: Config = {
           border: '#333333',
           footer: '#141414',
         },
+        // shadcn/ui CSS variable mappings
+        background: 'var(--background)',
+        foreground: 'var(--foreground)',
+        card: {
+          DEFAULT: 'var(--card)',
+          foreground: 'var(--card-foreground)',
+        },
+        popover: {
+          DEFAULT: 'var(--popover)',
+          foreground: 'var(--popover-foreground)',
+        },
+        primary: {
+          DEFAULT: 'var(--primary)',
+          foreground: 'var(--primary-foreground)',
+        },
+        secondary: {
+          DEFAULT: 'var(--secondary)',
+          foreground: 'var(--secondary-foreground)',
+        },
+        muted: {
+          DEFAULT: 'var(--muted)',
+          foreground: 'var(--muted-foreground)',
+        },
+        accent: {
+          DEFAULT: 'var(--accent)',
+          foreground: 'var(--accent-foreground)',
+        },
+        destructive: {
+          DEFAULT: 'var(--destructive)',
+        },
+        border: 'var(--border)',
+        input: 'var(--input)',
+        ring: 'var(--ring)',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],

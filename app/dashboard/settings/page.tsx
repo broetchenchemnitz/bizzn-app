@@ -1,55 +1,78 @@
-import Link from 'next/link'
-import { ArrowLeft, UserCircle } from 'lucide-react'
-import { createClient } from '@/lib/supabase-server'
-import { redirect } from 'next/navigation'
-import ProfileForm from '@/components/ProfileForm'
+import { createClient } from "@/utils/supabase/server";
 
-export const dynamic = 'force-dynamic'
+export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: 'Einstellungen | Bizzn',
-}
+  title: "Einstellungen | Bizzn",
+};
 
 export default async function SettingsPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect('/login')
-  }
-
-  const fullName: string = (user.user_metadata?.full_name as string | undefined) ?? ''
-  const email: string = user.email ?? ''
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-2xl mx-auto space-y-6">
-        <div>
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors bg-white px-4 py-2 rounded-lg border border-gray-200 shadow-sm hover:bg-gray-50 group"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2 text-gray-400 group-hover:text-gray-600 transition-colors" />
-            Zurück zum Dashboard
-          </Link>
-        </div>
+    <div className="bg-[#1A1A1A] text-white min-h-full">
+      <div className="max-w-3xl mx-auto">
+        <h1 className="text-3xl font-bold text-[#C7A17A] mb-8">
+          Profil-Einstellungen
+        </h1>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
-          <div className="flex items-center gap-4 mb-8 pb-6 border-b border-gray-100">
-            <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
-              <UserCircle className="w-8 h-8 text-gray-400" />
-            </div>
+        <div className="bg-[#242424] border border-[#333333] rounded-xl shadow-lg p-8">
+          <p className="text-sm text-gray-400 mb-6">
+            Verwalte deinen Anzeigenamen und deine Kontodaten.
+          </p>
+
+          <div className="space-y-6">
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Profil-Einstellungen</h1>
-              <p className="text-sm text-gray-500 mt-0.5">
-                Verwalte deinen Anzeigenamen und deine Kontodaten.
+              <label
+                htmlFor="settings-email"
+                className="block text-sm font-medium text-gray-300 mb-2"
+              >
+                E-Mail-Adresse
+              </label>
+              <input
+                id="settings-email"
+                type="text"
+                disabled
+                value={user?.email || ""}
+                className="w-full bg-[#1A1A1A] border border-[#333333] rounded-md p-3 text-gray-500 cursor-not-allowed focus:outline-none"
+              />
+              <p className="text-xs text-gray-500 mt-2">
+                Die E-Mail-Adresse kann nicht geändert werden.
               </p>
             </div>
-          </div>
 
-          <ProfileForm initialName={fullName} email={email} />
+            <div>
+              <label
+                htmlFor="settings-display-name"
+                className="block text-sm font-medium text-gray-300 mb-2"
+              >
+                Anzeigename
+              </label>
+              <input
+                id="settings-display-name"
+                type="text"
+                placeholder="Dein vollständiger Name"
+                defaultValue={
+                  (user?.user_metadata?.full_name as string | undefined) ?? ""
+                }
+                className="w-full bg-[#1A1A1A] border border-[#333333] rounded-md p-3 text-white focus:outline-none focus:border-[#C7A17A] focus:ring-1 focus:ring-[#C7A17A] transition-colors"
+              />
+            </div>
+
+            <div className="pt-4">
+              <button
+                id="btn-settings-save"
+                className="bg-[#C7A17A] hover:bg-[#B58E62] text-[#1A1A1A] font-semibold py-2.5 px-6 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#242424] focus:ring-[#C7A17A]"
+              >
+                Speichern
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
-  )
+  );
 }

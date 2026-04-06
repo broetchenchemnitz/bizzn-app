@@ -26,8 +26,8 @@ function KpiCard({ icon, label, value, sub, accent = false }: KpiCardProps) {
     <div
       className={`rounded-2xl border transition-all relative ${
         accent
-          ? 'bg-[#C7A17A] border-[#9A7450] shadow-[0_0_20px_rgba(119,204,0,0.35)] text-black'
-          : 'bg-[#242424] border-[#C7A17A]/30 shadow-[0_0_20px_rgba(119,204,0,0.15)] text-white hover:border-[#C7A17A]/50'
+          ? 'bg-[#C7A17A] border-[#9A7450] shadow-[0_0_20px_rgba(199,161,122,0.35)] text-black'
+          : 'bg-[#242424] border-[#C7A17A]/30 shadow-[0_0_20px_rgba(199,161,122,0.15)] text-white hover:border-[#C7A17A]/50'
       }`}
     >
       <div className="p-5 flex flex-col gap-3 relative overflow-hidden rounded-2xl">
@@ -48,7 +48,7 @@ function KpiCard({ icon, label, value, sub, accent = false }: KpiCardProps) {
             {label}
           </p>
           <p className={`text-4xl font-extrabold tracking-tight mt-1 leading-none ${
-            accent ? 'text-black' : 'text-[#C7A17A] drop-shadow-[0_0_8px_rgba(119,204,0,0.5)]'
+            accent ? 'text-black' : 'text-[#C7A17A] drop-shadow-[0_0_8px_rgba(199,161,122,0.5)]'
           }`}>
             {value}
           </p>

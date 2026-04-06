@@ -2,8 +2,8 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { ShoppingCart, Plus, Minus, Trash2, Loader2, ChefHat } from 'lucide-react'
-import { placeOrder, type CartItem } from '@/app/[domain]/actions'
+import { ShoppingCart, Plus, Minus, Trash2, Loader2, ChefHat, Tag } from 'lucide-react'
+import { placeOrder, type CartItem, type DiscountInfo } from '@/app/[domain]/actions'
 import type { Database } from '@/types/supabase'
 
 type MenuCategory = Database['public']['Tables']['menu_categories']['Row']
@@ -16,6 +16,7 @@ interface MenuBoardProps {
   categories: (MenuCategory & { menu_items: MenuItem[] })[]
   kioskMode?: boolean
   initialTableNumber?: string | null
+  discountInfo?: DiscountInfo | null
 }
 
 function formatEur(cents: number): string {
@@ -25,7 +26,7 @@ function formatEur(cents: number): string {
   })
 }
 
-export default function MenuBoard({ projectId, projectName, domain, categories, kioskMode = false, initialTableNumber }: MenuBoardProps) {
+export default function MenuBoard({ projectId, projectName, domain, categories, kioskMode = false, initialTableNumber, discountInfo }: MenuBoardProps) {
   const router = useRouter()
   const [cart, setCart] = useState<CartItem[]>([])
   const [showCart, setShowCart] = useState(false)
@@ -38,9 +39,15 @@ export default function MenuBoard({ projectId, projectName, domain, categories, 
   const [customerContact, setCustomerContact] = useState('')
   const [isPending, startTransition] = useTransition()
   const [formError, setFormError] = useState<string | null>(null)
+  // Lightbox state
+  const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null)
 
   const totalItems = cart.reduce((s, i) => s + i.quantity, 0)
-  const totalCents = cart.reduce((s, i) => s + i.priceInCents * i.quantity, 0)
+  const subtotalCents = cart.reduce((s, i) => s + i.priceInCents * i.quantity, 0)
+  // M16: Rabatt-Preview (optimistische Anzeige — echte Prüfung passiert server-side)
+  const showDiscount = !!(discountInfo?.enabled && discountInfo.pct > 0)
+  const discountAmountCents = showDiscount ? Math.round(subtotalCents * discountInfo!.pct / 100) : 0
+  const totalCents = subtotalCents - discountAmountCents
 
   const addToCart = (item: MenuItem) => {
     setCart((prev) => {
@@ -119,6 +126,11 @@ export default function MenuBoard({ projectId, projectName, domain, categories, 
               <ShoppingCart className="w-4 h-4" />
               <span>{totalItems}</span>
               <span className="hidden sm:inline">· {formatEur(totalCents)}</span>
+              {showDiscount && (
+                <span className="hidden sm:inline ml-1 text-[10px] font-bold bg-white/20 px-1.5 py-0.5 rounded-full">
+                  -{discountInfo!.pct}%
+                </span>
+              )}
             </button>
           )}
         </div>
@@ -140,43 +152,62 @@ export default function MenuBoard({ projectId, projectName, domain, categories, 
                   return (
                     <div
                       key={item.id}
-                      className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-4 shadow-sm"
+                      className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden"
                     >
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-[#1A1A1A]">{item.name}</p>
-                        {item.description && (
-                          <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
-                            {item.description}
+                      <div className="flex items-center gap-4 p-4">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-[#1A1A1A]">{item.name}</p>
+                          {item.description && (
+                            <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
+                              {item.description}
+                            </p>
+                          )}
+                          <p className="text-sm font-bold text-[#C7A17A] mt-1">
+                            {formatEur(item.price)}
                           </p>
-                        )}
-                        <p className="text-sm font-bold text-[#C7A17A] mt-1">
-                          {formatEur(item.price)}
-                        </p>
-                      </div>
-                      {inCart ? (
-                        <div className="flex items-center gap-2 shrink-0">
-                          <button
-                            onClick={() => changeQty(item.id, -1)}
-                            className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
-                          >
-                            <Minus className="w-3.5 h-3.5" />
-                          </button>
-                          <span className="text-sm font-bold w-4 text-center">{inCart.quantity}</span>
-                          <button
-                            onClick={() => changeQty(item.id, 1)}
-                            className="w-8 h-8 rounded-lg bg-[#C7A17A] hover:bg-[#B58E62] text-white flex items-center justify-center transition-colors"
-                          >
-                            <Plus className="w-3.5 h-3.5" />
-                          </button>
                         </div>
-                      ) : (
-                        <button
-                          onClick={() => addToCart(item)}
-                          className="shrink-0 w-9 h-9 rounded-xl bg-[#3D2E1E] hover:bg-[#C7A17A] hover:text-white text-[#C7A17A] flex items-center justify-center transition-colors"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </button>
-                      )}
+                        {/* Image thumbnail */}
+                        {item.image_url && (
+                          <button
+                            onClick={() => setLightbox({ src: item.image_url!, alt: item.name })}
+                            className="shrink-0 group relative focus:outline-none"
+                            aria-label={`${item.name} vergrößern`}
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={item.image_url}
+                              alt={item.name}
+                              className="w-20 h-20 rounded-xl object-cover border border-gray-100 group-hover:scale-105 transition-transform duration-200 cursor-zoom-in"
+                            />
+                            <div className="absolute inset-0 rounded-xl bg-black/0 group-hover:bg-black/10 transition-colors duration-200" />
+                          </button>
+                        )}
+                        {/* Add-to-cart button */}
+                        {inCart ? (
+                          <div className="flex items-center gap-2 shrink-0">
+                            <button
+                              onClick={() => changeQty(item.id, -1)}
+                              className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+                            >
+                              <Minus className="w-3.5 h-3.5" />
+                            </button>
+                            <span className="text-sm font-bold w-4 text-center">{inCart.quantity}</span>
+                            <button
+                              onClick={() => changeQty(item.id, 1)}
+                              className="w-8 h-8 rounded-lg bg-[#C7A17A] hover:bg-[#B58E62] text-white flex items-center justify-center transition-colors"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => addToCart(item)}
+                            className="shrink-0 w-9 h-9 rounded-xl bg-[#3D2E1E] hover:bg-[#C7A17A] hover:text-white text-[#C7A17A] flex items-center justify-center transition-colors"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   )
                 })}
@@ -216,9 +247,43 @@ export default function MenuBoard({ projectId, projectName, domain, categories, 
               ))}
             </div>
 
-            <div className="border-t border-gray-100 pt-4 mb-6 flex justify-between font-extrabold text-lg">
-              <span>Gesamt</span>
-              <span className="text-[#C7A17A]">{formatEur(totalCents)}</span>
+            {/* M16: Rabatt-Banner */}
+            {showDiscount && subtotalCents > 0 && (
+              <div className="mb-4 flex items-center gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+                <Tag className="w-4 h-4 text-amber-600 shrink-0" />
+                <div className="flex-1 text-xs">
+                  <p className="font-bold text-amber-700">🎉 {discountInfo!.pct} % Willkommensrabatt!</p>
+                  <p className="text-amber-600">Wird automatisch auf deine erste Bestellung angewendet.</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-gray-400 line-through">{formatEur(subtotalCents)}</p>
+                  <p className="text-sm font-extrabold text-amber-700">-{formatEur(discountAmountCents)}</p>
+                </div>
+              </div>
+            )}
+
+            <div className="border-t border-gray-100 pt-4 mb-6">
+              {showDiscount && subtotalCents > 0 ? (
+                <div className="space-y-1">
+                  <div className="flex justify-between text-sm text-gray-500">
+                    <span>Zwischensumme</span>
+                    <span>{formatEur(subtotalCents)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm text-green-600 font-semibold">
+                    <span>Rabatt ({discountInfo!.pct} %)</span>
+                    <span>-{formatEur(discountAmountCents)}</span>
+                  </div>
+                  <div className="flex justify-between font-extrabold text-lg pt-1 border-t border-gray-100">
+                    <span>Gesamt</span>
+                    <span className="text-[#C7A17A]">{formatEur(totalCents)}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex justify-between font-extrabold text-lg">
+                  <span>Gesamt</span>
+                  <span className="text-[#C7A17A]">{formatEur(totalCents)}</span>
+                </div>
+              )}
             </div>
 
             {/* Checkout form */}
@@ -307,7 +372,51 @@ export default function MenuBoard({ projectId, projectName, domain, categories, 
           >
             <ShoppingCart className="w-5 h-5" />
             {totalItems} Artikel · {formatEur(totalCents)}
+            {showDiscount && (
+              <span className="text-xs font-bold bg-white/20 px-2 py-0.5 rounded-full">
+                -{discountInfo!.pct}%
+              </span>
+            )}
           </button>
+        </div>
+      )}
+
+      {/* Lightbox */}
+      {lightbox && (
+        <div
+          className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+          onClick={() => setLightbox(null)}
+          style={{ zIndex: 60 }}
+        >
+          {/* Close button */}
+          <button
+            onClick={() => setLightbox(null)}
+            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition-colors text-xl font-light"
+            aria-label="Schließen"
+          >
+            ✕
+          </button>
+          {/* Image */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={lightbox.src}
+            alt={lightbox.alt}
+            onClick={(e) => e.stopPropagation()}
+            className="max-w-full max-h-[90vh] rounded-2xl shadow-2xl object-contain"
+            style={{
+              animation: 'lightboxIn 0.2s ease-out',
+            }}
+          />
+          {/* Caption */}
+          <p className="absolute bottom-6 left-0 right-0 text-center text-white font-semibold text-sm drop-shadow">
+            {lightbox.alt}
+          </p>
+          <style>{`
+            @keyframes lightboxIn {
+              from { opacity: 0; transform: scale(0.92); }
+              to   { opacity: 1; transform: scale(1); }
+            }
+          `}</style>
         </div>
       )}
     </div>

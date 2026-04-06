@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     const mimeType = file.type || 'application/pdf'
 
     // 3. Call Gemini Flash with the file
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
 
     const prompt = `Du bist ein Experte für Gastronomie-Digitalisierung.
 Analysiere diese Speisekarte und extrahiere alle Kategorien und Gerichte.

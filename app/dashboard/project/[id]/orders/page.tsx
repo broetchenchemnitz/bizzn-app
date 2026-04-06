@@ -21,9 +21,7 @@ export default async function OrdersPage({
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user) {
-    redirect('/login')
-  }
+  if (!user) redirect('/login')
 
   const { data: project } = await supabase
     .from('projects')
@@ -32,43 +30,45 @@ export default async function OrdersPage({
     .eq('user_id', user.id)
     .single<ProjectRow>()
 
-  if (!project) {
-    notFound()
-  }
+  if (!project) notFound()
 
   return (
-    <div className="min-h-screen bg-[#1a1a1a] p-6 md:p-8">
-      <div className="max-w-6xl mx-auto space-y-6">
+    <div className="min-h-screen bg-background p-6 md:p-8 smooth-transition">
+      <div className="max-w-[1600px] mx-auto space-y-6 flex flex-col h-[calc(100vh-4rem)] fade-in-up">
 
         {/* Back link */}
-        <div>
-          <Link
-            href={`/dashboard/project/${params.id}`}
-            className="inline-flex items-center text-sm font-medium text-gray-400 hover:text-white transition-colors bg-[#242424] px-4 py-2 rounded-lg border border-gray-800 hover:border-gray-600 group"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2 text-gray-500 group-hover:text-white transition-colors" />
-            Zurück zum Dashboard
-          </Link>
-        </div>
+        <Link
+          href={`/dashboard/project/${params.id}`}
+          className="inline-flex items-center text-sm text-muted-foreground hover:text-white smooth-transition group w-fit"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2 transition-transform group-hover:-translate-x-1" />
+          Zurück zum Dashboard
+        </Link>
 
-        {/* Header */}
-        <div className="bg-[#242424] rounded-2xl border border-gray-800 p-8">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-[#C7A17A]/10 flex items-center justify-center shrink-0">
-              <MonitorCheck className="w-6 h-6 text-[#C7A17A]" />
+        {/* Header — KDS Title Card */}
+        <div className="glass-card rounded-2xl p-6 md:p-8 shrink-0 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-5">
+            <div className="p-4 bg-black/40 rounded-xl border border-white/5 shadow-inner">
+              <MonitorCheck className="w-8 h-8 text-gold" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-white">Kitchen Display System</h1>
-              <p className="text-sm text-gray-400 mt-0.5">{project.name} · Live Bestellmanagement</p>
+              <h1 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight">
+                Kitchen Display System
+              </h1>
+              <p className="text-muted-foreground text-sm md:text-base mt-1">
+                {project.name}
+                <span className="text-white/20 mx-2">•</span>
+                Live Bestellmanagement
+              </p>
             </div>
-            <span className="ml-auto text-xs font-semibold text-[#C7A17A] bg-[#C7A17A]/10 px-3 py-1 rounded-full border border-[#C7A17A]/20">
-              Gastro-OS v1
-            </span>
+          </div>
+          <div className="px-4 py-1.5 bg-black/40 border border-white/5 rounded-full text-xs font-semibold text-gold tracking-widest uppercase shadow-inner">
+            Gastro-OS v1
           </div>
         </div>
 
-        {/* KDS Board */}
-        <div className="bg-[#242424] rounded-2xl border border-gray-800 p-8">
+        {/* KDS Board Wrapper */}
+        <div className="glass-card rounded-2xl flex-1 flex flex-col overflow-hidden min-h-[600px] shadow-2xl relative border-white/5">
           <KitchenDisplay projectId={params.id} />
         </div>
 
