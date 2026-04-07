@@ -5,6 +5,10 @@ const nextConfig = {
     domains: ['bizzn.de', 'www.bizzn.de', 'app.bizzn.de', 'nhzemmfijrzbulywrnkw.supabase.co'],
   },
   allowedDevOrigins: ['*.localhost'],
+  // web-push ist eine Node.js-only Library — nie für den Client bundeln
+  experimental: {
+    serverComponentsExternalPackages: ['web-push'],
+  },
   async headers() {
     return [
       {
@@ -18,3 +22,4 @@ const nextConfig = {
   },
 }
 module.exports = nextConfig
+
