@@ -30,6 +30,10 @@ export interface Database {
           // M16: Willkommensrabatt
           welcome_discount_enabled: boolean
           welcome_discount_pct: number
+          // M17: Discovery
+          is_public: boolean
+          city: string | null
+          postal_code: string | null
         }
         Insert: {
           id?: string
@@ -51,6 +55,10 @@ export interface Database {
           // M16: Willkommensrabatt
           welcome_discount_enabled?: boolean
           welcome_discount_pct?: number
+          // M17: Discovery
+          is_public?: boolean
+          city?: string | null
+          postal_code?: string | null
         }
         Update: {
           id?: string
@@ -72,6 +80,10 @@ export interface Database {
           // M16: Willkommensrabatt
           welcome_discount_enabled?: boolean
           welcome_discount_pct?: number
+          // M17: Discovery
+          is_public?: boolean
+          city?: string | null
+          postal_code?: string | null
         }
         Relationships: []
       }
@@ -164,6 +176,44 @@ export interface Database {
             foreignKeyName: 'restaurant_customers_user_id_fkey'
             columns: ['user_id']
             referencedRelation: 'users'
+            referencedColumns: ['id']
+          }
+        ]
+      }
+      // M18: Web Push
+      push_subscriptions: {
+        Row: {
+          id: string
+          project_id: string
+          user_id: string | null
+          endpoint: string
+          p256dh: string
+          auth: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          user_id?: string | null
+          endpoint: string
+          p256dh: string
+          auth: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          user_id?: string | null
+          endpoint?: string
+          p256dh?: string
+          auth?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'push_subscriptions_project_id_fkey'
+            columns: ['project_id']
+            referencedRelation: 'projects'
             referencedColumns: ['id']
           }
         ]

@@ -248,8 +248,18 @@ export async function updateWelcomeDiscount(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Nicht authentifiziert.' }
 
+  // Berechtigungs-Check: RBAC oder direktes Projekt-Ownership
   const canEdit = await roleService.hasPermission(projectId, user.id, ['owner', 'admin'])
-  if (!canEdit) return { error: 'Unzureichende Berechtigungen.' }
+  if (!canEdit) {
+    // Fallback: Prüfe ob user_id direkt auf dem Projekt stimmt (Gründungs-Owner)
+    const { data: ownedProject } = await supabase
+      .from('projects')
+      .select('id')
+      .eq('id', projectId)
+      .eq('user_id', user.id)
+      .maybeSingle()
+    if (!ownedProject) return { error: 'Unzureichende Berechtigungen.' }
+  }
 
   const admin = createAdminClient()
 

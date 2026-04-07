@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation'
 import RestaurantOverview from '@/components/RestaurantOverview'
 import { RevenueChart } from '@/components/dashboard/revenue-chart'
 import { getDashboardAnalyticsAction } from '@/app/actions/analytics-actions'
+import BroadcastBlock from '@/components/dashboard/BroadcastBlock'
 import type { Database } from '@/types/supabase'
 
 type ProjectRow = Database['public']['Tables']['projects']['Row']
@@ -71,6 +72,10 @@ export default async function ProjectWorkspacePage({
                 </div>
                 <RevenueChart data={chartData} />
               </div>
+
+              {/* M18: Broadcast */}
+              <BroadcastBlock projectId={project.id} />
+
             </div>
           </div>
         </div>

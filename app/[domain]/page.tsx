@@ -4,6 +4,7 @@ import type { Database } from '@/types/supabase'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import CustomerBar from '@/components/storefront/CustomerBar'
+import PushSubscribeButton from '@/components/storefront/PushSubscribeButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -115,6 +116,12 @@ export default async function RestaurantProfilePage({
             <CustomerBar
               projectId={project.id}
               projectName={project.name}
+            />
+
+            {/* M18: Push-Opt-in */}
+            <PushSubscribeButton
+              projectId={project.id}
+              slug={params.domain}
             />
 
             {/* Beschreibung */}

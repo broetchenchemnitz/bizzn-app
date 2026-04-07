@@ -70,6 +70,7 @@ export default async function MenuPage({
   const { project, categories } = data
   const tableNumber = searchParams?.table ?? null
   const isKiosk = searchParams?.mode === 'kiosk' || Boolean(tableNumber)
+  const isEmbedded = searchParams?.mode === 'embedded'
 
   // M16: Rabatt-Info für Storefront
   const discountInfo = {
@@ -85,6 +86,7 @@ export default async function MenuPage({
       categories={categories}
       initialTableNumber={tableNumber}
       kioskMode={isKiosk}
+      isEmbedded={isEmbedded}
       discountInfo={discountInfo}
     />
   )

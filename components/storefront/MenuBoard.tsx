@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { ShoppingCart, Plus, Minus, Trash2, Loader2, ChefHat, Tag } from 'lucide-react'
+import { ShoppingCart, Plus, Minus, Trash2, Loader2, ChefHat, Tag, ChevronDown } from 'lucide-react'
 import { placeOrder, type CartItem, type DiscountInfo } from '@/app/[domain]/actions'
 import type { Database } from '@/types/supabase'
 
@@ -15,6 +15,7 @@ interface MenuBoardProps {
   domain: string
   categories: (MenuCategory & { menu_items: MenuItem[] })[]
   kioskMode?: boolean
+  isEmbedded?: boolean
   initialTableNumber?: string | null
   discountInfo?: DiscountInfo | null
 }
@@ -26,10 +27,20 @@ function formatEur(cents: number): string {
   })
 }
 
-export default function MenuBoard({ projectId, projectName, domain, categories, kioskMode = false, initialTableNumber, discountInfo }: MenuBoardProps) {
+export default function MenuBoard({ projectId, projectName, domain, categories, kioskMode = false, isEmbedded = false, initialTableNumber, discountInfo }: MenuBoardProps) {
   const router = useRouter()
   const [cart, setCart] = useState<CartItem[]>([])
   const [showCart, setShowCart] = useState(false)
+  // Alle Kategorien standardmäßig eingeklappt
+  const [collapsedCats, setCollapsedCats] = useState<Set<string>>(
+    () => new Set(categories.map((c) => c.id))
+  )
+  const toggleCat = (id: string) =>
+    setCollapsedCats((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) { next.delete(id) } else { next.add(id) }
+      return next
+    })
   // Kiosk mode locks order type to in-store
   const [orderType, setOrderType] = useState<'takeaway' | 'delivery' | 'in-store'>(
     kioskMode ? 'in-store' : 'takeaway'
@@ -105,16 +116,16 @@ export default function MenuBoard({ projectId, projectName, domain, categories, 
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className={isEmbedded ? 'min-h-screen bg-[#111]' : 'min-h-screen bg-gray-50'}>
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-white border-b border-gray-100 shadow-sm">
+      <header className={isEmbedded ? 'sticky top-0 z-30 bg-[#1a1a1a] border-b border-white/10 shadow-sm' : 'sticky top-0 z-30 bg-white border-b border-gray-100 shadow-sm'}>
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-[#C7A17A] flex items-center justify-center">
               <ChefHat className="w-5 h-5 text-white" />
             </div>
             <div>
-              <p className="font-bold text-[#1A1A1A] text-base leading-none">{projectName}</p>
+              <p className={`font-bold text-base leading-none ${isEmbedded ? 'text-white' : 'text-[#1A1A1A]'}`}>{projectName}</p>
               <p className="text-xs text-gray-400">Digitale Speisekarte · bizzn</p>
             </div>
           </div>
@@ -141,22 +152,34 @@ export default function MenuBoard({ projectId, projectName, domain, categories, 
         {categories.length === 0 ? (
           <p className="text-center text-gray-400 py-20">Speisekarte wird vorbereitet…</p>
         ) : (
-          categories.map((cat) => (
+          categories.map((cat) => {
+            const isCollapsed = collapsedCats.has(cat.id)
+            return (
             <section key={cat.id}>
-              <h2 className="text-lg font-extrabold text-[#1A1A1A] mb-4 pb-2 border-b border-gray-200">
-                {cat.name}
-              </h2>
-              <div className="space-y-3">
+              <button
+                onClick={() => toggleCat(cat.id)}
+                style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+              >
+                <h2 className={`text-lg font-extrabold mb-4 pb-2 border-b flex items-center justify-between ${isEmbedded ? 'text-white border-white/10' : 'text-[#1A1A1A] border-gray-200'}`}>
+                  {cat.name}
+                  <ChevronDown
+                    className="w-5 h-5 transition-transform duration-200 flex-shrink-0"
+                    style={{ transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)', color: '#C7A17A' }}
+                  />
+                </h2>
+              </button>
+              {/* eslint-disable-next-line @typescript-eslint/no-unused-expressions */}
+              {!isCollapsed && <div className="space-y-3">
                 {cat.menu_items.filter((i) => i.is_active).map((item) => {
                   const inCart = cart.find((c) => c.menuItemId === item.id)
                   return (
                     <div
                       key={item.id}
-                      className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden"
+                      className={isEmbedded ? 'bg-[#242424] rounded-2xl border border-white/10 overflow-hidden' : 'bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden'}
                     >
                       <div className="flex items-center gap-4 p-4">
                         <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-[#1A1A1A]">{item.name}</p>
+                          <p className={`font-semibold ${isEmbedded ? 'text-white' : 'text-[#1A1A1A]'}`}>{item.name}</p>
                           {item.description && (
                             <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
                               {item.description}
@@ -187,7 +210,7 @@ export default function MenuBoard({ projectId, projectName, domain, categories, 
                           <div className="flex items-center gap-2 shrink-0">
                             <button
                               onClick={() => changeQty(item.id, -1)}
-                              className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+                              className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${isEmbedded ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
                             >
                               <Minus className="w-3.5 h-3.5" />
                             </button>
@@ -211,9 +234,9 @@ export default function MenuBoard({ projectId, projectName, domain, categories, 
                     </div>
                   )
                 })}
-              </div>
+              </div>}
             </section>
-          ))
+          )})
         )}
       </main>
 
@@ -224,20 +247,20 @@ export default function MenuBoard({ projectId, projectName, domain, categories, 
             className="absolute inset-0 bg-black/40 backdrop-blur-sm"
             onClick={() => setShowCart(false)}
           />
-          <div className="relative w-full max-w-lg bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl p-6 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-extrabold text-[#1A1A1A] mb-4">Deine Bestellung</h2>
+          <div className={`relative w-full max-w-lg rounded-t-3xl sm:rounded-2xl shadow-2xl p-6 max-h-[90vh] overflow-y-auto ${isEmbedded ? 'bg-[#1a1a1a] border border-white/10' : 'bg-white'}`}>
+            <h2 className={`text-xl font-extrabold mb-4 ${isEmbedded ? 'text-white' : 'text-[#1A1A1A]'}`}>Deine Bestellung</h2>
 
             {/* Cart items */}
             <div className="space-y-3 mb-6">
               {cart.map((item) => (
                 <div key={item.menuItemId} className="flex items-center gap-3">
                   <div className="flex-1">
-                    <p className="text-sm font-semibold text-[#1A1A1A]">{item.name}</p>
+                    <p className={`text-sm font-semibold ${isEmbedded ? 'text-white' : 'text-[#1A1A1A]'}`}>{item.name}</p>
                     <p className="text-xs text-gray-500">
                       {item.quantity} × {formatEur(item.priceInCents)}
                     </p>
                   </div>
-                  <p className="text-sm font-bold text-[#1A1A1A] tabular-nums">
+                  <p className={`text-sm font-bold tabular-nums ${isEmbedded ? 'text-white' : 'text-[#1A1A1A]'}`}>
                     {formatEur(item.priceInCents * item.quantity)}
                   </p>
                   <button onClick={() => changeQty(item.menuItemId, -item.quantity)}>
@@ -265,7 +288,7 @@ export default function MenuBoard({ projectId, projectName, domain, categories, 
             <div className="border-t border-gray-100 pt-4 mb-6">
               {showDiscount && subtotalCents > 0 ? (
                 <div className="space-y-1">
-                  <div className="flex justify-between text-sm text-gray-500">
+                  <div className="flex justify-between text-sm text-gray-400">
                     <span>Zwischensumme</span>
                     <span>{formatEur(subtotalCents)}</span>
                   </div>
@@ -273,7 +296,7 @@ export default function MenuBoard({ projectId, projectName, domain, categories, 
                     <span>Rabatt ({discountInfo!.pct} %)</span>
                     <span>-{formatEur(discountAmountCents)}</span>
                   </div>
-                  <div className="flex justify-between font-extrabold text-lg pt-1 border-t border-gray-100">
+                  <div className={`flex justify-between font-extrabold text-lg pt-1 border-t ${isEmbedded ? 'border-white/10' : 'border-gray-100'}`}>
                     <span>Gesamt</span>
                     <span className="text-[#C7A17A]">{formatEur(totalCents)}</span>
                   </div>
@@ -309,7 +332,9 @@ export default function MenuBoard({ projectId, projectName, domain, categories, 
                       className={`py-2 rounded-xl text-xs font-bold border transition-colors ${
                         orderType === type
                           ? 'bg-[#C7A17A] border-[#B58E62] text-white'
-                          : 'bg-white border-gray-200 text-gray-600 hover:border-[#C7A17A]'
+                          : isEmbedded
+                            ? 'bg-[#242424] border-white/10 text-gray-400 hover:border-[#C7A17A]'
+                            : 'bg-white border-gray-200 text-gray-600 hover:border-[#C7A17A]'
                       }`}
                     >
                       {type === 'takeaway' ? '🛍️ Abholung' : type === 'delivery' ? '🛵 Lieferung' : '📱 Vor Ort'}
@@ -325,7 +350,7 @@ export default function MenuBoard({ projectId, projectName, domain, categories, 
                   placeholder="Tischnummer *"
                   value={tableNumber}
                   onChange={(e) => setTableNumber(e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#C7A17A]"
+                  className={`w-full rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#C7A17A] ${isEmbedded ? 'border border-white/15 bg-white/5 text-white placeholder:text-gray-500' : 'border border-gray-200'}`}
                   required
                 />
               )}
@@ -335,7 +360,7 @@ export default function MenuBoard({ projectId, projectName, domain, categories, 
                 placeholder="Dein Name *"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#C7A17A]"
+                className={`w-full rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#C7A17A] ${isEmbedded ? 'border border-white/15 bg-white/5 text-white placeholder:text-gray-500' : 'border border-gray-200'}`}
                 required
               />
               <input
@@ -343,7 +368,7 @@ export default function MenuBoard({ projectId, projectName, domain, categories, 
                 placeholder="Telefon / E-Mail (optional)"
                 value={customerContact}
                 onChange={(e) => setCustomerContact(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#C7A17A]"
+                className={`w-full rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#C7A17A] ${isEmbedded ? 'border border-white/15 bg-white/5 text-white placeholder:text-gray-500' : 'border border-gray-200'}`}
               />
 
               {formError && (

@@ -4,7 +4,8 @@ import ProjectSettingsBlock from "@/components/ProjectSettingsBlock";
 import SlugSettingsBlock from "@/components/SlugSettingsBlock";
 import ProfileSettingsBlock from "@/components/ProfileSettingsBlock";
 import WelcomeDiscountBlock from "@/components/WelcomeDiscountBlock";
-import { Settings, Globe, Trash2, Store, Tag } from "lucide-react";
+import DiscoverySettingsBlock from "@/components/DiscoverySettingsBlock";
+import { Settings, Globe, Trash2, Store, Tag, Search } from "lucide-react";
 import type { Database } from "@/types/supabase";
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"];
@@ -106,6 +107,28 @@ export default async function ProjectSettingsPage({
             projectId={project.id}
             initialEnabled={project.welcome_discount_enabled ?? false}
             initialPct={project.welcome_discount_pct ?? 10}
+          />
+        </section>
+
+        {/* M17: Discovery-Opt-in */}
+        <section className="bg-[#242424] border border-[#333333] rounded-xl p-6">
+          <div className="flex items-center gap-2 border-b border-[#333333] pb-4 mb-5">
+            <Search className="w-4 h-4 text-[#C7A17A]" />
+            <h2 className="text-sm font-semibold text-white uppercase tracking-wider">
+              Auf bizzn.de entdeckt werden
+            </h2>
+          </div>
+          <p className="text-xs text-gray-500 mb-5">
+            Lass dich von Neukunden auf{" "}
+            <span className="text-[#C7A17A] font-mono">bizzn.de</span>{" "}
+            finden — 0 % Provision, keine Listinggebühr.
+            Du entscheidest, wann du sichtbar wirst.
+          </p>
+          <DiscoverySettingsBlock
+            projectId={project.id}
+            initialIsPublic={project.is_public ?? false}
+            initialCity={(project.city as string | null) ?? null}
+            initialPostalCode={(project.postal_code as string | null) ?? null}
           />
         </section>
 
