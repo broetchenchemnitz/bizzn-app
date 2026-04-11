@@ -424,40 +424,26 @@ export default function MeinKontoPage() {
     }
   }, [tab, passLoaded])
 
-  // M27: Abo starten — Subscription erstellen + Stripe Payment Element mounten
+  // M27: Abo starten — Stripe Checkout Session öffnen
   const handleStartSubscription = async () => {
     setPassError(null)
     setPassLoading(true)
     try {
       const res = await fetch('/api/stripe/bizzn-pass/subscribe', { method: 'POST' })
-      const data = await res.json() as { clientSecret?: string; error?: string }
-      if (!res.ok || !data.clientSecret) {
+      const data = await res.json() as { url?: string; error?: string }
+      if (!res.ok || !data.url) {
         setPassError(data.error ?? 'Fehler beim Starten des Abonnements.')
         setPassLoading(false)
         return
       }
-      setSubscriptionClientSecret(data.clientSecret)
-
-      // Stripe.js lazy-load
-      const { loadStripe } = await import('@stripe/stripe-js')
-      const stripe = await loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
-      if (!stripe) { setPassError('Stripe konnte nicht geladen werden.'); setPassLoading(false); return }
-
-      const elements = stripe.elements({
-        clientSecret: data.clientSecret,
-        appearance: {
-          theme: 'night',
-          variables: { colorPrimary: '#C7A17A', colorBackground: '#111', borderRadius: '10px' },
-        },
-      })
-      elements.create('payment').mount('#bizzn-pass-payment-element')
-      setStripeElements({ stripe, elements })
+      // Weiterleitung zur Stripe Checkout-Seite
+      window.location.href = data.url
     } catch {
       setPassError('Netzwerkfehler. Bitte versuche es erneut.')
-    } finally {
       setPassLoading(false)
     }
   }
+
 
   // M27: Zahlung bestätigen
   const handleConfirmPayment = async () => {
@@ -1059,58 +1045,31 @@ export default function MeinKontoPage() {
                     ))}
                   </div>
 
-                  {/* Subscribe Button — wenn noch kein Payment Element */}
-                  {!subscriptionClientSecret && (
-                    <button
-                      id="bizzn-pass-subscribe"
-                      onClick={handleStartSubscription}
-                      disabled={passLoading}
-                      style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                        width: '100%', padding: '14px', borderRadius: '12px', border: 'none',
-                        cursor: passLoading ? 'not-allowed' : 'pointer',
-                        background: passLoading ? 'rgba(199,161,122,0.35)' : 'linear-gradient(135deg, #c7a17a, #d4a870)',
-                        color: '#111', fontWeight: 900, fontSize: '15px',
-                        boxShadow: passLoading ? 'none' : '0 4px 24px rgba(199,161,122,0.35)',
-                        transition: 'all 0.2s',
-                      }}
-                    >
-                      {passLoading
-                        ? <><Loader2 style={{ width: '16px', height: '16px', animation: 'spin 0.8s linear infinite' }} /> Wird vorbereitet…</>
-                        : <><Crown style={{ width: '16px', height: '16px' }} /> Jetzt für 4,99 €/Monat abonnieren</>
-                      }
-                    </button>
-                  )}
-
-                  {/* Stripe Payment Element */}
-                  {subscriptionClientSecret && (
-                    <div style={{ marginTop: '8px', textAlign: 'left' }}>
-                      <p style={{ color: '#9ca3af', fontSize: '12px', marginBottom: '12px', textAlign: 'center' }}>
-                        🔒 Sichere Zahlung via Stripe
-                      </p>
-                      <div id="bizzn-pass-payment-element" style={{ marginBottom: '16px' }} />
-                      <button
-                        id="bizzn-pass-confirm"
-                        onClick={handleConfirmPayment}
-                        disabled={subscribing || !stripeElements}
-                        style={{
-                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                          width: '100%', padding: '14px', borderRadius: '12px', border: 'none',
-                          cursor: (subscribing || !stripeElements) ? 'not-allowed' : 'pointer',
-                          background: (subscribing || !stripeElements) ? 'rgba(199,161,122,0.35)' : 'linear-gradient(135deg, #c7a17a, #d4a870)',
-                          color: '#111', fontWeight: 900, fontSize: '15px',
-                          boxShadow: (subscribing || !stripeElements) ? 'none' : '0 4px 24px rgba(199,161,122,0.35)',
-                          transition: 'all 0.2s',
-                        }}
-                      >
-                        {subscribing
-                          ? <><Loader2 style={{ width: '16px', height: '16px', animation: 'spin 0.8s linear infinite' }} /> Zahlung wird abgeschlossen…</>
-                          : <><Crown style={{ width: '16px', height: '16px' }} /> Bizzn-Pass aktivieren</>
-                        }
-                      </button>
-                    </div>
-                  )}
+                  {/* Subscribe Button → Stripe Checkout */}
+                  <button
+                    id="bizzn-pass-subscribe"
+                    onClick={handleStartSubscription}
+                    disabled={passLoading}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                      width: '100%', padding: '14px', borderRadius: '12px', border: 'none',
+                      cursor: passLoading ? 'not-allowed' : 'pointer',
+                      background: passLoading ? 'rgba(199,161,122,0.35)' : 'linear-gradient(135deg, #c7a17a, #d4a870)',
+                      color: '#111', fontWeight: 900, fontSize: '15px',
+                      boxShadow: passLoading ? 'none' : '0 4px 24px rgba(199,161,122,0.35)',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    {passLoading
+                      ? <><Loader2 style={{ width: '16px', height: '16px', animation: 'spin 0.8s linear infinite' }} /> Weiterleitung zu Stripe…</>
+                      : <><Crown style={{ width: '16px', height: '16px' }} /> Jetzt für 4,99 €/Monat abonnieren</>
+                    }
+                  </button>
+                  <p style={{ color: '#4b5563', fontSize: '11px', textAlign: 'center', marginTop: '8px' }}>
+                    🔒 Sichere Zahlung über die Stripe-Checkout-Seite
+                  </p>
                 </div>
+
 
                 <p style={{ color: '#374151', fontSize: '11px', textAlign: 'center', lineHeight: '1.6' }}>
                   Keine Mindestlaufzeit. Jederzeit in deinem Konto oder im Stripe-Portal kündbar.
