@@ -9,7 +9,7 @@ import { createAdminClient } from '@/lib/supabase-admin'
  * Erstellt eine Stripe Checkout Session für den Bizzn-Pass (4,99 €/Monat).
  * Gibt die Checkout-URL zurück → Frontend leitet dorthin weiter.
  */
-export async function POST() {
+export async function POST(request: Request) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -57,15 +57,19 @@ export async function POST() {
     stripeCustomerId = customer.id
   }
 
-  // Stripe Checkout Session für Subscription erstellen
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3001'
+  // Redirect-URL aus dem Request ableiten (localhost + Produktion)
+  const origin = request.headers.get('origin')
+    || request.headers.get('referer')?.replace(/\/[^/]*$/, '')
+    || process.env.NEXT_PUBLIC_SITE_URL
+    || 'http://localhost:3001'
+  const baseUrl = origin.replace(/\/$/, '')
 
   const session = await stripe.checkout.sessions.create({
     customer: stripeCustomerId,
     mode: 'subscription',
     line_items: [{ price: priceId, quantity: 1 }],
-    success_url: `${siteUrl}/mein-konto?tab=abo&success=1`,
-    cancel_url: `${siteUrl}/mein-konto?tab=abo`,
+    success_url: `${baseUrl}/mein-konto?tab=abo&success=1`,
+    cancel_url: `${baseUrl}/mein-konto?tab=abo`,
     subscription_data: {
       metadata: { userId: user.id },
     },
