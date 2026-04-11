@@ -50,8 +50,8 @@ export async function POST() {
       const isBizznPass = sub.items.data.some(item => item.price.id === priceId)
       if (!isBizznPass) continue
 
-      const periodEnd = sub.current_period_end
-        ? new Date(sub.current_period_end * 1000).toISOString()
+      const periodEnd = (sub as unknown as { current_period_end?: number }).current_period_end
+        ? new Date((sub as unknown as { current_period_end: number }).current_period_end * 1000).toISOString()
         : null
 
       // In DB einfügen — erst versuchen ob schon vorhanden

@@ -382,6 +382,9 @@ export interface Database {
           stripe_payment_intent_id: string | null
           // M26: No-Show-Schutz
           no_show: boolean
+          // M27b: Drive-In
+          drive_in_arrived_at: string | null
+          drive_in_license_plate: string | null
           created_at: string
         }
         Insert: {
@@ -410,6 +413,9 @@ export interface Database {
           stripe_payment_intent_id?: string | null
           // M26: No-Show-Schutz
           no_show?: boolean
+          // M27b: Drive-In
+          drive_in_arrived_at?: string | null
+          drive_in_license_plate?: string | null
           created_at?: string
         }
         Update: {
@@ -438,6 +444,9 @@ export interface Database {
           stripe_payment_intent_id?: string | null
           // M26: No-Show-Schutz
           no_show?: boolean
+          // M27b: Drive-In
+          drive_in_arrived_at?: string | null
+          drive_in_license_plate?: string | null
           created_at?: string
         }
         Relationships: [

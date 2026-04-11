@@ -17,6 +17,7 @@ import {
   type CustomerProfile,
   type OrderHistoryItem,
 } from '@/app/actions/customer-account'
+import { DriveInArrivalCard } from '@/components/DriveInArrivalCard'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -313,6 +314,10 @@ export default function MeinKontoPage() {
   const [ordersLoaded, setOrdersLoaded] = useState(false)
   // Live-Status-Map: orderId -> aktueller Status (wird durch Realtime aktualisiert)
   const [liveStatus, setLiveStatus] = useState<Record<string, string>>({})
+  // Drive-In Status je Order
+  const [driveInStatus, setDriveInStatus] = useState<Record<string, {
+    eligible: boolean; arrived: boolean; plate: string | null
+  }>>({})
   const [loyaltyBalances, setLoyaltyBalances] = useState<LoyaltyBalance[]>([])
   const [loyaltyLoaded, setLoyaltyLoaded] = useState(false)
 
@@ -326,13 +331,6 @@ export default function MeinKontoPage() {
   const [passLoaded, setPassLoaded] = useState(false)
   const [passLoading, setPassLoading] = useState(false)
   const [passError, setPassError] = useState<string | null>(null)
-  // Stripe Payment Element (lazy)
-  const [stripeElements, setStripeElements] = useState<{
-    stripe: import('@stripe/stripe-js').Stripe
-    elements: import('@stripe/stripe-js').StripeElements
-  } | null>(null)
-  const [subscriptionClientSecret, setSubscriptionClientSecret] = useState<string | null>(null)
-  const [subscribing, setSubscribing] = useState(false)
 
   // Edit state
   const [name, setName] = useState('')
@@ -352,10 +350,26 @@ export default function MeinKontoPage() {
 
   useEffect(() => { loadProfile() }, [])
 
-  // Lazy-load orders
+  // Lazy-load orders + Drive-In Status
   useEffect(() => {
     if (tab === 'orders' && !ordersLoaded) {
-      getMyOrders().then(o => { setOrders(o); setOrdersLoaded(true) })
+      getMyOrders().then(list => {
+        setOrders(list)
+        setOrdersLoaded(true)
+        // Drive-In Status für aktive Bestellungen laden
+        list
+          .filter(o => !['delivered', 'cancelled'].includes(o.status))
+          .forEach(order => {
+            fetch(`/api/drive-in/status?orderId=${order.id}`)
+              .then(r => r.ok ? r.json() : null)
+              .then(d => {
+                if (d && (d.eligible || d.arrived)) {
+                  setDriveInStatus(prev => ({ ...prev, [order.id]: d }))
+                }
+              })
+              .catch(() => {})
+          })
+      })
     }
   }, [tab, ordersLoaded])
 
@@ -462,25 +476,6 @@ export default function MeinKontoPage() {
       setPassError('Netzwerkfehler. Bitte versuche es erneut.')
       setPassLoading(false)
     }
-  }
-
-
-  // M27: Zahlung bestätigen
-  const handleConfirmPayment = async () => {
-    if (!stripeElements) return
-    setSubscribing(true)
-    setPassError(null)
-    const { error } = await stripeElements.stripe.confirmPayment({
-      elements: stripeElements.elements,
-      confirmParams: {
-        return_url: `${window.location.origin}/mein-konto?tab=abo&success=1`,
-      },
-    })
-    if (error) {
-      setPassError(error.message ?? 'Zahlung fehlgeschlagen.')
-      setSubscribing(false)
-    }
-    // Bei Erfolg leitet Stripe weiter
   }
 
   // M27: Abo kündigen via Stripe Portal
@@ -817,6 +812,15 @@ export default function MeinKontoPage() {
                           <span style={{ color: '#6b7280', fontSize: '12px', fontWeight: 600 }}>Gesamt</span>
                           <span style={{ color: '#C7A17A', fontSize: '13px', fontWeight: 800 }}>{eur(order.total_amount)}</span>
                         </div>
+                      )}
+
+                      {/* M27b: Drive-In */}
+                      {driveInStatus[order.id] && (
+                        <DriveInArrivalCard
+                          orderId={order.id}
+                          arrived={driveInStatus[order.id].arrived}
+                          arrivedPlate={driveInStatus[order.id].plate}
+                        />
                       )}
                     </div>
                   )

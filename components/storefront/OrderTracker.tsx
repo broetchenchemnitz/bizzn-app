@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import { ChefHat, Clock, CheckCircle2, Loader2, UtensilsCrossed, Bike } from 'lucide-react'
 import type { Database } from '@/types/supabase'
+import { DriveInArrivalCard } from '@/components/DriveInArrivalCard'
 
 type OrderRow = Database['public']['Tables']['orders']['Row']
 type OrderStatus = OrderRow['status']
@@ -59,6 +60,19 @@ interface Props {
 
 export default function OrderTracker({ orderId, domain, initialOrder }: Props) {
   const [order, setOrder] = useState<OrderRow>(initialOrder)
+  const [driveIn, setDriveIn] = useState<{
+    eligible: boolean
+    arrived: boolean
+    plate: string | null
+  } | null>(null)
+
+  // Drive-In Status lazy laden
+  useEffect(() => {
+    fetch(`/api/drive-in/status?orderId=${orderId}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setDriveIn(d) })
+      .catch(() => {})
+  }, [orderId])
 
   useEffect(() => {
     const supabase = createBrowserClient<Database>(
@@ -211,6 +225,15 @@ export default function OrderTracker({ orderId, domain, initialOrder }: Props) {
             </div>
           </div>
         </div>
+
+        {/* M27b: Drive-In — „Ich bin da!" */}
+        {driveIn?.eligible && (
+          <DriveInArrivalCard
+            orderId={orderId}
+            arrived={driveIn.arrived}
+            arrivedPlate={driveIn.plate}
+          />
+        )}
 
         {/* Back link */}
         <div className="text-center">
