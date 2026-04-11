@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
     console.log('Webhook: stripe account status synced for:', account.id)
   }
 
-  // Subscription lifecycle — status changes & cancellations
+  // Gastronomen-Abo: status changes & cancellations (projects table)
   if (
     event.type === 'customer.subscription.updated' ||
     event.type === 'customer.subscription.deleted'
@@ -112,25 +112,90 @@ export async function POST(request: NextRequest) {
     const subscription = event.data.object as Stripe.Subscription
     const supabase = createAdminClient()
 
-    const updatePayload: Record<string, unknown> = {
-      subscription_status: subscription.status,
-    }
-    if (event.type === 'customer.subscription.deleted') {
-      updatePayload.plan_type = 'free'
-    }
-
-    const { error } = await supabase
+    // Nur für Gastronomen-Abos (project-bezogene subscriptions)
+    const { data: projectExists } = await supabase
       .from('projects')
-      .update(updatePayload)
+      .select('id')
       .eq('stripe_subscription_id', subscription.id)
+      .maybeSingle()
 
-    if (error) {
-      console.error('Webhook: failed to sync subscription status:', error.message)
-      // Return 200 to prevent Stripe retry loops on data errors
-      return NextResponse.json({ received: true, warning: error.message })
+    if (projectExists) {
+      const updatePayload: Record<string, unknown> = {
+        subscription_status: subscription.status,
+      }
+      if (event.type === 'customer.subscription.deleted') {
+        updatePayload.plan_type = 'free'
+      }
+
+      const { error } = await supabase
+        .from('projects')
+        .update(updatePayload)
+        .eq('stripe_subscription_id', subscription.id)
+
+      if (error) {
+        console.error('Webhook: failed to sync project subscription status:', error.message)
+        return NextResponse.json({ received: true, warning: error.message })
+      }
+
+      console.log(`Webhook: project subscription ${event.type} synced for:`, subscription.id)
     }
+  }
 
-    console.log(`Webhook: subscription ${event.type} synced for:`, subscription.id)
+  // ── M27: Bizzn-Pass Subscription Lifecycle ──────────────────────────────────
+
+  if (event.type === 'customer.subscription.created') {
+    const subscription = event.data.object as Stripe.Subscription
+    const userId = subscription.metadata?.userId
+
+    console.log('Webhook: bizzn-pass subscription.created', subscription.id, 'userId:', userId)
+
+    if (userId) {
+      const supabase = createAdminClient()
+      // Upsert: verhindert Duplikate falls subscribe-Route bereits einen DB-Eintrag angelegt hat
+      await supabase
+        .from('bizzn_pass_subscriptions')
+        .upsert(
+          {
+            user_id: userId,
+            stripe_customer_id: subscription.customer as string,
+            stripe_subscription_id: subscription.id,
+            status: subscription.status,
+            current_period_end: new Date((subscription as unknown as { current_period_end: number }).current_period_end * 1000).toISOString(),
+            cancel_at_period_end: subscription.cancel_at_period_end,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'stripe_subscription_id' }
+        )
+    }
+  }
+
+  if (
+    event.type === 'customer.subscription.updated' ||
+    event.type === 'customer.subscription.deleted'
+  ) {
+    const subscription = event.data.object as Stripe.Subscription
+    const supabase = createAdminClient()
+
+    // Bizzn-Pass-Sub aktualisieren
+    const { data: passRow } = await supabase
+      .from('bizzn_pass_subscriptions')
+      .select('id')
+      .eq('stripe_subscription_id', subscription.id)
+      .maybeSingle()
+
+    if (passRow) {
+      await supabase
+        .from('bizzn_pass_subscriptions')
+        .update({
+          status: subscription.status,
+          current_period_end: new Date((subscription as unknown as { current_period_end: number }).current_period_end * 1000).toISOString(),
+          cancel_at_period_end: subscription.cancel_at_period_end,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('stripe_subscription_id', subscription.id)
+
+      console.log(`Webhook: bizzn-pass ${event.type} synced for:`, subscription.id)
+    }
   }
 
   // M25: Online-Zahlung — Payment Intent Status-Sync

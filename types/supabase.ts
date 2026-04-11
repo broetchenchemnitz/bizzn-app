@@ -49,6 +49,8 @@ export interface Database {
           max_orders_per_slot: number | null
           // M25: Online-Zahlung
           online_payment_enabled: boolean | null
+          // M27: Drive-In
+          drive_in_enabled: boolean
         }
         Insert: {
           id?: string
@@ -89,6 +91,8 @@ export interface Database {
           max_orders_per_slot?: number | null
           // M25: Online-Zahlung
           online_payment_enabled?: boolean | null
+          // M27: Drive-In
+          drive_in_enabled?: boolean
         }
         Update: {
           id?: string
@@ -129,6 +133,8 @@ export interface Database {
           max_orders_per_slot?: number | null
           // M25: Online-Zahlung
           online_payment_enabled?: boolean | null
+          // M27: Drive-In
+          drive_in_enabled?: boolean
         }
         Relationships: []
       }
@@ -524,12 +530,53 @@ export interface Database {
           }
         ]
       }
+      // M27: Bizzn-Pass Subscriptions
+      bizzn_pass_subscriptions: {
+        Row: {
+          id: string
+          user_id: string
+          stripe_customer_id: string
+          stripe_subscription_id: string
+          status: string
+          current_period_end: string | null
+          cancel_at_period_end: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          stripe_customer_id: string
+          stripe_subscription_id: string
+          status: string
+          current_period_end?: string | null
+          cancel_at_period_end?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          stripe_customer_id?: string
+          stripe_subscription_id?: string
+          status?: string
+          current_period_end?: string | null
+          cancel_at_period_end?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      // M27: Bizzn-Pass aktiv?
+      has_active_bizzn_pass: {
+        Args: { p_user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

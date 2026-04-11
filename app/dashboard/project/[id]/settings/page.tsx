@@ -5,13 +5,14 @@ import SlugSettingsBlock from "@/components/SlugSettingsBlock";
 import ProfileSettingsBlock from "@/components/ProfileSettingsBlock";
 import WelcomeDiscountBlock from "@/components/WelcomeDiscountBlock";
 import DiscoverySettingsBlock from "@/components/DiscoverySettingsBlock";
-import { Settings, Globe, Trash2, Store, Tag, Search, Truck, Star, ShieldAlert } from "lucide-react";
+import { Settings, Globe, Trash2, Store, Tag, Search, Truck, Star, ShieldAlert, Car } from "lucide-react";
 import DeliverySettingsBlock from "@/components/DeliverySettingsBlock";
 import LoyaltySettingsBlock from "@/components/LoyaltySettingsBlock";
 import InStoreSettingsBlock from "@/components/InStoreSettingsBlock";
 import PickupSlotsBlock from "@/components/PickupSlotsBlock";
 import StripePaymentBlock from "@/components/StripePaymentBlock";
 import NoShowBlacklistBlock from "@/components/NoShowBlacklistBlock";
+import { DriveInSettingsBlock } from "@/components/DriveInSettingsBlock";
 import { Coffee, Timer, CreditCard } from "lucide-react";
 import type { Database } from "@/types/supabase";
 import { getNoShowBlacklist } from "@/app/[domain]/actions";
@@ -220,6 +221,20 @@ export default async function ProjectSettingsPage({
           </div>
           <NoShowBlacklistBlock
             entries={noShowEntries}
+          />
+        </section>
+
+        {/* M27: Drive-In (VIP-Abholung für Bizzn-Pass-Inhaber) */}
+        <section className="bg-[#242424] border border-[#333333] rounded-xl p-6">
+          <div className="flex items-center gap-2 border-b border-[#333333] pb-4 mb-5">
+            <Car className="w-4 h-4 text-[#C7A17A]" />
+            <h2 className="text-sm font-semibold text-white uppercase tracking-wider">
+              Drive-In (VIP-Abholung)
+            </h2>
+          </div>
+          <DriveInSettingsBlock
+            projectId={project.id}
+            initialEnabled={(project as unknown as { drive_in_enabled?: boolean }).drive_in_enabled ?? false}
           />
         </section>
 

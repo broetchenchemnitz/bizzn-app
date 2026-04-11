@@ -2,7 +2,9 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { createCustomerSupabase, getCustomerSession } from '@/app/actions/customer'
+import { hasBizznPass } from '@/app/actions/bizzn-pass'
 import type { Database } from '@/types/supabase'
+
 
 type OrderInsert = Database['public']['Tables']['orders']['Insert']
 type OrderItemInsert = Database['public']['Tables']['order_items']['Insert']
@@ -213,8 +215,10 @@ export async function placeOrder(
   // ── M23: Loyalty-Guthaben aktualisieren ──────────────────────────────────
   if (project?.loyalty_enabled && session.userId) {
     const admin = createAdminClient()
-    // Gutschrift = 10 % des Warenkorb-Werts (ohne Liefergebühr, nach Rabatt)
-    const creditCents = Math.round((subtotalCents - discountAmountCents) * 0.10)
+    // M27: Bizzn-Pass-Inhaber erhalten 15 % statt 10 % Gutschrift
+    const passActive = await hasBizznPass(session.userId)
+    const creditRate = passActive ? 0.15 : 0.10
+    const creditCents = Math.round((subtotalCents - discountAmountCents) * creditRate)
 
     const newOrderCount = shouldRedeemLoyalty ? 0 : (loyaltyOrderCount + 1)
     const newBalance = shouldRedeemLoyalty

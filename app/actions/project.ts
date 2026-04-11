@@ -427,6 +427,45 @@ export async function updatePickupSlotsSettings(
   return { success: true }
 }
 
+// ─── M27: Allgemeiner Projekt-Settings-Update (für kleinere Toggle-Features) ──
+
+export async function updateProjectSettings(
+  projectId: string,
+  settings: Partial<Pick<Database['public']['Tables']['projects']['Row'],
+    'drive_in_enabled'
+  >>
+) {
+  if (!projectId) return { error: 'Ungültige Projekt-ID.' }
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Nicht authentifiziert.' }
+
+  const { data: ownedProject } = await supabase
+    .from('projects')
+    .select('id')
+    .eq('id', projectId)
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  if (!ownedProject) return { error: 'Unzureichende Berechtigungen.' }
+
+  const admin = createAdminClient()
+  const { error } = await admin
+    .from('projects')
+    .update(settings as ProjectUpdate)
+    .eq('id', projectId)
+    .eq('user_id', user.id)
+
+  if (error) {
+    console.error('updateProjectSettings error:', error)
+    return { error: 'Fehler beim Speichern der Einstellung.' }
+  }
+
+  revalidatePath(`/dashboard/project/${projectId}/settings`)
+  return { success: true }
+}
+
 // ─── M25: Online-Zahlung Toggle ───────────────────────────────────────────────
 
 export async function updateOnlinePaymentEnabled(

@@ -6,7 +6,7 @@ import Link from 'next/link'
 import {
   User, Mail, Phone, ShoppingBag, Star, LogOut, Save,
   ChevronRight, Clock, CheckCircle, Loader2, ArrowLeft,
-  Package, Zap, Lock, Eye, EyeOff,
+  Package, Zap, Lock, Eye, EyeOff, Crown, Sparkles, Car,
 } from 'lucide-react'
 import { getCustomerSession, signInCustomer, signUpCustomer } from '@/app/actions/customer'
 import { createClient } from '@/utils/supabase/client'
@@ -61,7 +61,7 @@ const ORDER_TYPE_LABELS: Record<string, string> = {
   'in-store':'📱 Vor Ort',
 }
 
-type Tab = 'profile' | 'orders' | 'loyalty'
+type Tab = 'profile' | 'orders' | 'loyalty' | 'abo'
 type AuthMode = 'login' | 'register'
 
 // ─── Style tokens ─────────────────────────────────────────────────────────────
@@ -308,6 +308,24 @@ export default function MeinKontoPage() {
   const [loyaltyBalances, setLoyaltyBalances] = useState<LoyaltyBalance[]>([])
   const [loyaltyLoaded, setLoyaltyLoaded] = useState(false)
 
+  // M27: Bizzn-Pass
+  const [passInfo, setPassInfo] = useState<{
+    hasPass: boolean
+    status: string | null
+    currentPeriodEnd: string | null
+    cancelAtPeriodEnd: boolean
+  } | null>(null)
+  const [passLoaded, setPassLoaded] = useState(false)
+  const [passLoading, setPassLoading] = useState(false)
+  const [passError, setPassError] = useState<string | null>(null)
+  // Stripe Payment Element (lazy)
+  const [stripeElements, setStripeElements] = useState<{
+    stripe: import('@stripe/stripe-js').Stripe
+    elements: import('@stripe/stripe-js').StripeElements
+  } | null>(null)
+  const [subscriptionClientSecret, setSubscriptionClientSecret] = useState<string | null>(null)
+  const [subscribing, setSubscribing] = useState(false)
+
   // Edit state
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
@@ -392,6 +410,91 @@ export default function MeinKontoPage() {
         .catch(() => setLoyaltyLoaded(true))
     }
   }, [tab, loyaltyLoaded])
+
+  // M27: Lazy-load Bizzn-Pass info
+  useEffect(() => {
+    if (tab === 'abo' && !passLoaded) {
+      fetch('/api/bizzn-pass/status')
+        .then(r => r.ok ? r.json() : null)
+        .then(d => {
+          if (d) setPassInfo(d)
+          setPassLoaded(true)
+        })
+        .catch(() => setPassLoaded(true))
+    }
+  }, [tab, passLoaded])
+
+  // M27: Abo starten — Subscription erstellen + Stripe Payment Element mounten
+  const handleStartSubscription = async () => {
+    setPassError(null)
+    setPassLoading(true)
+    try {
+      const res = await fetch('/api/stripe/bizzn-pass/subscribe', { method: 'POST' })
+      const data = await res.json() as { clientSecret?: string; error?: string }
+      if (!res.ok || !data.clientSecret) {
+        setPassError(data.error ?? 'Fehler beim Starten des Abonnements.')
+        setPassLoading(false)
+        return
+      }
+      setSubscriptionClientSecret(data.clientSecret)
+
+      // Stripe.js lazy-load
+      const { loadStripe } = await import('@stripe/stripe-js')
+      const stripe = await loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
+      if (!stripe) { setPassError('Stripe konnte nicht geladen werden.'); setPassLoading(false); return }
+
+      const elements = stripe.elements({
+        clientSecret: data.clientSecret,
+        appearance: {
+          theme: 'night',
+          variables: { colorPrimary: '#C7A17A', colorBackground: '#111', borderRadius: '10px' },
+        },
+      })
+      elements.create('payment').mount('#bizzn-pass-payment-element')
+      setStripeElements({ stripe, elements })
+    } catch {
+      setPassError('Netzwerkfehler. Bitte versuche es erneut.')
+    } finally {
+      setPassLoading(false)
+    }
+  }
+
+  // M27: Zahlung bestätigen
+  const handleConfirmPayment = async () => {
+    if (!stripeElements) return
+    setSubscribing(true)
+    setPassError(null)
+    const { error } = await stripeElements.stripe.confirmPayment({
+      elements: stripeElements.elements,
+      confirmParams: {
+        return_url: `${window.location.origin}/mein-konto?tab=abo&success=1`,
+      },
+    })
+    if (error) {
+      setPassError(error.message ?? 'Zahlung fehlgeschlagen.')
+      setSubscribing(false)
+    }
+    // Bei Erfolg leitet Stripe weiter
+  }
+
+  // M27: Abo kündigen via Stripe Portal
+  const handleManageSubscription = async () => {
+    setPassLoading(true)
+    try {
+      const res = await fetch('/api/stripe/bizzn-pass/portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ returnUrl: window.location.href }),
+      })
+      const data = await res.json() as { url?: string; error?: string }
+      if (data.url) window.location.href = data.url
+      else setPassError(data.error ?? 'Portal konnte nicht geöffnet werden.')
+    } catch {
+      setPassError('Netzwerkfehler.')
+    } finally {
+      setPassLoading(false)
+    }
+  }
 
   const handleSaveProfile = () => {
     setSaveError(null); setSaveSuccess(false)
@@ -484,9 +587,21 @@ export default function MeinKontoPage() {
             {initials}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ color: '#f0f0f0', fontWeight: 800, fontSize: '17px', margin: '0 0 3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {profile?.name || 'Kein Name gesetzt'}
-            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '3px' }}>
+              <p style={{ color: '#f0f0f0', fontWeight: 800, fontSize: '17px', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {profile?.name || 'Kein Name gesetzt'}
+              </p>
+              {passInfo?.hasPass && (
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '4px',
+                  padding: '2px 8px', borderRadius: '999px', fontSize: '11px', fontWeight: 700,
+                  background: 'linear-gradient(135deg, rgba(199,161,122,0.2), rgba(212,168,112,0.12))',
+                  border: '1px solid rgba(199,161,122,0.4)', color: '#C7A17A',
+                }}>
+                  <Crown style={{ width: '10px', height: '10px' }} /> Bizzn-Pass
+                </span>
+              )}
+            </div>
             <p style={{ color: '#6b7280', fontSize: '13px', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {profile?.email}
             </p>
@@ -517,6 +632,7 @@ export default function MeinKontoPage() {
             { key: 'profile' as Tab, label: 'Profil',        icon: <User style={{ width: '14px', height: '14px' }} /> },
             { key: 'orders' as Tab,  label: 'Bestellungen',  icon: <ShoppingBag style={{ width: '14px', height: '14px' }} /> },
             { key: 'loyalty' as Tab, label: 'Bonuskarte',    icon: <Star style={{ width: '14px', height: '14px' }} /> },
+            { key: 'abo' as Tab,     label: 'Pass',          icon: <Crown style={{ width: '14px', height: '14px' }} /> },
           ]).map(t => (
             <button
               key={t.key} id={`account-tab-${t.key}`} onClick={() => setTab(t.key)}
@@ -524,12 +640,17 @@ export default function MeinKontoPage() {
                 flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
                 padding: '10px 12px', borderRadius: '10px', border: 'none', cursor: 'pointer',
                 fontSize: '13px', fontWeight: 700, transition: 'all 0.18s',
-                background: tab === t.key ? 'rgba(199,161,122,0.12)' : 'transparent',
+                background: tab === t.key
+                  ? (t.key === 'abo' ? 'linear-gradient(135deg, rgba(199,161,122,0.2), rgba(212,168,112,0.12))' : 'rgba(199,161,122,0.12)')
+                  : 'transparent',
                 color: tab === t.key ? '#C7A17A' : '#6b7280',
                 boxShadow: tab === t.key ? 'inset 0 0 0 1px rgba(199,161,122,0.2)' : 'none',
               }}
             >
               {t.icon}{t.label}
+              {t.key === 'abo' && passInfo?.hasPass && (
+                <span style={{ fontSize: '10px', background: 'rgba(199,161,122,0.15)', padding: '1px 5px', borderRadius: '999px', color: '#C7A17A' }}>✓</span>
+              )}
             </button>
           ))}
         </div>
@@ -629,7 +750,6 @@ export default function MeinKontoPage() {
                       border: `1px solid ${isActive ? sc.color + '30' : 'rgba(255,255,255,0.07)'}`,
                       borderRadius: '16px', padding: '16px 18px', transition: 'all 0.3s',
                     }}>
-                      {/* Header */}
                       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px', marginBottom: '10px' }}>
                         <div>
                           <p style={{ color: '#f0f0f0', fontWeight: 800, fontSize: '14px', margin: '0 0 2px' }}>{order.restaurant_name}</p>
@@ -653,7 +773,6 @@ export default function MeinKontoPage() {
                         </span>
                       </div>
 
-                      {/* Live-Fortschrittsbalken für aktive Bestellungen */}
                       {isActive && (
                         <div style={{ marginBottom: '12px' }}>
                           <div style={{ display: 'flex', gap: '4px', marginBottom: '6px' }}>
@@ -677,7 +796,6 @@ export default function MeinKontoPage() {
                         </div>
                       )}
 
-                      {/* Items */}
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginBottom: '10px' }}>
                         {order.items.slice(0, 3).map((item, i) => (
                           <p key={i} style={{ color: '#9ca3af', fontSize: '12px', margin: 0 }}>
@@ -688,7 +806,6 @@ export default function MeinKontoPage() {
                         {order.items.length > 3 && <p style={{ color: '#4b5563', fontSize: '12px', margin: 0 }}>+ {order.items.length - 3} weitere</p>}
                       </div>
 
-                      {/* Total */}
                       {order.total_amount > 0 && (
                         <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '10px' }}>
                           <span style={{ color: '#6b7280', fontSize: '12px', fontWeight: 600 }}>Gesamt</span>
@@ -710,27 +827,27 @@ export default function MeinKontoPage() {
               <Star style={{ width: '16px', height: '16px', color: '#C7A17A' }} />
               Meine Bonuskarten
             </h2>
-
             {!loyaltyLoaded && (
               <div style={{ textAlign: 'center', padding: '48px 0' }}>
                 <div style={{ width: '36px', height: '36px', borderRadius: '50%', border: '3px solid rgba(199,161,122,0.15)', borderTopColor: '#C7A17A', margin: '0 auto 12px', animation: 'spin 0.8s linear infinite' }} />
                 <p style={{ color: '#4b5563', fontSize: '13px' }}>Bonuskarten werden geladen…</p>
               </div>
             )}
-
             {loyaltyLoaded && loyaltyBalances.length === 0 && (
               <div style={{ textAlign: 'center', padding: '48px 24px', background: 'rgba(255,255,255,0.02)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
                 <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: 'rgba(199,161,122,0.06)', border: '1px solid rgba(199,161,122,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
                   <Star style={{ width: '24px', height: '24px', color: '#4b5563' }} />
                 </div>
                 <p style={{ color: '#9ca3af', fontWeight: 700, fontSize: '15px', margin: '0 0 6px' }}>Noch keine Bonuspunkte</p>
-                <p style={{ color: '#4b5563', fontSize: '13px', margin: '0 0 20px' }}>Bestelle bei einem Bizzn-Restaurant — 10 % jeder Bestellung werden automatisch gutgeschrieben.</p>
+                <p style={{ color: '#4b5563', fontSize: '13px', margin: '0 0 20px' }}>
+                  Bestelle bei einem Bizzn-Restaurant — {passInfo?.hasPass ? '15 %' : '10 %'} jeder Bestellung werden automatisch gutgeschrieben.
+                  {passInfo?.hasPass && <span style={{ color: '#C7A17A', fontWeight: 700 }}> (Bizzn-Pass Bonus!)</span>}
+                </p>
                 <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '9px 18px', borderRadius: '10px', fontSize: '13px', fontWeight: 700, background: 'rgba(199,161,122,0.1)', color: '#C7A17A', border: '1px solid rgba(199,161,122,0.2)', textDecoration: 'none' }}>
                   Restaurants entdecken <ChevronRight style={{ width: '14px', height: '14px' }} />
                 </Link>
               </div>
             )}
-
             {loyaltyLoaded && loyaltyBalances.length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {loyaltyBalances.map(lb => {
@@ -746,7 +863,6 @@ export default function MeinKontoPage() {
                       border: `1px solid ${isReadyToRedeem ? 'rgba(199,161,122,0.35)' : 'rgba(255,255,255,0.07)'}`,
                       borderRadius: '16px', padding: '18px 20px',
                     }}>
-                      {/* Restaurant Info */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
                         {lb.project_cover ? (
                           // eslint-disable-next-line @next/next/no-img-element
@@ -769,8 +885,6 @@ export default function MeinKontoPage() {
                           <p style={{ color: '#6b7280', fontSize: '11px', margin: 0 }}>Guthaben</p>
                         </div>
                       </div>
-
-                      {/* Progress Dots */}
                       <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '10px' }}>
                         {Array.from({ length: 5 }).map((_, i) => (
                           <div key={i} style={{
@@ -780,8 +894,6 @@ export default function MeinKontoPage() {
                           }} />
                         ))}
                       </div>
-
-                      {/* Footer info */}
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ color: '#6b7280', fontSize: '11px' }}>
                           {fillCount}/5 Bestellungen
@@ -798,18 +910,225 @@ export default function MeinKontoPage() {
                 })}
               </div>
             )}
-
-            {/* Erklärung */}
             <div style={{ marginTop: '20px', padding: '14px 16px', borderRadius: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
               <p style={{ color: '#4b5563', fontSize: '12px', margin: 0, lineHeight: '1.7' }}>
-                🏆 <strong style={{ color: '#6b7280' }}>Wie es funktioniert:</strong> Du sammelst 10 % jedes Bestellwerts als Guthaben — pro Restaurant separat. Nach 5 Bestellungen wird das Guthaben automatisch bei der 6. Bestellung abgezogen. Guthaben verfällt nach 90 Tagen Inaktivität.
+                🏆 <strong style={{ color: '#6b7280' }}>Wie es funktioniert:</strong> Du sammelst {passInfo?.hasPass ? '15 %' : '10 %'} jedes Bestellwerts als Guthaben — pro Restaurant separat. Nach 5 Bestellungen wird das Guthaben automatisch bei der 6. Bestellung abgezogen. Guthaben verfällt nach 90 Tagen Inaktivität.
+                {passInfo?.hasPass && <> <span style={{ color: '#C7A17A', fontWeight: 700 }}>Dein Bizzn-Pass erhöht die Rate auf 15 %! 👑</span></>}
               </p>
             </div>
           </div>
         )}
 
+        {/* TAB: ABO (Bizzn-Pass) */}
+        {tab === 'abo' && (
+          <div>
+            <h2 style={{ color: '#f0f0f0', fontWeight: 800, fontSize: '16px', margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Crown style={{ width: '16px', height: '16px', color: '#C7A17A' }} />
+              Bizzn-Pass
+            </h2>
+
+            {/* Laden */}
+            {!passLoaded && (
+              <div style={{ textAlign: 'center', padding: '48px 0' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '50%', border: '3px solid rgba(199,161,122,0.15)', borderTopColor: '#C7A17A', margin: '0 auto 12px', animation: 'spin 0.8s linear infinite' }} />
+                <p style={{ color: '#4b5563', fontSize: '13px' }}>Wird geladen…</p>
+              </div>
+            )}
+
+            {/* Aktiver Pass — Verwaltungs-Ansicht */}
+            {passLoaded && passInfo?.hasPass && (
+              <div>
+                {/* Status Card */}
+                <div style={{
+                  background: 'linear-gradient(135deg, rgba(199,161,122,0.15) 0%, rgba(199,100,60,0.08) 100%)',
+                  border: '1px solid rgba(199,161,122,0.35)',
+                  borderRadius: '20px', padding: '24px', marginBottom: '16px',
+                  animation: 'passGlow 3s ease-in-out infinite',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                    <div style={{
+                      width: '48px', height: '48px', borderRadius: '14px', flexShrink: 0,
+                      background: 'linear-gradient(135deg, rgba(199,161,122,0.3), rgba(212,168,112,0.2))',
+                      border: '1px solid rgba(199,161,122,0.4)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <Crown style={{ width: '22px', height: '22px', color: '#C7A17A' }} />
+                    </div>
+                    <div>
+                      <p style={{ color: '#f0f0f0', fontWeight: 900, fontSize: '16px', margin: '0 0 2px' }}>Bizzn-Pass Aktiv 👑</p>
+                      <p style={{ color: '#6b7280', fontSize: '12px', margin: 0 }}>4,99 €/Monat</p>
+                    </div>
+                    <span style={{
+                      marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '5px',
+                      padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 700,
+                      background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.25)', color: '#4ade80',
+                    }}>
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#4ade80', display: 'inline-block', animation: 'dotPulse 1.4s ease-in-out infinite' }} />
+                      Aktiv
+                    </span>
+                  </div>
+
+                  {/* Features */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
+                    {[
+                      { icon: <Star style={{ width: '14px', height: '14px', color: '#C7A17A' }} />, text: '15 % Loyalty-Gutschrift statt 10 %' },
+                      { icon: <Car style={{ width: '14px', height: '14px', color: '#C7A17A' }} />, text: 'Drive-In: Essen wird zum Auto gebracht' },
+                      { icon: <Sparkles style={{ width: '14px', height: '14px', color: '#C7A17A' }} />, text: 'Bizzn-Pass Badge auf deinem Profil' },
+                    ].map((f, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        {f.icon}
+                        <span style={{ color: '#d1d5db', fontSize: '13px' }}>{f.text}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Period info */}
+                  {passInfo.currentPeriodEnd && (
+                    <p style={{ color: '#6b7280', fontSize: '12px', margin: '0 0 16px' }}>
+                      {passInfo.cancelAtPeriodEnd
+                        ? `⚠️ Abo endet am ${new Date(passInfo.currentPeriodEnd).toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' })}`
+                        : `Nächste Abrechnung: ${new Date(passInfo.currentPeriodEnd).toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' })}`
+                      }
+                    </p>
+                  )}
+
+                  {/* Manage Button */}
+                  <button
+                    id="bizzn-pass-manage"
+                    onClick={handleManageSubscription}
+                    disabled={passLoading}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                      width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid rgba(199,161,122,0.25)',
+                      cursor: passLoading ? 'not-allowed' : 'pointer',
+                      background: 'rgba(199,161,122,0.08)', color: '#C7A17A',
+                      fontWeight: 700, fontSize: '13px', transition: 'all 0.18s',
+                    }}
+                  >
+                    {passLoading
+                      ? <><Loader2 style={{ width: '14px', height: '14px', animation: 'spin 0.8s linear infinite' }} /> Öffne Portal…</>
+                      : 'Abo verwalten / kündigen →'
+                    }
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Kein Pass — Marketing + Abonnieren */}
+            {passLoaded && !passInfo?.hasPass && (
+              <div>
+                {/* Hero Card */}
+                <div style={{
+                  background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: '20px', padding: '28px', marginBottom: '16px', textAlign: 'center',
+                }}>
+                  <div style={{
+                    width: '64px', height: '64px', borderRadius: '20px', margin: '0 auto 16px',
+                    background: 'linear-gradient(135deg, rgba(199,161,122,0.2), rgba(199,100,60,0.12))',
+                    border: '1px solid rgba(199,161,122,0.25)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <Crown style={{ width: '28px', height: '28px', color: '#C7A17A' }} />
+                  </div>
+                  <h3 style={{ color: '#f0f0f0', fontWeight: 900, fontSize: '20px', margin: '0 0 6px' }}>
+                    Bizzn-Pass 👑
+                  </h3>
+                  <p style={{ color: '#9ca3af', fontSize: '14px', margin: '0 0 24px', lineHeight: '1.6' }}>
+                    Das Premium-Abo für alle, die lokal lieben.<br />
+                    <strong style={{ color: '#C7A17A' }}>4,99 €/Monat</strong> — jederzeit kündbar.
+                  </p>
+
+                  {/* Features */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left', marginBottom: '24px' }}>
+                    {[
+                      { emoji: '⭐', title: 'Stempel-Booster', desc: '15 % statt 10 % Gutschrift auf deine Bonuskarte' },
+                      { emoji: '🚗', title: 'Drive-In VIP-Abholung', desc: 'Essen wird direkt zu deinem Auto gebracht' },
+                      { emoji: '👑', title: 'Exklusives Badge', desc: 'Zeige dein Bizzn-Pass-Icon auf deinem Profil' },
+                    ].map((f, i) => (
+                      <div key={i} style={{
+                        display: 'flex', alignItems: 'flex-start', gap: '12px',
+                        padding: '12px 14px', borderRadius: '12px',
+                        background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
+                      }}>
+                        <span style={{ fontSize: '20px', flexShrink: 0 }}>{f.emoji}</span>
+                        <div>
+                          <p style={{ color: '#e5e7eb', fontWeight: 700, fontSize: '13px', margin: '0 0 2px' }}>{f.title}</p>
+                          <p style={{ color: '#6b7280', fontSize: '12px', margin: 0, lineHeight: '1.5' }}>{f.desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Subscribe Button — wenn noch kein Payment Element */}
+                  {!subscriptionClientSecret && (
+                    <button
+                      id="bizzn-pass-subscribe"
+                      onClick={handleStartSubscription}
+                      disabled={passLoading}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                        width: '100%', padding: '14px', borderRadius: '12px', border: 'none',
+                        cursor: passLoading ? 'not-allowed' : 'pointer',
+                        background: passLoading ? 'rgba(199,161,122,0.35)' : 'linear-gradient(135deg, #c7a17a, #d4a870)',
+                        color: '#111', fontWeight: 900, fontSize: '15px',
+                        boxShadow: passLoading ? 'none' : '0 4px 24px rgba(199,161,122,0.35)',
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      {passLoading
+                        ? <><Loader2 style={{ width: '16px', height: '16px', animation: 'spin 0.8s linear infinite' }} /> Wird vorbereitet…</>
+                        : <><Crown style={{ width: '16px', height: '16px' }} /> Jetzt für 4,99 €/Monat abonnieren</>
+                      }
+                    </button>
+                  )}
+
+                  {/* Stripe Payment Element */}
+                  {subscriptionClientSecret && (
+                    <div style={{ marginTop: '8px', textAlign: 'left' }}>
+                      <p style={{ color: '#9ca3af', fontSize: '12px', marginBottom: '12px', textAlign: 'center' }}>
+                        🔒 Sichere Zahlung via Stripe
+                      </p>
+                      <div id="bizzn-pass-payment-element" style={{ marginBottom: '16px' }} />
+                      <button
+                        id="bizzn-pass-confirm"
+                        onClick={handleConfirmPayment}
+                        disabled={subscribing || !stripeElements}
+                        style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                          width: '100%', padding: '14px', borderRadius: '12px', border: 'none',
+                          cursor: (subscribing || !stripeElements) ? 'not-allowed' : 'pointer',
+                          background: (subscribing || !stripeElements) ? 'rgba(199,161,122,0.35)' : 'linear-gradient(135deg, #c7a17a, #d4a870)',
+                          color: '#111', fontWeight: 900, fontSize: '15px',
+                          boxShadow: (subscribing || !stripeElements) ? 'none' : '0 4px 24px rgba(199,161,122,0.35)',
+                          transition: 'all 0.2s',
+                        }}
+                      >
+                        {subscribing
+                          ? <><Loader2 style={{ width: '16px', height: '16px', animation: 'spin 0.8s linear infinite' }} /> Zahlung wird abgeschlossen…</>
+                          : <><Crown style={{ width: '16px', height: '16px' }} /> Bizzn-Pass aktivieren</>
+                        }
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <p style={{ color: '#374151', fontSize: '11px', textAlign: 'center', lineHeight: '1.6' }}>
+                  Keine Mindestlaufzeit. Jederzeit in deinem Konto oder im Stripe-Portal kündbar.
+                </p>
+              </div>
+            )}
+
+            {/* Error */}
+            {passError && (
+              <div style={{ marginTop: '12px', padding: '12px 14px', borderRadius: '12px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171', fontSize: '13px' }}>
+                {passError}
+              </div>
+            )}
+          </div>
+        )}
+
       </div>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } } @keyframes livePulse { 0%,100%{opacity:1} 50%{opacity:0.7} } @keyframes dotPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.3;transform:scale(0.6)} } * { box-sizing: border-box; }`}</style>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } } @keyframes livePulse { 0%,100%{opacity:1} 50%{opacity:0.7} } @keyframes dotPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.3;transform:scale(0.6)} } @keyframes passGlow { 0%,100%{box-shadow:0 0 20px rgba(199,161,122,0.1)} 50%{box-shadow:0 0 40px rgba(199,161,122,0.3)} } * { box-sizing: border-box; }`}</style>
     </div>
   )
 }
