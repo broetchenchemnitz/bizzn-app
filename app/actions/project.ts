@@ -56,21 +56,16 @@ export async function deleteProject(projectId: string) {
     return { error: 'Not authenticated.' }
   }
 
-  // M3: RBAC — Owner-Check via roleService ODER direkt via user_id auf projects
-  const isRbacOwner = await roleService.hasPermission(projectId, user.id, ['owner'])
+  // Ownership-Check: nur der direkte Owner (projects.user_id) darf löschen
+  const { data: ownedProject } = await supabase
+    .from('projects')
+    .select('id')
+    .eq('id', projectId)
+    .eq('user_id', user.id)
+    .maybeSingle()
 
-  if (!isRbacOwner) {
-    // Fallback: prüfe ob user_id direkt auf dem Projekt stimmt
-    const { data: ownedProject } = await supabase
-      .from('projects')
-      .select('id')
-      .eq('id', projectId)
-      .eq('user_id', user.id)
-      .maybeSingle()
-
-    if (!ownedProject) {
-      return { error: 'Nur der Betriebs-Inhaber kann diesen Betrieb löschen.' }
-    }
+  if (!ownedProject) {
+    return { error: 'Nur der Betriebs-Inhaber kann diesen Betrieb löschen.' }
   }
 
   // CASCADE DELETE via Admin Client (bypasses RLS)
@@ -110,7 +105,10 @@ export async function deleteProject(projectId: string) {
     // 5. project_members löschen
     await admin.from('project_members').delete().eq('project_id', projectId)
 
-    // 6. Projekt selbst löschen
+    // 6. push_subscriptions löschen
+    await admin.from('push_subscriptions').delete().eq('project_id', projectId)
+
+    // 7. Projekt selbst löschen
     const { error } = await admin
       .from('projects')
       .delete()
@@ -242,24 +240,21 @@ export async function updateWelcomeDiscount(
   pct: number
 ) {
   if (!projectId) return { error: 'Ungültige Projekt-ID.' }
-  if (pct < 1 || pct > 100) return { error: 'Rabatt muss zwischen 1 % und 100 % liegen.' }
+  if (pct < 10 || pct > 100) return { error: 'Willkommensrabatt muss mindestens 10 % betragen.' }
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Nicht authentifiziert.' }
 
-  // Berechtigungs-Check: RBAC oder direktes Projekt-Ownership
-  const canEdit = await roleService.hasPermission(projectId, user.id, ['owner', 'admin'])
-  if (!canEdit) {
-    // Fallback: Prüfe ob user_id direkt auf dem Projekt stimmt (Gründungs-Owner)
-    const { data: ownedProject } = await supabase
-      .from('projects')
-      .select('id')
-      .eq('id', projectId)
-      .eq('user_id', user.id)
-      .maybeSingle()
-    if (!ownedProject) return { error: 'Unzureichende Berechtigungen.' }
-  }
+  // Ownership-Check: nur der direkte Projekt-Owner darf Rabatt konfigurieren
+  const { data: ownedProject } = await supabase
+    .from('projects')
+    .select('id')
+    .eq('id', projectId)
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  if (!ownedProject) return { error: 'Unzureichende Berechtigungen.' }
 
   const admin = createAdminClient()
 
@@ -275,6 +270,194 @@ export async function updateWelcomeDiscount(
   if (error) {
     console.error('updateWelcomeDiscount error:', error)
     return { error: 'Fehler beim Speichern des Rabatts.' }
+  }
+
+  revalidatePath(`/dashboard/project/${projectId}/settings`)
+  return { success: true }
+}
+
+// ─── M19: Liefergebühr konfigurieren ───────────────────────────────────
+
+export async function updateDeliverySettings(
+  projectId: string,
+  opts: {
+    enabled: boolean
+    feeCents: number
+    minOrderCents: number
+    freeAboveCents: number
+  }
+) {
+  if (!projectId) return { error: 'Ungültige Projekt-ID.' }
+  if (opts.feeCents < 0 || opts.feeCents > 2000) return { error: 'Liefergebühr muss zwischen 0 € und 20 € liegen.' }
+  if (opts.minOrderCents < 0 || opts.minOrderCents > 10000) return { error: 'Mindestbestellwert muss zwischen 0 € und 100 € liegen.' }
+  if (opts.freeAboveCents < 0 || opts.freeAboveCents > 10000) return { error: 'Gratislieferung ab muss zwischen 0 € und 100 € liegen.' }
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Nicht authentifiziert.' }
+
+  const { data: ownedProject } = await supabase
+    .from('projects')
+    .select('id')
+    .eq('id', projectId)
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  if (!ownedProject) return { error: 'Unzureichende Berechtigungen.' }
+
+  const admin = createAdminClient()
+
+  const { error } = await admin
+    .from('projects')
+    .update({
+      delivery_enabled: opts.enabled,
+      delivery_fee_cents: opts.feeCents,
+      min_order_cents: opts.minOrderCents,
+      free_delivery_above_cents: opts.freeAboveCents,
+    } as Database['public']['Tables']['projects']['Update'])
+    .eq('id', projectId)
+    .eq('user_id', user.id)
+
+  if (error) {
+    console.error('updateDeliverySettings error:', error)
+    return { error: 'Fehler beim Speichern der Liefereinstellungen.' }
+  }
+
+  revalidatePath(`/dashboard/project/${projectId}/settings`)
+  return { success: true }
+}
+
+// ─── M24: Tischbestellung (In-Store) konfigurieren ───────────────────────────
+
+export async function updateInStoreSettings(
+  projectId: string,
+  enabled: boolean
+) {
+  if (!projectId) return { error: 'Ungültige Projekt-ID.' }
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Nicht authentifiziert.' }
+
+  const { data: ownedProject } = await supabase
+    .from('projects')
+    .select('id')
+    .eq('id', projectId)
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  if (!ownedProject) return { error: 'Unzureichende Berechtigungen.' }
+
+  const admin = createAdminClient()
+
+  const { error } = await admin
+    .from('projects')
+    .update({
+      in_store_enabled: enabled,
+    } as Database['public']['Tables']['projects']['Update'])
+    .eq('id', projectId)
+    .eq('user_id', user.id)
+
+  if (error) {
+    console.error('updateInStoreSettings error:', error)
+    return { error: 'Fehler beim Speichern der Tischbestellungs-Einstellungen.' }
+  }
+
+  revalidatePath(`/dashboard/project/${projectId}/settings`)
+  return { success: true }
+}
+
+// ─── M24b: Abholzeit-Slots (Auto-Generator) ───────────────────────────────────
+
+/** Toggle: Abholzeit-Slots aktivieren/deaktivieren */
+export async function updatePickupSlotsEnabled(
+  projectId: string,
+  enabled: boolean
+) {
+  if (!projectId) return { error: 'Ungültige Projekt-ID.' }
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Nicht authentifiziert.' }
+
+  const admin = createAdminClient()
+  const { error } = await admin
+    .from('projects')
+    .update({ pickup_slots_enabled: enabled } as Database['public']['Tables']['projects']['Update'])
+    .eq('id', projectId)
+    .eq('user_id', user.id)
+
+  if (error) {
+    console.error('updatePickupSlotsEnabled error:', error)
+    return { error: 'Fehler beim Speichern.' }
+  }
+
+  revalidatePath(`/dashboard/project/${projectId}/settings`)
+  return { success: true }
+}
+
+/** Konfiguration: Vorlaufzeit, Raster, Max-pro-Slot */
+export async function updatePickupSlotsSettings(
+  projectId: string,
+  settings: {
+    prep_time_minutes: number
+    slot_interval_minutes: number
+    max_orders_per_slot: number | null
+  }
+) {
+  if (!projectId) return { error: 'Ungültige Projekt-ID.' }
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Nicht authentifiziert.' }
+
+  const admin = createAdminClient()
+  const { error } = await admin
+    .from('projects')
+    .update(settings as Database['public']['Tables']['projects']['Update'])
+    .eq('id', projectId)
+    .eq('user_id', user.id)
+
+  if (error) {
+    console.error('updatePickupSlotsSettings error:', error)
+    return { error: 'Fehler beim Speichern der Slot-Einstellungen.' }
+  }
+
+  revalidatePath(`/dashboard/project/${projectId}/settings`)
+  return { success: true }
+}
+
+// ─── M25: Online-Zahlung Toggle ───────────────────────────────────────────────
+
+export async function updateOnlinePaymentEnabled(
+  projectId: string,
+  enabled: boolean
+) {
+  if (!projectId) return { error: 'Ungültige Projekt-ID.' }
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Nicht authentifiziert.' }
+
+  const { data: ownedProject } = await supabase
+    .from('projects')
+    .select('id')
+    .eq('id', projectId)
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  if (!ownedProject) return { error: 'Unzureichende Berechtigungen.' }
+
+  const admin = createAdminClient()
+  const { error } = await admin
+    .from('projects')
+    .update({ online_payment_enabled: enabled } as Database['public']['Tables']['projects']['Update'])
+    .eq('id', projectId)
+    .eq('user_id', user.id)
+
+  if (error) {
+    console.error('updateOnlinePaymentEnabled error:', error)
+    return { error: 'Fehler beim Speichern der Zahlungseinstellung.' }
   }
 
   revalidatePath(`/dashboard/project/${projectId}/settings`)

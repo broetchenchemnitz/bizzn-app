@@ -10,9 +10,8 @@ type Props = {
   initialPct: number
 }
 
-export default function WelcomeDiscountBlock({ projectId, initialEnabled, initialPct }: Props) {
-  const [enabled, setEnabled] = useState(initialEnabled)
-  const [pct, setPct] = useState(initialPct)
+export default function WelcomeDiscountBlock({ projectId, initialPct }: Omit<Props, 'initialEnabled'>) {
+  const [pct, setPct] = useState(Math.max(10, initialPct))
   const [isPending, startTransition] = useTransition()
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -21,7 +20,7 @@ export default function WelcomeDiscountBlock({ projectId, initialEnabled, initia
     setStatus('idle')
     setErrorMsg(null)
     startTransition(async () => {
-      const result = await updateWelcomeDiscount(projectId, enabled, pct)
+      const result = await updateWelcomeDiscount(projectId, true, pct)
       if ('error' in result) {
         setStatus('error')
         setErrorMsg(result.error ?? 'Unbekannter Fehler.')
@@ -34,36 +33,8 @@ export default function WelcomeDiscountBlock({ projectId, initialEnabled, initia
 
   return (
     <div className="space-y-5">
-      {/* Toggle */}
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <p className="text-sm font-semibold text-white">Willkommensrabatt aktivieren</p>
-          <p className="text-xs text-gray-500 mt-0.5">
-            Erstbesteller erhalten automatisch {pct} % Rabatt auf ihre erste Bestellung.
-          </p>
-        </div>
-        <button
-          id="welcome-discount-toggle"
-          type="button"
-          onClick={() => setEnabled((v) => !v)}
-          className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7A17A] ${
-            enabled
-              ? 'bg-[#C7A17A] border-[#B58E62]'
-              : 'bg-[#333333] border-[#444444]'
-          }`}
-          aria-pressed={enabled}
-          aria-label="Willkommensrabatt umschalten"
-        >
-          <span
-            className={`inline-block h-4 w-4 translate-y-0.5 transform rounded-full bg-white shadow transition-transform duration-200 ${
-              enabled ? 'translate-x-5' : 'translate-x-0.5'
-            }`}
-          />
-        </button>
-      </div>
-
-      {/* Slider — nur aktiv wenn enabled */}
-      <div className={enabled ? '' : 'opacity-40 pointer-events-none'}>
+      {/* Slider */}
+      <div>
         <div className="flex items-center justify-between mb-2">
           <label htmlFor="discount-slider" className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
             Rabatt-Höhe
@@ -75,7 +46,7 @@ export default function WelcomeDiscountBlock({ projectId, initialEnabled, initia
         <input
           id="discount-slider"
           type="range"
-          min={1}
+          min={10}
           max={50}
           step={1}
           value={pct}
@@ -83,10 +54,13 @@ export default function WelcomeDiscountBlock({ projectId, initialEnabled, initia
           className="w-full h-2 rounded-full appearance-none cursor-pointer accent-[#C7A17A] bg-[#333333]"
         />
         <div className="flex justify-between text-[10px] text-gray-600 mt-1">
-          <span>1 %</span>
-          <span>25 %</span>
+          <span>10 % (Min.)</span>
+          <span>30 %</span>
           <span>50 %</span>
         </div>
+        <p className="text-[10px] text-amber-500/80 mt-1">
+          ⚡ Bizzn-Mindeststandard: 10 % für alle Neukunden — du kannst mehr anbieten.
+        </p>
         {/* Preview */}
         <div className="mt-4 bg-[#1A1A1A] border border-[#333333] rounded-xl p-4 flex items-start gap-3">
           <Tag className="w-4 h-4 text-[#C7A17A] mt-0.5 shrink-0" />

@@ -209,11 +209,12 @@ export default async function CustomersPage({
           )}
         </section>
 
-        {/* Hinweis Broadcast (coming soon) */}
+        {/* Broadcast Hinweis */}
         <div className="bg-[#1a1a1a] border border-dashed border-[#333333] rounded-xl p-5 text-center">
-          <p className="text-xs text-gray-600">
-            📣 Broadcast-Funktion (Push/E-Mail an alle Opt-In Kunden) kommt mit{' '}
-            <span className="text-[#C7A17A] font-semibold">M18</span>.
+          <p className="text-xs text-gray-500">
+            📣 Du kannst alle Push-Opt-In Kunden direkt kontaktieren — über den{' '}
+            <span className="text-[#C7A17A] font-semibold">Broadcast-Block</span>{' '}
+            in der Dashboard-Übersicht.
           </p>
         </div>
 

@@ -5,8 +5,16 @@ import SlugSettingsBlock from "@/components/SlugSettingsBlock";
 import ProfileSettingsBlock from "@/components/ProfileSettingsBlock";
 import WelcomeDiscountBlock from "@/components/WelcomeDiscountBlock";
 import DiscoverySettingsBlock from "@/components/DiscoverySettingsBlock";
-import { Settings, Globe, Trash2, Store, Tag, Search } from "lucide-react";
+import { Settings, Globe, Trash2, Store, Tag, Search, Truck, Star, ShieldAlert } from "lucide-react";
+import DeliverySettingsBlock from "@/components/DeliverySettingsBlock";
+import LoyaltySettingsBlock from "@/components/LoyaltySettingsBlock";
+import InStoreSettingsBlock from "@/components/InStoreSettingsBlock";
+import PickupSlotsBlock from "@/components/PickupSlotsBlock";
+import StripePaymentBlock from "@/components/StripePaymentBlock";
+import NoShowBlacklistBlock from "@/components/NoShowBlacklistBlock";
+import { Coffee, Timer, CreditCard } from "lucide-react";
 import type { Database } from "@/types/supabase";
+import { getNoShowBlacklist } from "@/app/[domain]/actions";
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"];
 
@@ -36,6 +44,9 @@ export default async function ProjectSettingsPage({
     .single<ProjectRow>();
 
   if (!project) notFound();
+
+  // M26: No-Show-Blacklist für dieses Restaurant laden
+  const noShowEntries = await getNoShowBlacklist(project.id).catch(() => [])
 
   return (
     <div className="min-h-full bg-[#1A1A1A] text-white">
@@ -105,8 +116,110 @@ export default async function ProjectSettingsPage({
           </p>
           <WelcomeDiscountBlock
             projectId={project.id}
-            initialEnabled={project.welcome_discount_enabled ?? false}
             initialPct={project.welcome_discount_pct ?? 10}
+          />
+        </section>
+
+        {/* M23: Local-Hero Bonuskarte */}
+        <section className="bg-[#242424] border border-[#333333] rounded-xl p-6">
+          <div className="flex items-center gap-2 border-b border-[#333333] pb-4 mb-5">
+            <Star className="w-4 h-4 text-[#C7A17A]" />
+            <h2 className="text-sm font-semibold text-white uppercase tracking-wider">
+              Local-Hero Bonuskarte
+            </h2>
+          </div>
+          <LoyaltySettingsBlock
+            projectId={project.id}
+            initialEnabled={project.loyalty_enabled ?? true}
+          />
+        </section>
+
+        {/* M19: Liefereinstellungen */}
+        <section className="bg-[#242424] border border-[#333333] rounded-xl p-6">
+          <div className="flex items-center gap-2 border-b border-[#333333] pb-4 mb-5">
+            <Truck className="w-4 h-4 text-[#C7A17A]" />
+            <h2 className="text-sm font-semibold text-white uppercase tracking-wider">
+              Lieferung
+            </h2>
+          </div>
+          <p className="text-xs text-gray-500 mb-5">
+            Lege die Liefergebühr und den Mindestbestellwert für Lieferbestellungen fest.
+            Die Gebühr wird automatisch im Warenkorb angezeigt.
+          </p>
+          <DeliverySettingsBlock
+            projectId={project.id}
+            initialEnabled={project.delivery_enabled ?? true}
+            initialFeeCents={project.delivery_fee_cents ?? 0}
+            initialMinOrderCents={project.min_order_cents ?? 0}
+            initialFreeAboveCents={project.free_delivery_above_cents ?? 0}
+          />
+        </section>
+
+        {/* M24: Tischbestellung */}
+        <section className="bg-[#242424] border border-[#333333] rounded-xl p-6">
+          <div className="flex items-center gap-2 border-b border-[#333333] pb-4 mb-5">
+            <Coffee className="w-4 h-4 text-[#C7A17A]" />
+            <h2 className="text-sm font-semibold text-white uppercase tracking-wider">
+              Tischbestellung (In-Store)
+            </h2>
+          </div>
+          <p className="text-xs text-gray-500 mb-5">
+            Ermögliche deinen Gästen, direkt am Tisch über die Web-Adresse zu bestellen.
+          </p>
+          <InStoreSettingsBlock
+            projectId={project.id}
+            initialEnabled={project.in_store_enabled ?? false}
+          />
+        </section>
+
+        {/* M24: Abholzeit-Auswahl */}
+        <section className="bg-[#242424] border border-[#333333] rounded-xl p-6">
+          <div className="flex items-center gap-2 border-b border-[#333333] pb-4 mb-5">
+            <Timer className="w-4 h-4 text-[#C7A17A]" />
+            <h2 className="text-sm font-semibold text-white uppercase tracking-wider">
+              Abholzeit-Auswahl
+            </h2>
+          </div>
+          <PickupSlotsBlock
+            projectId={project.id}
+            initialEnabled={project.pickup_slots_enabled ?? false}
+            initialPrepTime={project.prep_time_minutes ?? 20}
+            initialInterval={project.slot_interval_minutes ?? 15}
+            initialMaxPerSlot={project.max_orders_per_slot ?? null}
+          />
+        </section>
+
+        {/* M25: Online-Zahlung via Stripe */}
+        <section className="bg-[#242424] border border-[#333333] rounded-xl p-6">
+          <div className="flex items-center gap-2 border-b border-[#333333] pb-4 mb-5">
+            <CreditCard className="w-4 h-4 text-[#C7A17A]" />
+            <h2 className="text-sm font-semibold text-white uppercase tracking-wider">
+              Online-Zahlung
+            </h2>
+          </div>
+          <p className="text-xs text-gray-500 mb-5">
+            Nimm Kartenzahlungen, Apple Pay und Google Pay direkt im Checkout an.
+            Powered by Stripe Connect — kein Abo, keine Provision von Bizzn.
+          </p>
+          <StripePaymentBlock
+            projectId={project.id}
+            stripeAccountId={project.stripe_account_id}
+            stripeChargesEnabled={project.stripe_charges_enabled}
+            stripePayoutsEnabled={project.stripe_payouts_enabled}
+            onlinePaymentEnabled={project.online_payment_enabled}
+          />
+        </section>
+
+        {/* M26: No-Show-Schutz */}
+        <section className="bg-[#242424] border border-[#333333] rounded-xl p-6">
+          <div className="flex items-center gap-2 border-b border-[#333333] pb-4 mb-5">
+            <ShieldAlert className="w-4 h-4 text-red-400" />
+            <h2 className="text-sm font-semibold text-white uppercase tracking-wider">
+              No-Show-Schutz
+            </h2>
+          </div>
+          <NoShowBlacklistBlock
+            entries={noShowEntries}
           />
         </section>
 
@@ -129,6 +242,7 @@ export default async function ProjectSettingsPage({
             initialIsPublic={project.is_public ?? false}
             initialCity={(project.city as string | null) ?? null}
             initialPostalCode={(project.postal_code as string | null) ?? null}
+            initialCuisineType={project.cuisine_type ?? null}
           />
         </section>
 

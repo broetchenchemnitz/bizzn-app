@@ -34,6 +34,21 @@ export interface Database {
           is_public: boolean
           city: string | null
           postal_code: string | null
+          // M19: Liefergebühr
+          delivery_enabled: boolean
+          delivery_fee_cents: number
+          min_order_cents: number
+          free_delivery_above_cents: number
+          // M23: Loyalty
+          loyalty_enabled: boolean
+          // M24: In-Store + Abholzeit-Slots
+          in_store_enabled: boolean
+          pickup_slots_enabled: boolean
+          prep_time_minutes: number
+          slot_interval_minutes: number
+          max_orders_per_slot: number | null
+          // M25: Online-Zahlung
+          online_payment_enabled: boolean | null
         }
         Insert: {
           id?: string
@@ -59,6 +74,21 @@ export interface Database {
           is_public?: boolean
           city?: string | null
           postal_code?: string | null
+          // M19: Liefergebühr
+          delivery_enabled?: boolean
+          delivery_fee_cents?: number
+          min_order_cents?: number
+          free_delivery_above_cents?: number
+          // M23: Loyalty
+          loyalty_enabled?: boolean
+          // M24: In-Store + Abholzeit-Slots
+          in_store_enabled?: boolean
+          pickup_slots_enabled?: boolean
+          prep_time_minutes?: number
+          slot_interval_minutes?: number
+          max_orders_per_slot?: number | null
+          // M25: Online-Zahlung
+          online_payment_enabled?: boolean | null
         }
         Update: {
           id?: string
@@ -84,6 +114,21 @@ export interface Database {
           is_public?: boolean
           city?: string | null
           postal_code?: string | null
+          // M19: Liefergebühr
+          delivery_enabled?: boolean
+          delivery_fee_cents?: number
+          min_order_cents?: number
+          free_delivery_above_cents?: number
+          // M23: Loyalty
+          loyalty_enabled?: boolean
+          // M24: In-Store + Abholzeit-Slots
+          in_store_enabled?: boolean
+          pickup_slots_enabled?: boolean
+          prep_time_minutes?: number
+          slot_interval_minutes?: number
+          max_orders_per_slot?: number | null
+          // M25: Online-Zahlung
+          online_payment_enabled?: boolean | null
         }
         Relationships: []
       }
@@ -125,18 +170,33 @@ export interface Database {
           name: string
           phone: string | null
           created_at: string
+          // M26: No-Show-Schutz
+          is_blacklisted: boolean
+          blacklist_reason: string | null
+          blacklisted_at: string | null
+          cash_order_count: number
         }
         Insert: {
           id: string
           name: string
           phone?: string | null
           created_at?: string
+          // M26: No-Show-Schutz
+          is_blacklisted?: boolean
+          blacklist_reason?: string | null
+          blacklisted_at?: string | null
+          cash_order_count?: number
         }
         Update: {
           id?: string
           name?: string
           phone?: string | null
           created_at?: string
+          // M26: No-Show-Schutz
+          is_blacklisted?: boolean
+          blacklist_reason?: string | null
+          blacklisted_at?: string | null
+          cash_order_count?: number
         }
         Relationships: []
       }
@@ -295,6 +355,7 @@ export interface Database {
           project_id: string
           status: 'pending' | 'preparing' | 'ready' | 'delivered' | 'cancelled'
           total_amount: number
+          user_id: string | null
           customer_name: string
           customer_contact: string
           order_type: 'delivery' | 'takeaway' | 'in-store'
@@ -303,6 +364,18 @@ export interface Database {
           // M16: Rabatt
           discount_pct: number
           discount_amount_cents: number
+          // M19: Lieferung
+          delivery_address: string | null
+          delivery_fee_cents: number
+          // M23: Loyalty
+          loyalty_spent_cents: number
+          // M24: Abholzeit-Slot
+          pickup_slot: string | null
+          // M25: Online-Zahlung
+          payment_status: string | null
+          stripe_payment_intent_id: string | null
+          // M26: No-Show-Schutz
+          no_show: boolean
           created_at: string
         }
         Insert: {
@@ -310,6 +383,7 @@ export interface Database {
           project_id: string
           status?: 'pending' | 'preparing' | 'ready' | 'delivered' | 'cancelled'
           total_amount: number
+          user_id?: string | null
           customer_name?: string
           customer_contact?: string
           order_type?: 'delivery' | 'takeaway' | 'in-store'
@@ -318,6 +392,18 @@ export interface Database {
           // M16: Rabatt
           discount_pct?: number
           discount_amount_cents?: number
+          // M19: Lieferung
+          delivery_address?: string | null
+          delivery_fee_cents?: number
+          // M23: Loyalty
+          loyalty_spent_cents?: number
+          // M24: Abholzeit-Slot
+          pickup_slot?: string | null
+          // M25: Online-Zahlung
+          payment_status?: string | null
+          stripe_payment_intent_id?: string | null
+          // M26: No-Show-Schutz
+          no_show?: boolean
           created_at?: string
         }
         Update: {
@@ -325,6 +411,7 @@ export interface Database {
           project_id?: string
           status?: 'pending' | 'preparing' | 'ready' | 'delivered' | 'cancelled'
           total_amount?: number
+          user_id?: string | null
           customer_name?: string
           customer_contact?: string
           order_type?: 'delivery' | 'takeaway' | 'in-store'
@@ -333,6 +420,18 @@ export interface Database {
           // M16: Rabatt
           discount_pct?: number
           discount_amount_cents?: number
+          // M19: Lieferung
+          delivery_address?: string | null
+          delivery_fee_cents?: number
+          // M23: Loyalty
+          loyalty_spent_cents?: number
+          // M24: Abholzeit-Slot
+          pickup_slot?: string | null
+          // M25: Online-Zahlung
+          payment_status?: string | null
+          stripe_payment_intent_id?: string | null
+          // M26: No-Show-Schutz
+          no_show?: boolean
           created_at?: string
         }
         Relationships: [
@@ -349,6 +448,7 @@ export interface Database {
           id: string
           order_id: string
           menu_item_id: string | null
+          item_name: string | null
           quantity: number
           price_at_time: number
           created_at: string
@@ -357,6 +457,7 @@ export interface Database {
           id?: string
           order_id: string
           menu_item_id?: string | null
+          item_name?: string | null
           quantity: number
           price_at_time: number
           created_at?: string
@@ -365,6 +466,7 @@ export interface Database {
           id?: string
           order_id?: string
           menu_item_id?: string | null
+          item_name?: string | null
           quantity?: number
           price_at_time?: number
           created_at?: string
@@ -380,6 +482,44 @@ export interface Database {
             foreignKeyName: 'order_items_menu_item_id_fkey'
             columns: ['menu_item_id']
             referencedRelation: 'menu_items'
+            referencedColumns: ['id']
+          }
+        ]
+      }
+      // M23: Local-Hero Bonuskarte
+      loyalty_balances: {
+        Row: {
+          id: string
+          user_id: string
+          project_id: string
+          balance_cents: number
+          order_count: number
+          last_order_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          project_id: string
+          balance_cents?: number
+          order_count?: number
+          last_order_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          project_id?: string
+          balance_cents?: number
+          order_count?: number
+          last_order_at?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'loyalty_balances_project_id_fkey'
+            columns: ['project_id']
+            referencedRelation: 'projects'
             referencedColumns: ['id']
           }
         ]

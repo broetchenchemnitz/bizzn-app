@@ -8,6 +8,11 @@ export const metadata: Metadata = {
   title: "Bizzn.de – Die Gastronomie-Plattform",
   description:
     "Speisekarte, Bestellungen und Zahlungen in einer Plattform. Das Betriebssystem für die moderne Gastronomie.",
+  icons: {
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+    apple: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({
@@ -18,7 +23,7 @@ export default function RootLayout({
   return (
     <html lang="de" className="dark" style={{ colorScheme: "dark" }}>
       <body
-        className={`${inter.className} bg-[#1A1A1A] text-white antialiased`}
+        className={`${inter.className} bg-[#16161E] text-[#F0F0F8] antialiased`}
       >
         {children}
       </body>

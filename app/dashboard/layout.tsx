@@ -23,13 +23,13 @@ export default async function DashboardLayout({
 
   // ─── Layout ────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#1A1A1A] text-gray-100 flex flex-col md:flex-row font-sans selection:bg-[#C7A17A] selection:text-[#1A1A1A]">
+    <div className="min-h-screen bg-[#16161E] text-[#F0F0F8] flex flex-col md:flex-row font-sans selection:bg-[#E8B86D] selection:text-[#16161E]">
       {/* ── Sidebar Navigation ────────────────────────────────────────────── */}
-      <aside className="w-full md:w-64 bg-[#242424] border-b md:border-b-0 md:border-r border-[#333333] flex flex-col shadow-xl flex-shrink-0">
+      <aside className="w-full md:w-64 bg-[#1F1F2E] border-b md:border-b-0 md:border-r border-[#2E2E40] flex flex-col shadow-xl flex-shrink-0">
         {/* Logo */}
-        <div className="p-6 border-b border-[#333333]">
+        <div className="p-6 border-b border-[#2E2E40]">
           <Link href="/dashboard" aria-label="Bizzn Dashboard Home">
-            <h1 className="text-2xl font-bold text-[#C7A17A] tracking-wider uppercase hover:opacity-80 transition-opacity">
+            <h1 className="text-2xl font-bold text-[#E8B86D] tracking-wider uppercase hover:opacity-80 transition-opacity">
               Bizzn<span className="text-white">.de</span>
             </h1>
           </Link>
@@ -53,8 +53,8 @@ export default async function DashboardLayout({
         </nav>
 
         {/* User / Logout */}
-        <div className="p-4 border-t border-[#333333]">
-          <div className="mb-2 px-2 text-xs text-gray-500 truncate" title={user.email ?? ""}>
+        <div className="p-4 border-t border-[#2E2E40]">
+          <div className="mb-2 px-2 text-xs text-[#9090A8] truncate" title={user.email ?? ""}>
             {user.email}
           </div>
           {user.email === process.env.SUPERADMIN_EMAIL && (
@@ -71,7 +71,7 @@ export default async function DashboardLayout({
       </aside>
 
       {/* ── Main Workspace ────────────────────────────────────────────────── */}
-      <main className="flex-1 p-6 md:p-10 overflow-y-auto bg-[#1A1A1A]">
+      <main className="flex-1 p-6 md:p-10 overflow-y-auto bg-[#16161E]">
         <div className="max-w-7xl mx-auto w-full">
           {children}
         </div>
@@ -95,7 +95,7 @@ function NavLink({
     <Link
       id={id}
       href={href}
-      className="flex items-center gap-3 px-4 py-2.5 rounded-md text-gray-400 hover:bg-[#C7A17A]/10 hover:text-[#C7A17A] transition-all duration-150 font-medium text-sm"
+      className="flex items-center gap-3 px-4 py-2.5 rounded-md text-[#8080A0] hover:bg-[#E8B86D]/10 hover:text-[#E8B86D] transition-all duration-150 font-medium text-sm"
     >
       {children}
     </Link>

@@ -1,12 +1,13 @@
 'use server'
 
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { createClient as createSupabaseAdminClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import type { Database } from '@/types/supabase'
 
 // ─── Supabase Client Helper (Kundenkontext) ──────────────────────────────────
 
-async function createCustomerSupabase() {
+export async function createCustomerSupabase() {
   const cookieStore = await cookies()
   return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -50,7 +51,7 @@ export async function signUpCustomer(input: {
 
   const supabase = await createCustomerSupabase()
 
-  // 1. Supabase Auth Registration (no email confirm — Auto-Confirm muss in Supabase aktiviert sein)
+  // 1. Supabase Auth Registration
   const { data: authData, error: authError } = await supabase.auth.signUp({
     email: email.trim().toLowerCase(),
     password,
@@ -64,7 +65,10 @@ export async function signUpCustomer(input: {
 
   if (authError) {
     console.error('signUpCustomer auth error:', authError)
-    if (authError.message.includes('already registered')) {
+    if (
+      authError.message.includes('already registered') ||
+      authError.message.includes('User already registered')
+    ) {
       return { error: 'Diese E-Mail ist bereits registriert. Bitte melde dich an.' }
     }
     return { error: authError.message }
@@ -82,12 +86,12 @@ export async function signUpCustomer(input: {
       phone: phone?.trim() || null,
     })
 
-  if (profileError) {
+  if (profileError && profileError.code !== '23505') {
     console.error('signUpCustomer profile error:', profileError)
     // Kein harter Fehler — Auth ist trotzdem erstellt
   }
 
-  // 3. Restaurant-Kunden-Beziehung anlegen
+  // 4. Restaurant-Kunden-Beziehung anlegen
   const { error: rcError } = await supabase
     .from('restaurant_customers')
     .insert({
@@ -98,7 +102,7 @@ export async function signUpCustomer(input: {
     })
 
   if (rcError && rcError.code !== '23505') {
-    // 23505 = unique_violation (bereits registriert bei diesem Restaurant — kein Problem)
+    // 23505 = unique_violation (bereits bei diesem Restaurant registriert — kein Problem)
     console.error('signUpCustomer restaurant_customers error:', rcError)
   }
 
@@ -168,4 +172,45 @@ export async function getCustomerSession(): Promise<{
 export async function signOutCustomer(): Promise<void> {
   const supabase = await createCustomerSupabase()
   await supabase.auth.signOut()
+}
+
+// ─── M26: No-Show Blacklist prüfen ───────────────────────────────────────────
+
+/**
+ * Prüft ob ein Kunde gesperrt ist (Barzahlungs-Blacklist).
+ * Gibt null zurück wenn OK, sonst Sperr-Grund.
+ */
+export async function checkNoShowBlacklist(userId: string): Promise<string | null> {
+  if (!userId) return null
+  const admin = createSupabaseAdminClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+  const { data } = await admin
+    .from('customer_profiles')
+    .select('is_blacklisted, blacklist_reason')
+    .eq('id', userId)
+    .single()
+  if (data?.is_blacklisted) {
+    return data.blacklist_reason ?? 'Dein Konto ist für Barzahlung gesperrt. Bitte kontaktiere das Restaurant.'
+  }
+  return null
+}
+
+/**
+ * Liest den Barzahlungs-Bestellzähler eines Kunden (für den 30€-Deckel).
+ * < 3 Bestellungen = Neukunde → Limit aktiv.
+ */
+export async function getCashOrderCount(userId: string): Promise<number> {
+  if (!userId) return 0
+  const admin = createSupabaseAdminClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+  const { data } = await admin
+    .from('customer_profiles')
+    .select('cash_order_count')
+    .eq('id', userId)
+    .single()
+  return data?.cash_order_count ?? 0
 }

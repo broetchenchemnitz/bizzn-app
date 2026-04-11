@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowLeft, MonitorCheck } from 'lucide-react'
+import { ArrowLeft, MonitorCheck, Maximize2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase-server'
 import { notFound, redirect } from 'next/navigation'
 import KitchenDisplay from '@/components/KitchenDisplay'
@@ -34,7 +34,7 @@ export default async function OrdersPage({
 
   return (
     <div className="min-h-screen bg-background p-6 md:p-8 smooth-transition">
-      <div className="max-w-[1600px] mx-auto space-y-6 flex flex-col h-[calc(100vh-4rem)] fade-in-up">
+      <div className="max-w-[1600px] mx-auto space-y-6 flex flex-col fade-in-up">
 
         {/* Back link */}
         <Link
@@ -62,13 +62,23 @@ export default async function OrdersPage({
               </p>
             </div>
           </div>
-          <div className="px-4 py-1.5 bg-black/40 border border-white/5 rounded-full text-xs font-semibold text-gold tracking-widest uppercase shadow-inner">
-            Gastro-OS v1
+          <div className="flex items-center gap-3">
+            <div className="px-4 py-1.5 bg-black/40 border border-white/5 rounded-full text-xs font-semibold text-gold tracking-widest uppercase shadow-inner">
+              Gastro-OS v1
+            </div>
+            <Link
+              href={`/dashboard/project/${params.id}/kitchen`}
+              target="_blank"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 hover:border-amber-500/60 rounded-xl text-amber-400 text-sm font-semibold transition-all"
+            >
+              <Maximize2 className="w-4 h-4" />
+              Vollbild-Monitor
+            </Link>
           </div>
         </div>
 
         {/* KDS Board Wrapper */}
-        <div className="glass-card rounded-2xl flex-1 flex flex-col overflow-hidden min-h-[600px] shadow-2xl relative border-white/5">
+        <div className="glass-card rounded-2xl flex flex-col shadow-2xl relative border-white/5">
           <KitchenDisplay projectId={params.id} />
         </div>
 

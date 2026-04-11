@@ -133,5 +133,42 @@ export async function POST(request: NextRequest) {
     console.log(`Webhook: subscription ${event.type} synced for:`, subscription.id)
   }
 
+  // M25: Online-Zahlung — Payment Intent Status-Sync
+  if (event.type === 'payment_intent.succeeded') {
+    const paymentIntent = event.data.object as Stripe.PaymentIntent
+    const orderId = paymentIntent.metadata?.orderId
+
+    console.log('Webhook: payment_intent.succeeded', paymentIntent.id, 'orderId:', orderId)
+
+    if (orderId) {
+      const supabase = createAdminClient()
+      const { error } = await supabase
+        .from('orders')
+        .update({ payment_status: 'paid' })
+        .eq('id', orderId)
+
+      if (error) {
+        console.error('Webhook: failed to mark order as paid:', error.message)
+        return NextResponse.json({ received: true, warning: error.message })
+      }
+      console.log('Webhook: order marked as paid:', orderId)
+    }
+  }
+
+  if (event.type === 'payment_intent.payment_failed') {
+    const paymentIntent = event.data.object as Stripe.PaymentIntent
+    const orderId = paymentIntent.metadata?.orderId
+
+    console.log('Webhook: payment_intent.payment_failed', paymentIntent.id, 'orderId:', orderId)
+
+    if (orderId) {
+      const supabase = createAdminClient()
+      await supabase
+        .from('orders')
+        .update({ payment_status: 'failed' })
+        .eq('id', orderId)
+    }
+  }
+
   return NextResponse.json({ received: true })
 }

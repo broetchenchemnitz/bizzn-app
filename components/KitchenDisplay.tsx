@@ -2,47 +2,61 @@
 
 import { useEffect, useState, useTransition, useCallback } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
-import { Clock, CheckCircle2, ChefHat, Bell, Loader2, Banknote, Hourglass, Wifi, WifiOff, RefreshCw } from 'lucide-react'
+import { Clock, CheckCircle2, ChefHat, Bell, Loader2, Banknote, Hourglass, Wifi, WifiOff, RefreshCw, AlertTriangle } from 'lucide-react'
 import { updateOrderStatus } from '@/app/actions/orders'
+import { markNoShow } from '@/app/[domain]/actions'
 import type { Database } from '@/types/supabase'
 
 type OrderRow = Database['public']['Tables']['orders']['Row']
 type OrderStatus = OrderRow['status']
 type ConnectionStatus = 'CONNECTING' | 'ONLINE' | 'OFFLINE'
 
+// Order mit eingebetteten Items + Artikel-Namen
+interface OrderItem {
+  id: string
+  quantity: number
+  price_at_time: number
+  item_name: string | null
+}
+
+interface OrderWithItems extends OrderRow {
+  order_items: OrderItem[]
+}
+
 interface KdsColumn {
   status: OrderStatus
   label: string
   icon: React.ReactNode
   headerClass: string
-  badgeClass: string
 }
 
 // ── COLUMNS config ──────────────────────────────────────────────────
 const COLUMNS: KdsColumn[] = [
-  { status: 'pending',   label: 'Neu',            icon: <Bell className="w-5 h-5" />,         headerClass: 'text-amber-400',  badgeClass: 'bg-amber-950/60 border-amber-500/20 text-amber-400' },
-  { status: 'preparing', label: 'In Zubereitung', icon: <ChefHat className="w-5 h-5" />,      headerClass: 'text-blue-400',   badgeClass: 'bg-blue-950/60 border-blue-500/20 text-blue-400' },
-  { status: 'ready',     label: 'Bereit',         icon: <CheckCircle2 className="w-5 h-5" />, headerClass: 'text-[#C7A17A]',  badgeClass: 'bg-[#3D2E1E] border-[#C7A17A]/30 text-[#C7A17A]' },
-  { status: 'delivered', label: 'Ausgeliefert',   icon: <Banknote className="w-5 h-5" />,     headerClass: 'text-white/40',   badgeClass: 'bg-white/5 border-white/10 text-white/50' },
+  { status: 'pending',   label: 'Neu',            icon: <Bell className="w-5 h-5" />,         headerClass: 'text-amber-400'  },
+  { status: 'preparing', label: 'In Zubereitung', icon: <ChefHat className="w-5 h-5" />,      headerClass: 'text-blue-400'   },
+  { status: 'ready',     label: 'Bereit',         icon: <CheckCircle2 className="w-5 h-5" />, headerClass: 'text-[#C7A17A]'  },
+  { status: 'delivered', label: 'Ausgeliefert',   icon: <Banknote className="w-5 h-5" />,     headerClass: 'text-white/40'   },
 ]
 
 function PayoutBadge({ status }: { status: string }) {
   if (status === 'paid') {
     return (
-      <span className="px-2 py-1 rounded-md text-xs font-medium bg-[#3D2E1E] border border-[#C7A17A]/30 text-[#C7A17A]">
+      <span className="px-2 py-0.5 rounded-md text-xs font-medium bg-[#3D2E1E] border border-[#C7A17A]/30 text-[#C7A17A]">
         Bezahlt
       </span>
     )
   }
   return (
-    <span className="px-2 py-1 rounded-md text-xs font-medium bg-amber-950/60 border border-amber-500/20 text-amber-400">
+    <span className="px-2 py-0.5 rounded-md text-xs font-medium bg-amber-950/60 border border-amber-500/20 text-amber-400">
       Ausstehend
     </span>
   )
 }
 
-function OrderCard({ order, onUpdate }: { order: OrderRow; onUpdate: (id: string, status: OrderStatus) => void }) {
+function OrderCard({ order, projectId, onUpdate, onNoShow }: { order: OrderWithItems; projectId: string; onUpdate: (id: string, status: OrderStatus) => void; onNoShow: (id: string) => void }) {
   const [isPending, startTransition] = useTransition()
+  const [noShowPending, setNoShowPending] = useState(false)
+  const [noShowDone, setNoShowDone] = useState(!!((order as OrderWithItems & { no_show?: boolean }).no_show))
 
   const handleNextStatus = () => {
     const currentIndex = COLUMNS.findIndex(c => c.status === order.status)
@@ -54,37 +68,106 @@ function OrderCard({ order, onUpdate }: { order: OrderRow; onUpdate: (id: string
     }
   }
 
+  const items = order.order_items ?? []
+  const isReadyStatus = order.status === 'ready'
+  const isCashOrder = !(order as OrderWithItems & { payment_status?: string | null }).payment_status ||
+    (order as OrderWithItems & { payment_status?: string | null }).payment_status === 'pending'
+  const showNoShowButton = isReadyStatus && isCashOrder && !noShowDone
+
+  const handleNoShow = async () => {
+    if (noShowPending || noShowDone) return
+    if (!confirm('Bestellung als No-Show melden? Der Kunde wird für Barzahlung gesperrt.')) return
+    setNoShowPending(true)
+    const result = await markNoShow(order.id, projectId)
+    setNoShowPending(false)
+    if (!result.error) {
+      setNoShowDone(true)
+      onNoShow(order.id)
+    } else {
+      alert(`Fehler: ${result.error}`)
+    }
+  }
+
   return (
     <div className="glass-card bg-[#242424] border border-white/5 shadow-xl rounded-xl p-4 flex flex-col gap-3 fade-in-up hover:border-white/10 smooth-transition relative overflow-hidden group">
+
+      {/* Header: Bestellnr + Uhrzeit + Betrag */}
       <div className="flex justify-between items-start">
         <div>
           <h3 className="text-white font-bold text-lg">#{order.id.slice(0, 5).toUpperCase()}</h3>
-          <p className="text-white/50 text-sm flex items-center gap-1 mt-1">
+          <p className="text-white/50 text-sm flex items-center gap-1 mt-0.5">
             <Clock className="w-3 h-3" />
             {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </p>
         </div>
         <div className="text-right">
-          <p className="text-white font-semibold">{order.total_amount?.toFixed(2)} €</p>
-          <div className="mt-2">
+          <p className="text-white font-semibold">{((order.total_amount ?? 0) / 100).toFixed(2)} €</p>
+          <div className="mt-1.5">
             <PayoutBadge status={order.payout_status ?? 'pending'} />
           </div>
         </div>
       </div>
 
-      <div className="py-2 border-y border-white/5">
-        <p className="text-white/70 text-sm">
-          {order.customer_name ?? 'Gast'}
-        </p>
+      {/* Kundenname + Art */}
+      <div className="flex items-center justify-between text-sm border-t border-white/5 pt-2">
+        <span className="text-white/70 font-medium">{order.customer_name ?? 'Gast'}</span>
+        {order.order_type && (
+          <span className={`text-xs uppercase tracking-wide font-bold ${
+            order.order_type === 'delivery' ? 'text-[#C7A17A]' : 'text-white/40'
+          }`}>{order.order_type}</span>
+        )}
       </div>
+      {/* M19: Lieferadresse */}
+      {order.order_type === 'delivery' && (order as OrderWithItems & { delivery_address?: string | null }).delivery_address && (
+        <div className="text-xs text-white/50 bg-white/5 rounded-lg px-3 py-1.5 flex items-start gap-1.5 -mt-1">
+          <span className="shrink-0">📍</span>
+          <span className="break-words">{(order as OrderWithItems & { delivery_address?: string | null }).delivery_address}</span>
+        </div>
+      )}
 
+      {/* Bestellpositionen */}
+      {items.length > 0 && (
+        <div className="bg-black/30 rounded-lg border border-white/5 divide-y divide-white/5">
+          {items.map((item) => (
+            <div key={item.id} className="flex justify-between items-center px-3 py-2 text-sm">
+              <div className="flex items-baseline gap-2">
+                <span className="text-[#C7A17A] font-bold text-base leading-none">{item.quantity}×</span>
+                <span className="text-white/85">{item.item_name ?? '—'}</span>
+              </div>
+              <span className="text-white/40 text-xs shrink-0 ml-2">
+                {((item.price_at_time ?? 0) / 100).toFixed(2)} €
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Nächster Schritt Button */}
       {order.status !== 'delivered' && (
         <button
           onClick={handleNextStatus}
           disabled={isPending}
-          className="mt-2 w-full py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white text-sm font-medium smooth-transition flex items-center justify-center gap-2 border border-white/5 hover:border-white/20 disabled:opacity-50"
+          className="w-full py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white text-sm font-medium smooth-transition flex items-center justify-center gap-2 border border-white/5 hover:border-white/20 disabled:opacity-50"
         >
           {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Nächster Schritt →'}
+        </button>
+      )}
+
+      {/* M26: No-Show melden (nur bei Abholung/Lieferung bereit, Barzahlung) */}
+      {noShowDone && (
+        <div className="flex items-center gap-2 text-xs font-semibold text-red-400 bg-red-900/20 border border-red-500/20 rounded-lg px-3 py-1.5">
+          <AlertTriangle className="w-3.5 h-3.5" />
+          No-Show gemeldet
+        </div>
+      )}
+      {showNoShowButton && (
+        <button
+          id={`btn-no-show-${order.id.slice(0,8)}`}
+          onClick={handleNoShow}
+          disabled={noShowPending}
+          className="w-full py-1.5 rounded-lg bg-red-900/20 hover:bg-red-900/30 text-red-400 text-xs font-semibold smooth-transition flex items-center justify-center gap-2 border border-red-500/20 hover:border-red-500/40 disabled:opacity-50"
+        >
+          {noShowPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><AlertTriangle className="w-3.5 h-3.5" /> No-Show melden</>}
         </button>
       )}
     </div>
@@ -92,8 +175,12 @@ function OrderCard({ order, onUpdate }: { order: OrderRow; onUpdate: (id: string
 }
 
 export default function KitchenDisplay({ projectId }: { projectId: string }) {
-  const [orders, setOrders] = useState<OrderRow[]>([])
+  const [orders, setOrders] = useState<OrderWithItems[]>([])
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('CONNECTING')
+
+  const handleNoShowLocal = (orderId: string) => {
+    setOrders(cur => cur.map(o => o.id === orderId ? { ...o, no_show: true } as OrderWithItems & { no_show: boolean } : o))
+  }
 
   const supabase = createBrowserClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -103,11 +190,11 @@ export default function KitchenDisplay({ projectId }: { projectId: string }) {
   const fetchOrders = useCallback(async () => {
     const { data } = await supabase
       .from('orders')
-      .select('*')
+      .select('*, order_items(id, quantity, price_at_time, item_name)')
       .eq('project_id', projectId)
       .order('created_at', { ascending: true })
 
-    if (data) setOrders(data)
+    if (data) setOrders(data as OrderWithItems[])
   }, [projectId, supabase])
 
   useEffect(() => {
@@ -118,6 +205,11 @@ export default function KitchenDisplay({ projectId }: { projectId: string }) {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'orders', filter: `project_id=eq.${projectId}` },
+        () => { void fetchOrders() }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'order_items' },
         () => { void fetchOrders() }
       )
       .subscribe((status) => {
@@ -137,7 +229,7 @@ export default function KitchenDisplay({ projectId }: { projectId: string }) {
   }
 
   return (
-    <div className="bg-transparent flex flex-col h-full w-full">
+    <div className="bg-transparent flex flex-col w-full">
       {/* Header Bar */}
       <div className="bg-[#1e1e1e]/80 backdrop-blur-md border-b border-white/5 p-4 flex justify-between items-center z-10 shrink-0">
         <div className="flex items-center gap-4">
@@ -173,12 +265,12 @@ export default function KitchenDisplay({ projectId }: { projectId: string }) {
       </div>
 
       {/* Columns Grid */}
-      <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 p-6 overflow-x-auto overflow-y-hidden">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 p-6 items-start">
         {COLUMNS.map((col) => {
           const colOrders = orders.filter(o => o.status === col.status)
           return (
-            <div key={col.status} className="flex flex-col h-full bg-white/[0.02] rounded-2xl border border-white/5 p-4 relative">
-              <div className="flex justify-between items-center mb-6 shrink-0">
+            <div key={col.status} className="flex flex-col bg-white/[0.02] rounded-2xl border border-white/5 p-4 relative">
+              <div className="flex justify-between items-center mb-4 shrink-0">
                 <div className={`flex items-center gap-2 font-bold uppercase tracking-wider text-sm ${col.headerClass}`}>
                   {col.icon}
                   {col.label}
@@ -188,7 +280,7 @@ export default function KitchenDisplay({ projectId }: { projectId: string }) {
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto space-y-4 pr-1 pb-4">
+              <div className="space-y-4">
                 {colOrders.length === 0 ? (
                   <div className="border border-dashed border-white/10 text-white/30 rounded-xl p-8 flex flex-col items-center justify-center text-center h-40">
                     <Hourglass className="w-8 h-8 mb-2 opacity-20" />
@@ -196,7 +288,7 @@ export default function KitchenDisplay({ projectId }: { projectId: string }) {
                   </div>
                 ) : (
                   colOrders.map(order => (
-                    <OrderCard key={order.id} order={order} onUpdate={handleUpdateStatus} />
+                    <OrderCard key={order.id} order={order} projectId={projectId} onUpdate={handleUpdateStatus} onNoShow={handleNoShowLocal} />
                   ))
                 )}
               </div>

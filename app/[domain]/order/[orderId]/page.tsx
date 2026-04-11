@@ -1,19 +1,12 @@
 import { notFound } from 'next/navigation'
-import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/supabase'
 import type { Metadata } from 'next'
 import OrderTracker from '@/components/storefront/OrderTracker'
+import { createCustomerSupabase } from '@/app/actions/customer'
 
 export const dynamic = 'force-dynamic'
 
 type OrderRow = Database['public']['Tables']['orders']['Row']
-
-function createAnonSupabase() {
-  return createClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
-}
 
 export async function generateMetadata({
   params,
@@ -31,7 +24,7 @@ export default async function OrderTrackingPage({
   params: { domain: string; orderId: string }
 }) {
   const { domain, orderId } = params
-  const supabase = createAnonSupabase()
+  const supabase = await createCustomerSupabase()
 
   const { data: order } = await supabase
     .from('orders')

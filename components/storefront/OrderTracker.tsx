@@ -173,21 +173,52 @@ export default function OrderTracker({ orderId, domain, initialOrder }: Props) {
           </div>
           <div className="flex justify-between text-sm text-gray-600">
             <span>Art</span>
-            <span className="font-semibold text-[#1A1A1A] capitalize">{order.order_type}</span>
+            <span className="font-semibold text-[#1A1A1A] capitalize">
+              {order.order_type === 'delivery' ? '🛵 Lieferung' : order.order_type === 'takeaway' ? '🛍️ Abholung' : '📱 Vor Ort'}
+            </span>
           </div>
-          <div className="flex justify-between text-sm border-t border-gray-100 pt-2 mt-2">
-            <span className="font-bold">Gesamt</span>
-            <span className="font-extrabold text-[#C7A17A]">{formatEur(order.total_amount)}</span>
+          {/* M19: Lieferadresse */}
+          {order.order_type === 'delivery' && (order as OrderRow & { delivery_address?: string | null }).delivery_address && (
+            <div className="flex justify-between text-sm text-gray-600">
+              <span>Lieferadresse</span>
+              <span className="font-semibold text-[#1A1A1A] text-right max-w-[200px]">
+                {(order as OrderRow & { delivery_address?: string | null }).delivery_address}
+              </span>
+            </div>
+          )}
+          {/* Preisaufstellung */}
+          <div className="border-t border-gray-100 pt-2 mt-2 space-y-1">
+            <div className="flex justify-between text-sm text-gray-500">
+              <span>Speisen</span>
+              <span>{formatEur((order.total_amount ?? 0) + (order.discount_amount_cents ?? 0) - ((order as OrderRow & { delivery_fee_cents?: number }).delivery_fee_cents ?? 0))}</span>
+            </div>
+            {(order.discount_amount_cents ?? 0) > 0 && (
+              <div className="flex justify-between text-sm text-green-600">
+                <span>🎉 Willkommensrabatt ({order.discount_pct}%)</span>
+                <span>-{formatEur(order.discount_amount_cents ?? 0)}</span>
+              </div>
+            )}
+            {(order as OrderRow & { delivery_fee_cents?: number }).delivery_fee_cents != null &&
+             ((order as OrderRow & { delivery_fee_cents?: number }).delivery_fee_cents ?? 0) > 0 && (
+              <div className="flex justify-between text-sm text-gray-500">
+                <span>🛵 Liefergebühr</span>
+                <span>{formatEur((order as OrderRow & { delivery_fee_cents?: number }).delivery_fee_cents ?? 0)}</span>
+              </div>
+            )}
+            <div className="flex justify-between text-sm border-t border-gray-100 pt-2">
+              <span className="font-bold">Gesamt</span>
+              <span className="font-extrabold text-[#C7A17A]">{formatEur(order.total_amount)}</span>
+            </div>
           </div>
         </div>
 
         {/* Back link */}
         <div className="text-center">
           <a
-            href={`/${domain}`}
-            className="text-sm text-[#4a8500] underline"
+            href="/menu"
+            className="text-sm text-[#C7A17A] font-semibold underline hover:text-[#B58E62] transition-colors"
           >
-            Neue Bestellung aufgeben
+            ← Neue Bestellung aufgeben
           </a>
         </div>
       </main>

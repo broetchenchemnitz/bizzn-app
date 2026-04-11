@@ -4,23 +4,24 @@
 
 /* ── Brand Token Definitions (single source of truth) ──────────────── */
 :root {
-  --brand-accent: #C7A17A;   /* Culinary Gold — primary accent */
-  --brand-hover:  #B58E62;   /* Culinary Gold hover state */
-  --brand-dark:   #9A7450;   /* Culinary Gold pressed/active */
+  --brand-accent: #E8B86D;   /* Culinary Gold — primary accent (brighter) */
+  --brand-hover:  #D4A055;   /* Culinary Gold hover state */
+  --brand-dark:   #BA8C40;   /* Culinary Gold pressed/active */
   /* RGB channels for Tailwind opacity modifiers (e.g. bg-brand/10) */
-  --brand-accent-rgb: 199, 161, 122;
+  --brand-accent-rgb: 232, 184, 109;
 }
 
 /*
  * ══════════════════════════════════════════════════════════════════
- * PROJECT CONSTITUTION — DARK MODE ONLY
+ * PROJECT CONSTITUTION — DARK MODE ONLY (v2 — Dark Premium Readable)
  *
- * Base surface:  #1A1A1A  (html, body, main backgrounds)
- * Card surface:  #242424
- * Raised surface:#2d2d2d
- * Brand accent:  #C7A17A  Culinary Gold (via var(--brand-accent))
- * Text primary:  #ffffff
- * Text muted:    rgba(255,255,255,0.45)
+ * Base surface:  #16161E  (cool charcoal — a touch of blue-dark)
+ * Card surface:  #1F1F2E
+ * Raised surface:#272737
+ * Brand accent:  #E8B86D  Culinary Gold (brighter, via var(--brand-accent))
+ * Text primary:  #F0F0F8  (slightly cool white)
+ * Text muted:    rgba(255,255,255,0.70)  ← was 0.45, now readable
+ * Text subtle:   #9090A8
  *
  * NO light-mode overrides. color-scheme: dark; is enforced globally.
  * ══════════════════════════════════════════════════════════════════
@@ -38,7 +39,7 @@
 
 /* ── BASE RULE — strictly OUTSIDE @supports ─────────────────────── */
 .safari-header {
-  background-color: rgba(26, 26, 26, 1);
+  background-color: rgba(22, 22, 30, 1);
   will-change: transform;
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
@@ -49,13 +50,13 @@
 /* ── @supports POSITIVE — browser supports backdrop-filter ────────── */
 @supports (-webkit-backdrop-filter: none) or (backdrop-filter: none) {
   .safari-header {
-    background-color: rgba(26, 26, 26, 0.85);
+    background-color: rgba(22, 22, 30, 0.85);
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
   }
 
   .safari-header > * {
-    background-color: rgba(26, 26, 26, 0.01);
+    background-color: rgba(22, 22, 30, 0.01);
   }
 
   .safari-header > *[class*='bg-'] {
@@ -66,7 +67,7 @@
 /* ── @supports NOT — fully opaque, no blur, VRAM released ─────────── */
 @supports not ((-webkit-backdrop-filter: none) or (backdrop-filter: none)) {
   .safari-header {
-    background-color: rgba(26, 26, 26, 1) !important;
+    background-color: rgba(22, 22, 30, 1) !important;
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
     will-change: auto !important;
@@ -79,18 +80,18 @@
 @layer base {
   html,
   body {
-    @apply bg-[#1A1A1A] text-white;
+    @apply bg-[#16161E] text-[#F0F0F8];
     color-scheme: dark;
   }
 
   /* Prevent any browser chrome or system UI from injecting light backgrounds */
   * {
-    border-color: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.12);
     box-sizing: border-box;
   }
 
   button {
-    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--brand-accent] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1A1A1A];
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--brand-accent] focus-visible:ring-offset-2 focus-visible:ring-offset-[#16161E];
   }
 
   a {
@@ -101,79 +102,86 @@
     --font-sans: var(--font-sans);
   }
   :root {
-    /* ── Culinary Gold Design Tokens (HSL — single source of truth) ── */
-    --background: 0 0% 10%;          /* #1A1A1A */
-    --foreground: 0 0% 98%;
-    --card: 0 0% 14%;                /* #242424 */
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 14%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 30 41% 63%;           /* #C7A17A — Culinary Gold */
-    --primary-foreground: 0 0% 10%;
-    --secondary: 0 0% 20%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 20%;
-    --muted-foreground: 0 0% 65%;
-    --accent: 30 41% 63%;            /* #C7A17A */
-    --accent-foreground: 0 0% 10%;
+    /* ── Culinary Gold Design Tokens v2 (HSL — single source of truth) ── */
+    --background: 240 14% 10%;       /* #16161E — cool charcoal */
+    --foreground: 240 13% 96%;       /* #F0F0F8 */
+    --card: 240 20% 14%;             /* #1F1F2E */
+    --card-foreground: 240 13% 96%;
+    --popover: 240 20% 14%;
+    --popover-foreground: 240 13% 96%;
+    --primary: 38 73% 67%;           /* #E8B86D — Culinary Gold brighter */
+    --primary-foreground: 240 14% 10%;
+    --secondary: 240 18% 18%;        /* #272737 */
+    --secondary-foreground: 240 13% 96%;
+    --muted: 240 18% 18%;
+    --muted-foreground: 240 10% 63%; /* #9090A8 — readable muted text */
+    --accent: 38 73% 67%;            /* #E8B86D */
+    --accent-foreground: 240 14% 10%;
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 20%;
-    --input: 0 0% 20%;
-    --ring: 30 41% 63%;              /* Gold focus ring */
+    --destructive-foreground: 240 13% 96%;
+    --border: 240 18% 22%;           /* #2E2E40 — visible borders */
+    --input: 240 18% 22%;
+    --ring: 38 73% 67%;              /* Gold focus ring */
     --radius: 0.5rem;
-    /* Sidebar inherits dark surfaces */
-    --sidebar: 0 0% 14%;
-    --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 30 41% 63%;
-    --sidebar-primary-foreground: 0 0% 10%;
-    --sidebar-accent: 0 0% 20%;
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 0 0% 20%;
-    --sidebar-ring: 30 41% 63%;
+    /* Sidebar tokens */
+    --sidebar: 240 20% 14%;
+    --sidebar-foreground: 240 13% 96%;
+    --sidebar-primary: 38 73% 67%;
+    --sidebar-primary-foreground: 240 14% 10%;
+    --sidebar-accent: 240 18% 18%;
+    --sidebar-accent-foreground: 240 13% 96%;
+    --sidebar-border: 240 18% 22%;
+    --sidebar-ring: 38 73% 67%;
   }
   /* Dark = default — Constitution enforces dark-only, no light overrides */
   .dark {
-    --background: 0 0% 10%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 14%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 14%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 30 41% 63%;
-    --primary-foreground: 0 0% 10%;
-    --secondary: 0 0% 20%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 20%;
-    --muted-foreground: 0 0% 65%;
-    --accent: 30 41% 63%;
-    --accent-foreground: 0 0% 10%;
+    --background: 240 14% 10%;
+    --foreground: 240 13% 96%;
+    --card: 240 20% 14%;
+    --card-foreground: 240 13% 96%;
+    --popover: 240 20% 14%;
+    --popover-foreground: 240 13% 96%;
+    --primary: 38 73% 67%;
+    --primary-foreground: 240 14% 10%;
+    --secondary: 240 18% 18%;
+    --secondary-foreground: 240 13% 96%;
+    --muted: 240 18% 18%;
+    --muted-foreground: 240 10% 63%;
+    --accent: 38 73% 67%;
+    --accent-foreground: 240 14% 10%;
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 20%;
-    --input: 0 0% 20%;
-    --ring: 30 41% 63%;
-    --sidebar: 0 0% 14%;
-    --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 30 41% 63%;
-    --sidebar-primary-foreground: 0 0% 10%;
-    --sidebar-accent: 0 0% 20%;
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 0 0% 20%;
-    --sidebar-ring: 30 41% 63%;
+    --destructive-foreground: 240 13% 96%;
+    --border: 240 18% 22%;
+    --input: 240 18% 22%;
+    --ring: 38 73% 67%;
+    --sidebar: 240 20% 14%;
+    --sidebar-foreground: 240 13% 96%;
+    --sidebar-primary: 38 73% 67%;
+    --sidebar-primary-foreground: 240 14% 10%;
+    --sidebar-accent: 240 18% 18%;
+    --sidebar-accent-foreground: 240 13% 96%;
+    --sidebar-border: 240 18% 22%;
+    --sidebar-ring: 38 73% 67%;
   }
   body {
     @apply bg-background text-foreground antialiased;
-    background-color: #1A1A1A;
+    background-color: #16161E;
     color-scheme: dark;
   }
 
   ::selection {
-    background-color: rgba(199, 161, 122, 0.3); /* Culinary Gold 30% */
-    color: #1A1A1A;
+    background-color: rgba(232, 184, 109, 0.30); /* Culinary Gold 30% */
+    color: #16161E;
   }
   html {
     font-family: var(--font-sans, Inter, system-ui, sans-serif);
+  }
+
+  /* ── Input placeholders — now clearly visible ─────────────────── */
+  input::placeholder,
+  textarea::placeholder {
+    color: #6060A0;
+    opacity: 1;
   }
 }
 
@@ -183,7 +191,7 @@
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2
            px-5 py-2.5
-           text-black text-sm font-bold rounded-lg
+           text-[#16161E] text-sm font-bold rounded-lg
            transition-colors duration-150;
     background-color: var(--brand-accent);
   }
@@ -198,14 +206,34 @@
   .btn-secondary {
     @apply inline-flex items-center justify-center gap-2
            px-5 py-2.5
-           border border-white/15 hover:border-white/30
+           border border-white/20 hover:border-white/40
            text-white text-sm font-semibold rounded-lg
            transition-colors duration-150;
   }
 
   /* Card surface */
   .card {
-    @apply bg-[#242424] rounded-xl border border-white/5;
+    @apply bg-[#1F1F2E] rounded-xl border border-white/10;
+  }
+
+  /* Restaurant image placeholder */
+  .img-placeholder {
+    background: linear-gradient(135deg, #1A1A2E 0%, #252040 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: #5050A0;
+  }
+  .img-placeholder svg {
+    opacity: 0.5;
+  }
+  .img-placeholder span {
+    font-size: 11px;
+    color: #5050A0;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
   }
 
   /* Button glow via pseudo-elements (a11y safe) */
@@ -226,7 +254,7 @@
   }
 
   .btn-glow-primary:hover::before {
-    box-shadow: 0 0 25px rgba(var(--brand-accent-rgb), 0.4);
+    box-shadow: 0 0 25px rgba(var(--brand-accent-rgb), 0.45);
   }
 
   .btn-glow-secondary {
@@ -246,7 +274,17 @@
   }
 
   .btn-glow-secondary:hover::before {
-    box-shadow: 0 0 12px rgba(255, 255, 255, 0.05);
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.07);
+  }
+
+  /* Restaurant card hover glow */
+  .restaurant-card-hover {
+    @apply transition-all duration-200;
+  }
+  .restaurant-card-hover:hover {
+    border-color: rgba(232, 184, 109, 0.25);
+    box-shadow: 0 0 20px rgba(232, 184, 109, 0.08);
+    transform: translateY(-1px);
   }
 }
 
@@ -280,21 +318,30 @@
     }
   }
 
-  /* ── Culinary Gold UI Utilities ───────────────────────────────────── */
+  /* ── Culinary Gold UI Utilities v2 ───────────────────────────────── */
   .glass-card {
-    @apply bg-[#242424]/80 backdrop-blur-md border border-white/5 shadow-xl;
+    @apply bg-[#1F1F2E]/80 backdrop-blur-md border border-white/10 shadow-xl;
   }
 
   .text-gold {
-    color: #C7A17A;
+    color: #E8B86D;
   }
 
   .bg-gold {
-    background-color: #C7A17A;
+    background-color: #E8B86D;
   }
 
   .hover-gold:hover {
-    background-color: #B58E62;
+    background-color: #D4A055;
+  }
+
+  /* Muted text at proper readability (70% vs old 45%) */
+  .text-muted-readable {
+    color: rgba(255, 255, 255, 0.70);
+  }
+
+  .text-subtle {
+    color: #9090A8;
   }
 
   .smooth-transition {

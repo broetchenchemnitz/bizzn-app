@@ -7,7 +7,8 @@ export async function updateDiscoverySettings(
   projectId: string,
   isPublic: boolean,
   city: string,
-  postalCode: string
+  postalCode: string,
+  cuisineType: string
 ): Promise<{ error: string | null }> {
   if (!projectId) return { error: 'Ungültige Projekt-ID.' }
 
@@ -32,6 +33,7 @@ export async function updateDiscoverySettings(
       is_public: isPublic,
       city: city.trim() || null,
       postal_code: postalCode.trim() || null,
+      cuisine_type: cuisineType.trim() || null,
     })
     .eq('id', projectId)
 

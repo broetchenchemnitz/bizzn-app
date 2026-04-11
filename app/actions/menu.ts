@@ -200,6 +200,24 @@ export async function createMenuItem(categoryId: string, itemData: CreateMenuIte
 
   if (!user) return { error: 'Not authenticated.' }
 
+  // Ownership-Check: categoryId muss zu einem eigenen Projekt gehören
+  const { data: category } = await supabase
+    .from('menu_categories')
+    .select('id, project_id')
+    .eq('id', categoryId)
+    .single()
+
+  if (!category) return { error: 'Kategorie nicht gefunden.' }
+
+  const { data: project } = await supabase
+    .from('projects')
+    .select('id')
+    .eq('id', category.project_id)
+    .eq('user_id', user.id)
+    .single()
+
+  if (!project) return { error: 'Kein Zugriff auf diese Kategorie.' }
+
   const { error } = await supabase
     .from('menu_items')
     .insert({
@@ -215,7 +233,7 @@ export async function createMenuItem(categoryId: string, itemData: CreateMenuIte
     return { error: 'Fehler beim Erstellen der Speise.' }
   }
 
-  revalidatePath(`/dashboard/project`) // broad revalidate to cover nested paths
+  revalidatePath(`/dashboard/project/${category.project_id}/menu`)
   return { error: null }
 }
 
@@ -229,6 +247,32 @@ export async function updateMenuItem(itemId: string, itemData: UpdateMenuItemDat
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) return { error: 'Not authenticated.' }
+
+  // Ownership-Chain: menu_items → menu_categories → projects.user_id
+  const { data: item } = await supabase
+    .from('menu_items')
+    .select('id, category_id')
+    .eq('id', itemId)
+    .single()
+
+  if (!item) return { error: 'Speise nicht gefunden.' }
+
+  const { data: category } = await supabase
+    .from('menu_categories')
+    .select('id, project_id')
+    .eq('id', item.category_id)
+    .single()
+
+  if (!category) return { error: 'Kategorie nicht gefunden.' }
+
+  const { data: project } = await supabase
+    .from('projects')
+    .select('id')
+    .eq('id', category.project_id)
+    .eq('user_id', user.id)
+    .single()
+
+  if (!project) return { error: 'Kein Zugriff auf diese Speise.' }
 
   const updatePayload: UpdateMenuItemData = {}
   if (itemData.name !== undefined) updatePayload.name = itemData.name.trim()
@@ -246,7 +290,7 @@ export async function updateMenuItem(itemId: string, itemData: UpdateMenuItemDat
     return { error: 'Fehler beim Aktualisieren der Speise.' }
   }
 
-  revalidatePath('/dashboard/project')
+  revalidatePath(`/dashboard/project/${category.project_id}/menu`)
   return { error: null }
 }
 
@@ -258,6 +302,32 @@ export async function deleteMenuItem(itemId: string): Promise<{ error: string | 
 
   if (!user) return { error: 'Not authenticated.' }
 
+  // Ownership-Chain: menu_items → menu_categories → projects.user_id
+  const { data: item } = await supabase
+    .from('menu_items')
+    .select('id, category_id')
+    .eq('id', itemId)
+    .single()
+
+  if (!item) return { error: 'Speise nicht gefunden.' }
+
+  const { data: category } = await supabase
+    .from('menu_categories')
+    .select('id, project_id')
+    .eq('id', item.category_id)
+    .single()
+
+  if (!category) return { error: 'Kategorie nicht gefunden.' }
+
+  const { data: project } = await supabase
+    .from('projects')
+    .select('id')
+    .eq('id', category.project_id)
+    .eq('user_id', user.id)
+    .single()
+
+  if (!project) return { error: 'Kein Zugriff auf diese Speise.' }
+
   const { error } = await supabase
     .from('menu_items')
     .delete()
@@ -268,6 +338,6 @@ export async function deleteMenuItem(itemId: string): Promise<{ error: string | 
     return { error: 'Fehler beim Löschen der Speise.' }
   }
 
-  revalidatePath('/dashboard/project')
+  revalidatePath(`/dashboard/project/${category.project_id}/menu`)
   return { error: null }
 }

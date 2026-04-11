@@ -2,13 +2,33 @@
 
 import { useState, useTransition } from 'react'
 import { updateDiscoverySettings } from '@/app/actions/discovery'
-import { MapPin, Eye, EyeOff, Hash } from 'lucide-react'
+import { MapPin, Eye, EyeOff, Hash, UtensilsCrossed } from 'lucide-react'
+
+const CUISINE_OPTIONS = [
+  '', // leer = kein Typ angegeben
+  'Pizza',
+  'Burger',
+  'Asiatisch',
+  'Sushi',
+  'Türkisch',
+  'Italienisch',
+  'Griechisch',
+  'Indisch',
+  'Japanisch',
+  'Mexikanisch',
+  'Vegetarisch',
+  'Vegan',
+  'Café',
+  'Bäckerei',
+  'Sonstige',
+]
 
 interface DiscoverySettingsBlockProps {
   projectId: string
   initialIsPublic: boolean
   initialCity: string | null
   initialPostalCode: string | null
+  initialCuisineType?: string | null
 }
 
 export default function DiscoverySettingsBlock({
@@ -16,10 +36,12 @@ export default function DiscoverySettingsBlock({
   initialIsPublic,
   initialCity,
   initialPostalCode,
+  initialCuisineType,
 }: DiscoverySettingsBlockProps) {
   const [isPublic, setIsPublic] = useState(initialIsPublic)
   const [city, setCity] = useState(initialCity ?? '')
   const [postalCode, setPostalCode] = useState(initialPostalCode ?? '')
+  const [cuisineType, setCuisineType] = useState(initialCuisineType ?? '')
   const [isPending, startTransition] = useTransition()
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -29,7 +51,7 @@ export default function DiscoverySettingsBlock({
     setIsPublic(next)
     setSaved(false)
     startTransition(async () => {
-      const { error } = await updateDiscoverySettings(projectId, next, city, postalCode)
+      const { error } = await updateDiscoverySettings(projectId, next, city, postalCode, cuisineType)
       if (error) setError(error)
       else setSaved(true)
     })
@@ -39,7 +61,7 @@ export default function DiscoverySettingsBlock({
     setSaved(false)
     setError(null)
     startTransition(async () => {
-      const { error } = await updateDiscoverySettings(projectId, isPublic, city, postalCode)
+      const { error } = await updateDiscoverySettings(projectId, isPublic, city, postalCode, cuisineType)
       if (error) setError(error)
       else setSaved(true)
     })
@@ -56,7 +78,7 @@ export default function DiscoverySettingsBlock({
           </p>
           <p className="text-xs text-gray-500">
             {isPublic
-              ? 'Dein Restaurant ist auf der Discovery-Seite sichtbar'
+              ? 'Dein Restaurant ist auf der Startseite sichtbar'
               : 'Dein Restaurant ist nicht öffentlich gelistet'}
           </p>
         </div>
@@ -66,26 +88,18 @@ export default function DiscoverySettingsBlock({
           disabled={isPending}
           aria-pressed={isPublic}
           style={{
-            flexShrink: 0,
-            width: '48px',
-            height: '26px',
-            borderRadius: '999px',
-            position: 'relative',
-            border: 'none',
+            flexShrink: 0, width: '48px', height: '26px', borderRadius: '999px',
+            position: 'relative', border: 'none',
             cursor: isPending ? 'not-allowed' : 'pointer',
             background: isPublic ? 'var(--brand-accent)' : '#3a3a3a',
-            transition: 'background 0.25s',
-            opacity: isPending ? 0.6 : 1,
+            transition: 'background 0.25s', opacity: isPending ? 0.6 : 1,
           }}
         >
           <span style={{
-            position: 'absolute',
-            top: '3px',
+            position: 'absolute', top: '3px',
             left: isPublic ? '25px' : '3px',
-            width: '20px',
-            height: '20px',
-            background: '#fff',
-            borderRadius: '50%',
+            width: '20px', height: '20px',
+            background: '#fff', borderRadius: '50%',
             transition: 'left 0.25s',
           }} />
         </button>
@@ -93,11 +107,8 @@ export default function DiscoverySettingsBlock({
 
       {/* Status indicator */}
       <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        padding: '10px 14px',
-        borderRadius: '10px',
+        display: 'flex', alignItems: 'center', gap: '8px',
+        padding: '10px 14px', borderRadius: '10px',
         background: isPublic ? 'rgba(199,161,122,0.08)' : 'rgba(255,255,255,0.04)',
         border: `1px solid ${isPublic ? 'rgba(199,161,122,0.25)' : 'rgba(255,255,255,0.08)'}`,
       }}>
@@ -110,6 +121,54 @@ export default function DiscoverySettingsBlock({
             ? 'Dein Restaurant erscheint in der Suche auf bizzn.de — Kunden können dich finden.'
             : 'Deaktiviert — du entscheidest wann du sichtbar wirst.'
           }
+        </p>
+      </div>
+
+      {/* Cuisine Type Dropdown */}
+      <div>
+        <label
+          htmlFor={`discovery-cuisine-${projectId}`}
+          className="text-xs font-medium text-gray-400"
+          style={{ display: 'block', marginBottom: '8px' }}
+        >
+          Küchen-Typ
+        </label>
+        <div style={{ position: 'relative' }}>
+          <UtensilsCrossed
+            className="w-4 h-4 text-gray-500"
+            style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}
+          />
+          <select
+            id={`discovery-cuisine-${projectId}`}
+            value={cuisineType}
+            onChange={(e) => { setCuisineType(e.target.value); setSaved(false) }}
+            style={{
+              width: '100%', padding: '10px 14px 10px 36px',
+              borderRadius: '10px', appearance: 'none',
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              color: cuisineType ? '#e5e7eb' : '#6b7280',
+              fontSize: '14px', outline: 'none', boxSizing: 'border-box',
+              cursor: 'pointer',
+            }}
+            onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--brand-accent)')}
+            onBlur={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)')}
+          >
+            <option value="">Küchen-Typ wählen…</option>
+            {CUISINE_OPTIONS.filter(Boolean).map((opt) => (
+              <option key={opt} value={opt}>{opt}</option>
+            ))}
+          </select>
+          {/* Custom chevron */}
+          <svg
+            style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#6b7280' }}
+            width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+          >
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        </div>
+        <p className="text-xs text-gray-600" style={{ marginTop: '6px' }}>
+          Wird auf bizzn.de als Kategorie-Filter angezeigt.
         </p>
       </div>
 
@@ -138,15 +197,10 @@ export default function DiscoverySettingsBlock({
               placeholder="z.B. Chemnitz"
               className="placeholder:text-gray-600"
               style={{
-                width: '100%',
-                padding: '10px 14px 10px 36px',
-                borderRadius: '10px',
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.12)',
-                color: '#e5e7eb',
-                fontSize: '14px',
-                outline: 'none',
-                boxSizing: 'border-box',
+                width: '100%', padding: '10px 14px 10px 36px',
+                borderRadius: '10px', background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.12)', color: '#e5e7eb',
+                fontSize: '14px', outline: 'none', boxSizing: 'border-box',
               }}
               onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--brand-accent)')}
               onBlur={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)')}
@@ -177,15 +231,10 @@ export default function DiscoverySettingsBlock({
               maxLength={10}
               className="placeholder:text-gray-600"
               style={{
-                width: '100%',
-                padding: '10px 14px 10px 36px',
-                borderRadius: '10px',
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.12)',
-                color: '#e5e7eb',
-                fontSize: '14px',
-                outline: 'none',
-                boxSizing: 'border-box',
+                width: '100%', padding: '10px 14px 10px 36px',
+                borderRadius: '10px', background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.12)', color: '#e5e7eb',
+                fontSize: '14px', outline: 'none', boxSizing: 'border-box',
               }}
               onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--brand-accent)')}
               onBlur={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)')}
@@ -201,14 +250,10 @@ export default function DiscoverySettingsBlock({
           onClick={handleSave}
           disabled={isPending}
           style={{
-            padding: '10px 20px',
-            borderRadius: '10px',
+            padding: '10px 20px', borderRadius: '10px',
             background: isPending ? 'rgba(199,161,122,0.4)' : 'var(--brand-accent)',
-            color: '#111',
-            fontWeight: 700,
-            fontSize: '14px',
-            border: 'none',
-            cursor: isPending ? 'not-allowed' : 'pointer',
+            color: '#111', fontWeight: 700, fontSize: '14px',
+            border: 'none', cursor: isPending ? 'not-allowed' : 'pointer',
             transition: 'background 0.2s',
           }}
           onMouseEnter={(e) => { if (!isPending) e.currentTarget.style.background = 'var(--brand-hover)' }}

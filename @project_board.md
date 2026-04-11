@@ -4,9 +4,9 @@
 | Feld | Wert |
 |---|---|
 | **Phase** | 6 |
-| **Letzter Build** | ✅ Erfolgreich — M16 abgeschlossen (tsc clean, alle Routen kompiliert) |
-| **Aktueller Schritt** | Phase 6 — M17: Discovery-App (bizzn.de) 🚧 |
-| **Constitution-Sync** | 2026-04-06 20:16 |
+| **Letzter Build** | ✅ Erfolgreich — M18 abgeschlossen (tsc clean, alle Routen kompiliert) |
+| **Aktueller Schritt** | Phase 6 — Alle Milestones abgeschlossen ✅ Bereit für nächste Phase |
+| **Constitution-Sync** | 2026-04-07 10:22 |
 
 ## 🏁 Milestone-Fortschritt
 
@@ -41,10 +41,11 @@
 - [x] **M18.7 Dashboard:** `BroadcastBlock` — Subscriber-Zähler, Titel+Nachricht, Char-Counter (140), Send-Button, Sonner-Toast, Dead-Endpoint-Cleanup. ✅
 - [x] **M18.8 Types + Config:** `push_subscriptions` in `supabase.ts`, `Service-Worker-Allowed` Header in `next.config.js`. ✅
 - [x] **M18.9 Build-Validation:** `npm run build` — Exit 0 ✅. Pre-existing Lints in MenuBoard + Discovery-Route mitbehoben. ✅
-- [x] **M18.X VAPID-Keys:** Generiert + in `.env.local` eingetragen. 🔑 Vercel-Dashboard: `VAPID_PUBLIC_KEY` + `VAPID_PRIVATE_KEY` + `VAPID_SUBJECT` noch eintragen!
+- [x] **M18.X VAPID-Keys:** Alle 4 Keys in Vercel-Dashboard eingetragen (`NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`). ✅
+- [x] **M18.Y DB-Migration:** `push_subscriptions` Tabelle + 3 RLS-Policies in Supabase Production ausgeführt + verifiziert. ✅
 
 ## 💾 Save-Game
-M18 abgeschlossen: Web Push Broadcast. push_subscriptions Tabelle + RLS. Service Worker (public/sw.js). 3 API-Routen (vapid-key, subscribe, broadcast). PushSubscribeButton auf Storefront. BroadcastBlock im Dashboard (Subscriber-Zähler, 140-Zeichen-Nachricht, Send-Button). VAPID-Keys generiert + in .env.local. Build: Exit 0. ⚠️ CEO-Action: VAPID-Keys in Vercel-Dashboard eintragen + M18-Migration in Supabase ausführen. Constitution-Sync: 2026-04-07.
+Alle Milestones M1–M18 vollständig abgeschlossen und produktionsbereit. M18 finale CEO-Actions erledigt: 4 VAPID-Keys in Vercel eingetragen, push_subscriptions-Tabelle + 3 RLS-Policies in Supabase Prod ausgeführt und verifiziert (7 Spalten, 3 Policies: push_subs_delete_own, push_subs_insert_anon, push_subs_select_owner). Web Push Broadcast ist jetzt in Production voll einsatzbereit. Offene Punkte: Playwright (@playwright/test) nicht installiert → TSC-Fehler in tests/e2e. <img>-Tags auf Discovery-Page (ESLint-Warning). Constitution-Sync: 2026-04-07 10:22.
 
 ## 🛠 M10 Aktionsplan (Sub-Tasks)
 - [x] **M10.1 UI Overhaul:** `menu/magic-import/page.tsx` — Dual-Tab (PDF/Bild + Text), Drag & Drop Dropzone, FileGuard (10MB, Typ-Validierung), WCAG A11y (aria-live, aria-busy, role=alert/status). ✅ Erledigt

@@ -37,7 +37,7 @@ export default function LoginForm() {
         </div>
       </div>
       <h2 className="text-2xl font-bold text-center mb-6 text-white">
-        {isSignUp ? 'Create an Account' : 'Welcome Back'}
+        {isSignUp ? 'Konto erstellen' : 'Willkommen zurück'}
       </h2>
 
       {state.error && (
@@ -48,7 +48,7 @@ export default function LoginForm() {
 
       <form action={action} className="space-y-4">
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-1">Email</label>
+          <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-1">E-Mail</label>
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
@@ -63,7 +63,7 @@ export default function LoginForm() {
         </div>
 
         <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-1">Password</label>
+          <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-1">Passwort</label>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
@@ -77,7 +77,7 @@ export default function LoginForm() {
           </div>
         </div>
 
-        <SubmitButton label={isSignUp ? 'Sign Up' : 'Sign In'} />
+        <SubmitButton label={isSignUp ? 'Registrieren' : 'Anmelden'} />
       </form>
 
       <div className="mt-6 text-center">
@@ -86,7 +86,7 @@ export default function LoginForm() {
           onClick={() => setIsSignUp(!isSignUp)}
           className="text-sm text-gray-500 hover:text-[#C7A17A] transition-colors"
         >
-          {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
+          {isSignUp ? 'Bereits registriert? Jetzt anmelden' : 'Noch kein Konto? Jetzt registrieren'}
         </button>
       </div>
     </div>

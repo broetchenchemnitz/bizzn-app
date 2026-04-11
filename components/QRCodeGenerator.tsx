@@ -33,6 +33,10 @@ function TableQRCard({ label, url, size = 200 }: TableQRProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [copied, setCopied] = useState(false)
 
+  // Detect if this is a table card (label starts with "Tisch")
+  const isTableCard = /^Tisch\s+\d+/i.test(label)
+  const tableNum = isTableCard ? label.replace(/^Tisch\s+/i, '') : null
+
   useEffect(() => {
     if (!canvasRef.current) return
     QRCode.toCanvas(canvasRef.current, url, {
@@ -63,23 +67,34 @@ function TableQRCard({ label, url, size = 200 }: TableQRProps) {
   return (
     <div
       id={`qr-card-${label.replace(/\s+/g, '-').toLowerCase()}`}
-      className="bg-[#242424] rounded-2xl border border-white/5 p-5 flex flex-col items-center gap-4 hover:border-[#C7A17A]/30 transition-all duration-200 group"
+      className="bg-[#242424] rounded-2xl border border-white/5 p-5 flex flex-col items-center gap-3 hover:border-[#C7A17A]/30 transition-all duration-200 group print:bg-white print:border-gray-200 print:shadow-sm"
     >
+      {/* Table number headline — large and prominent */}
+      {tableNum ? (
+        <div className="text-center">
+          <div className="text-3xl font-black text-white group-hover:text-[#C7A17A] transition-colors print:text-[#1A1A1A]">
+            🪑 {tableNum}
+          </div>
+          <div className="text-[10px] text-gray-600 uppercase tracking-widest font-semibold mt-0.5 print:text-gray-400">
+            Tisch
+          </div>
+        </div>
+      ) : (
+        <p className="font-bold text-white text-sm text-center print:text-[#1A1A1A]">{label}</p>
+      )}
+
       {/* QR Canvas — wrapped in white bg for print contrast */}
       <div className="bg-white rounded-xl p-3 shadow-sm group-hover:shadow-[0_0_20px_rgba(199,161,122,0.15)] transition-shadow">
         <canvas ref={canvasRef} className="block" />
       </div>
 
-      {/* Label */}
-      <div className="text-center">
-        <p className="font-bold text-white text-sm">{label}</p>
-        <p className="text-[11px] text-gray-600 mt-0.5 font-mono break-all leading-relaxed max-w-[200px]">
-          {url.replace(/^https?:\/\//, '')}
-        </p>
-      </div>
+      {/* URL */}
+      <p className="text-[10px] text-gray-700 font-mono break-all leading-relaxed max-w-[200px] text-center print:text-gray-400">
+        {url.replace(/^https?:\/\//, '')}
+      </p>
 
-      {/* Actions */}
-      <div className="flex gap-2 w-full">
+      {/* Actions — hidden on print */}
+      <div className="flex gap-2 w-full print:hidden">
         <button
           onClick={handleDownload}
           title="PNG herunterladen"
