@@ -297,7 +297,15 @@ function AuthView({ onSuccess }: { onSuccess: () => void }) {
 // ─── Account View (eingeloggt) ────────────────────────────────────────────────
 
 export default function MeinKontoPage() {
-  const [tab, setTab] = useState<Tab>('profile')
+  // Tab aus URL-Parameter lesen (?tab=abo nach Stripe-Checkout)
+  const [tab, setTab] = useState<Tab>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      const t = params.get('tab')
+      if (t === 'abo' || t === 'orders' || t === 'loyalty' || t === 'profile') return t
+    }
+    return 'profile'
+  })
   const [loading, setLoading] = useState(true)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [profile, setProfile] = useState<CustomerProfile | null>(null)
@@ -411,16 +419,28 @@ export default function MeinKontoPage() {
     }
   }, [tab, loyaltyLoaded])
 
-  // M27: Lazy-load Bizzn-Pass info
+  // M27: Lazy-load Bizzn-Pass info (+ Verify nach Checkout-Callback)
   useEffect(() => {
     if (tab === 'abo' && !passLoaded) {
-      fetch('/api/bizzn-pass/status')
-        .then(r => r.ok ? r.json() : null)
-        .then(d => {
-          if (d) setPassInfo(d)
-          setPassLoaded(true)
-        })
-        .catch(() => setPassLoaded(true))
+      const params = new URLSearchParams(window.location.search)
+      const isSuccess = params.get('success') === '1'
+
+      const load = async () => {
+        // Nach Checkout: Stripe → DB sync (Webhook-Ersatz)
+        if (isSuccess) {
+          await fetch('/api/bizzn-pass/verify', { method: 'POST' }).catch(() => {})
+          // URL säubern
+          window.history.replaceState({}, '', '/mein-konto?tab=abo')
+        }
+        // Status laden
+        const res = await fetch('/api/bizzn-pass/status')
+        if (res.ok) {
+          const d = await res.json()
+          setPassInfo(d)
+        }
+        setPassLoaded(true)
+      }
+      load()
     }
   }, [tab, passLoaded])
 
