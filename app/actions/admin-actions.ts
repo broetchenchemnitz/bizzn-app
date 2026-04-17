@@ -70,7 +70,7 @@ export async function getAdminDashboardStats(): Promise<AdminStats> {
     passResult,
     projectsResult,
   ] = await Promise.all([
-    admin.from('orders').select('total_cents, created_at'),
+    admin.from('orders').select('total_amount, created_at'),
     admin.from('customer_profiles').select('id', { count: 'exact', head: true }),
     admin.from('bizzn_pass_subscriptions').select('status, cancel_at_period_end'),
     admin.from('projects').select('id, is_suspended, status'),
@@ -81,7 +81,7 @@ export async function getAdminDashboardStats(): Promise<AdminStats> {
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
   const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
 
-  const totalRevenue = orders.reduce((s, o) => s + (o.total_cents ?? 0), 0)
+  const totalRevenue = orders.reduce((s, o) => s + (o.total_amount ?? 0), 0)
   const ordersToday = orders.filter(o => o.created_at >= todayStart).length
   const ordersThisWeek = orders.filter(o => o.created_at >= weekStart).length
 
@@ -132,7 +132,7 @@ export async function getAdminCustomers(
     .eq('is_banned', true)
 
   // Bestellungen aggregieren
-  const { data: orders } = await admin.from('orders').select('user_id, total_cents')
+  const { data: orders } = await admin.from('orders').select('user_id, total_amount')
 
   // Restaurant-Namen für Sperren
   const bannedProjectIds = [...new Set((bans ?? []).map(b => b.project_id))]
@@ -156,7 +156,7 @@ export async function getAdminCustomers(
       passStatus: pass?.status ?? null,
       passEnd: pass?.current_period_end ?? null,
       totalOrders: userOrders.length,
-      totalRevenue: userOrders.reduce((s, o) => s + (o.total_cents ?? 0), 0),
+      totalRevenue: userOrders.reduce((s, o) => s + (o.total_amount ?? 0), 0),
       bans: userBans.map(b => ({
         projectId: b.project_id,
         restaurantName: restaurantMap.get(b.project_id) ?? 'Unbekannt',
@@ -204,7 +204,7 @@ export async function getAdminRestaurants(
   const userMap = new Map(users.map(u => [u.id, u.email ?? null]))
 
   // Bestellungen & Kunden pro Restaurant
-  const { data: orders } = await admin.from('orders').select('project_id, total_cents')
+  const { data: orders } = await admin.from('orders').select('project_id, total_amount')
   const { data: customers } = await admin
     .from('restaurant_customers')
     .select('project_id')
@@ -225,7 +225,7 @@ export async function getAdminRestaurants(
       isSuspended: p.is_suspended ?? false,
       suspensionReason: p.suspension_reason ?? null,
       totalOrders: projOrders.length,
-      totalRevenue: projOrders.reduce((s, o) => s + (o.total_cents ?? 0), 0),
+      totalRevenue: projOrders.reduce((s, o) => s + (o.total_amount ?? 0), 0),
       totalCustomers: projCustomers.length,
       createdAt: p.created_at,
     }

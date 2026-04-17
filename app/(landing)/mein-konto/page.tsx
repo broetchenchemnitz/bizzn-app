@@ -856,7 +856,7 @@ export default function MeinKontoPage() {
     return <AuthView onSuccess={() => { setLoading(true); loadProfile() }} resetLinkError={resetLinkError} />
   }
 
-  const initials = name.trim().split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase() || '?'
+  const initials = (profile?.name ?? '').trim().split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase() || '?'
 
   // ── Eingeloggt → Konto ────────────────────────────────────────────────────
   return (
@@ -1157,7 +1157,7 @@ export default function MeinKontoPage() {
                             </div>
                           </div>
                           <p style={{ color: '#9ca3af', fontSize: '11px', lineHeight: '1.5', margin: '0 0 10px' }}>
-                            Am Restaurant angekommen? Klicke <strong style={{ color: '#C7A17A' }}>„Ich bin da!"</strong> —
+                            Am Restaurant angekommen? Klicke <strong style={{ color: '#C7A17A' }}>&bdquo;Ich bin da!&ldquo;</strong> —
                             dein Essen wird direkt zu deinem Auto gebracht.
                           </p>
                           <DriveInArrivalCard
