@@ -102,6 +102,104 @@ async function scrapeUrl(
   }
 }
 
+// ── Helper: direct HTTP fetch fallback (works for SSR pages like Wolt) ────────
+async function scrapeUrlDirect(
+  url: string
+): Promise<{ ok: boolean; markdown?: string; error?: string }> {
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'de-DE,de;q=0.9,en;q=0.8',
+      },
+      redirect: 'follow',
+      signal: AbortSignal.timeout(15000),
+    })
+
+    if (!response.ok) {
+      return { ok: false, error: `HTTP ${response.status}` }
+    }
+
+    const html = await response.text()
+    if (!html || html.length < 200) {
+      return { ok: false, error: 'Empty response from server' }
+    }
+
+    // Convert HTML to simple markdown-like text
+    const markdown = htmlToSimpleMarkdown(html)
+
+    if (markdown.length < 100) {
+      return { ok: false, error: 'No meaningful content extracted' }
+    }
+
+    return { ok: true, markdown }
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Direct fetch failed' }
+  }
+}
+
+// ── Helper: convert HTML to simple markdown text ─────────────────────────────
+function htmlToSimpleMarkdown(html: string): string {
+  let text = html
+
+  // Remove script, style, noscript tags and their content
+  text = text.replace(/<script[\s\S]*?<\/script>/gi, '')
+  text = text.replace(/<style[\s\S]*?<\/style>/gi, '')
+  text = text.replace(/<noscript[\s\S]*?<\/noscript>/gi, '')
+  text = text.replace(/<!--[\s\S]*?-->/g, '')
+
+  // Convert headings
+  text = text.replace(/<h1[^>]*>([\s\S]*?)<\/h1>/gi, '\n# $1\n')
+  text = text.replace(/<h2[^>]*>([\s\S]*?)<\/h2>/gi, '\n## $1\n')
+  text = text.replace(/<h3[^>]*>([\s\S]*?)<\/h3>/gi, '\n### $1\n')
+  text = text.replace(/<h4[^>]*>([\s\S]*?)<\/h4>/gi, '\n#### $1\n')
+
+  // Convert line breaks and paragraphs
+  text = text.replace(/<br\s*\/?>/gi, '\n')
+  text = text.replace(/<\/p>/gi, '\n\n')
+  text = text.replace(/<p[^>]*>/gi, '')
+  text = text.replace(/<\/div>/gi, '\n')
+  text = text.replace(/<div[^>]*>/gi, '')
+
+  // Convert lists
+  text = text.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, '- $1\n')
+  text = text.replace(/<\/?[uo]l[^>]*>/gi, '\n')
+
+  // Extract link text
+  text = text.replace(/<a[^>]*>([\s\S]*?)<\/a>/gi, '$1')
+
+  // Convert images to capture alt text and src
+  text = text.replace(/<img[^>]*alt="([^"]*)"[^>]*>/gi, '[$1]')
+  text = text.replace(/<img[^>]*>/gi, '')
+
+  // Bold/italic
+  text = text.replace(/<\/?(?:b|strong)[^>]*>/gi, '**')
+  text = text.replace(/<\/?(?:i|em)[^>]*>/gi, '_')
+
+  // Remove remaining HTML tags
+  text = text.replace(/<[^>]+>/g, '')
+
+  // Decode HTML entities
+  text = text.replace(/&amp;/g, '&')
+  text = text.replace(/&lt;/g, '<')
+  text = text.replace(/&gt;/g, '>')
+  text = text.replace(/&quot;/g, '"')
+  text = text.replace(/&#39;/g, "'")
+  text = text.replace(/&nbsp;/g, ' ')
+  text = text.replace(/&euro;/g, '€')
+  text = text.replace(/&#(\d+);/g, (_, code) => String.fromCharCode(parseInt(code)))
+
+  // Clean up whitespace
+  text = text.replace(/[ \t]+/g, ' ')           // collapse horizontal whitespace
+  text = text.replace(/\n[ \t]+/g, '\n')         // trim leading whitespace on lines
+  text = text.replace(/[ \t]+\n/g, '\n')         // trim trailing whitespace on lines
+  text = text.replace(/\n{3,}/g, '\n\n')         // max 2 consecutive newlines
+  text = text.trim()
+
+  return text
+}
+
 // ── Helper: extract category sub-page links from Wolt markdown ───────────────
 function extractWoltCategoryLinks(markdown: string, baseUrl: string): { name: string; url: string }[] {
   const links: { name: string; url: string }[] = []
@@ -140,9 +238,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Ungültige URL. Bitte eine vollständige URL mit https:// angeben.' }, { status: 400 })
     }
 
-    if (!process.env.BROWSERLESS_API_TOKEN || process.env.BROWSERLESS_API_TOKEN === 'YOUR_BROWSERLESS_TOKEN_HERE') {
-      return NextResponse.json({ error: 'Browserless.io ist noch nicht konfiguriert. Bitte BROWSERLESS_API_TOKEN in .env.local setzen.' }, { status: 500 })
-    }
     if (!process.env.GEMINI_API_KEY) {
       return NextResponse.json({ error: 'GEMINI_API_KEY nicht konfiguriert.' }, { status: 500 })
     }
@@ -152,62 +247,75 @@ export async function POST(req: NextRequest) {
     const token = process.env.BROWSERLESS_API_TOKEN
 
     // ── Step 1: Scrape main page ──────────────────────────────────────────
+    // Strategy: Try direct HTTP fetch first (fast, free, works for SSR pages like Wolt/Lieferando).
+    // Fall back to Browserless for JS-heavy pages that don't serve content in HTML.
     console.log(`[M29] Scraping URL: ${url} (platform: ${platform?.id ?? 'unknown'})`)
 
-    const mainScrape = await scrapeUrl(url, browserlessBase, token)
+    let combinedMarkdown = ''
+    let screenshot: string | null = null
+    let scrapeStrategy = 'none'
 
-    if (!mainScrape.ok) {
-      console.error('[M29] Main page scrape failed:', mainScrape.error)
+    // ── Strategy A: Direct HTTP fetch (fast, no Browserless credits) ─────
+    console.log('[M29] Trying direct HTTP fetch first...')
+    const directScrape = await scrapeUrlDirect(url)
+
+    if (directScrape.ok && directScrape.markdown && directScrape.markdown.length > 500) {
+      combinedMarkdown = directScrape.markdown
+      scrapeStrategy = 'direct-fetch'
+      console.log(`[M29] Direct fetch OK — ${combinedMarkdown.length} chars`)
+    } else {
+      console.log(`[M29] Direct fetch insufficient (${directScrape.markdown?.length ?? 0} chars): ${directScrape.error ?? 'too short'}`)
+
+      // ── Strategy B: Browserless smart-scrape (for JS-heavy SPAs) ──────
+      if (token && token !== 'YOUR_BROWSERLESS_TOKEN_HERE') {
+        console.log('[M29] Falling back to Browserless smart-scrape...')
+        const mainScrape = await scrapeUrl(url, browserlessBase, token)
+
+        if (mainScrape.ok) {
+          combinedMarkdown = mainScrape.markdown ?? ''
+          screenshot = mainScrape.screenshot ?? null
+          scrapeStrategy = `browserless-${mainScrape.strategy ?? 'unknown'}`
+          console.log(`[M29] Browserless OK — Strategy: ${mainScrape.strategy}, Markdown: ${combinedMarkdown.length} chars, Screenshot: ${screenshot ? 'yes' : 'no'}`)
+
+          // Multi-page scraping for Wolt category sub-pages
+          if (platform?.id === 'wolt' && combinedMarkdown) {
+            const categoryLinks = extractWoltCategoryLinks(combinedMarkdown, url)
+            if (categoryLinks.length > 0) {
+              console.log(`[M29] Wolt: Found ${categoryLinks.length} category sub-pages, scraping each...`)
+              const BATCH_SIZE = 3
+              for (let i = 0; i < categoryLinks.length; i += BATCH_SIZE) {
+                const batch = categoryLinks.slice(i, i + BATCH_SIZE)
+                const results = await Promise.all(
+                  batch.map(async (link) => {
+                    const result = await scrapeUrl(link.url, browserlessBase, token, ['markdown'])
+                    return { name: link.name, result }
+                  })
+                )
+                for (const { name, result } of results) {
+                  if (result.ok && result.markdown) {
+                    combinedMarkdown += `\n\n--- KATEGORIE: ${name} ---\n\n${result.markdown}`
+                  }
+                }
+              }
+              console.log(`[M29] Wolt total markdown after sub-scrapes: ${combinedMarkdown.length} chars`)
+            }
+          }
+        } else {
+          console.error('[M29] Browserless also failed:', mainScrape.error)
+        }
+      } else {
+        console.log('[M29] No Browserless token configured, skipping fallback')
+      }
+    }
+
+    if (!combinedMarkdown && !screenshot) {
       return NextResponse.json(
         { error: 'Seite konnte nicht geladen werden. Bitte prüfe die URL oder nutze den Foto-Import als Alternative.', fallback: true },
         { status: 422 }
       )
     }
 
-    let combinedMarkdown = mainScrape.markdown ?? ''
-    const screenshot = mainScrape.screenshot ?? null
-
-    console.log(`[M29] Main scrape OK — Strategy: ${mainScrape.strategy}, Markdown: ${combinedMarkdown.length} chars, Screenshot: ${screenshot ? 'yes' : 'no'}`)
-
-    // ── Step 1b: Multi-page scraping for platforms with lazy-loaded items ──
-    if (platform?.id === 'wolt' && combinedMarkdown) {
-      const categoryLinks = extractWoltCategoryLinks(combinedMarkdown, url)
-      
-      if (categoryLinks.length > 0) {
-        console.log(`[M29] Wolt: Found ${categoryLinks.length} category sub-pages, scraping each...`)
-        
-        // Scrape category pages in parallel (max 3 at a time to be nice)
-        const BATCH_SIZE = 3
-        for (let i = 0; i < categoryLinks.length; i += BATCH_SIZE) {
-          const batch = categoryLinks.slice(i, i + BATCH_SIZE)
-          const results = await Promise.all(
-            batch.map(async (link) => {
-              console.log(`[M29] Wolt sub-scrape: ${link.name} → ${link.url}`)
-              const result = await scrapeUrl(link.url, browserlessBase, token, ['markdown'])
-              return { name: link.name, result }
-            })
-          )
-
-          for (const { name, result } of results) {
-            if (result.ok && result.markdown) {
-              combinedMarkdown += `\n\n--- KATEGORIE: ${name} ---\n\n${result.markdown}`
-              console.log(`[M29] Wolt sub-scrape OK: ${name} (${result.markdown.length} chars)`)
-            } else {
-              console.warn(`[M29] Wolt sub-scrape FAILED: ${name} — ${result.error}`)
-            }
-          }
-        }
-
-        console.log(`[M29] Wolt total markdown after sub-scrapes: ${combinedMarkdown.length} chars`)
-      }
-    }
-
-    if (!combinedMarkdown && !screenshot) {
-      return NextResponse.json(
-        { error: 'Keine Inhalte auf der Seite gefunden. Ist die URL korrekt?', fallback: true },
-        { status: 422 }
-      )
-    }
+    console.log(`[M29] Final scrape strategy: ${scrapeStrategy}, content: ${combinedMarkdown.length} chars`)
 
     // ── Step 2: Gemini AI Parsing ────────────────────────────────────────
 
