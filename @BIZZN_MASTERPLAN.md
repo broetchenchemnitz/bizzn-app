@@ -327,6 +327,54 @@ Wenn ein neuer Gastronom seine Wolt/Lieferando-URL im Magic Import eingibt, extr
 
 ---
 
+#### 🔲 M31 — Onboarding-Wizard (Gastronomen) — geplant
+
+**Ziel:** Neue Gastronomen werden nach der Registrierung durch einen geführten Setup-Wizard geleitet, der ihr Restaurant in wenigen Minuten komplett einrichtet — inklusive Speisekarten-Import, Profil und Live-Schaltung.
+
+**Trigger:** Der Wizard startet automatisch beim ersten Dashboard-Besuch (wenn kein Projekt existiert oder ein Projekt im Entwurfsmodus ist). Kann jederzeit manuell neu gestartet werden.
+
+**A) Wizard-Schritte:**
+
+| # | Schritt | Pflicht? | Details |
+|---|---------|----------|---------|
+| 1 | **Restaurantname** | ✅ | Freitextfeld, wird als Projektname gespeichert |
+| 2 | **URL-Import** | ❌ | Wolt/Lieferando-URL eingeben → Speisekarte + Profildaten (M30) automatisch. Alternative: "Keine URL, ich mache es manuell" → überspringen |
+| 3 | **Profil vervollständigen** | ❌ | Beschreibung, Adresse, Telefon, Öffnungszeiten, Küchen-Typ, Cover-Bild. Ggf. aus M30 vorausgefüllt. Hinweis auf fehlende Felder ("Telefon war nicht verfügbar") |
+| 4 | **Web-Adresse wählen** | ✅ | Slug: `dein-restaurant.bizzn.de`. Auto-Vorschlag aus Restaurantname. Einzigartigkeit wird geprüft |
+| 5 | **Bestellkanäle aktivieren** | ❌ | Toggle: Abholung ✅, Lieferung ❌, Vor-Ort ❌. Default: nur Abholung |
+| 6 | **Vorschau** | - | "So sieht dein Restaurant aus" — inline Vorschau der Storefront im Wizard |
+| 7 | **Live schalten** (Stripe 99€) | ❌ | "Jetzt online gehen" → Stripe Checkout → Restaurant wird öffentlich. ODER "Später" → Entwurf bleibt gespeichert |
+
+**B) Entwurfsmodus:**
+- Projekte starten im Status `draft` (Entwurf)
+- **Nicht öffentlich**: Kein Eintrag auf bizzn.de Discovery, kein `slug.bizzn.de`, Kunden können nicht bestellen
+- **Unbegrenzter Entwurf**: Kein Zeitlimit — erst wenn der Gastronom live gehen will, zahlt er
+- **Visueller Unterschied**: 🟡 "Entwurf" Badge am Projekt im Dashboard vs. 🟢 "Live" Badge nach Bezahlung
+- Alle Dashboard-Funktionen (Speisekarte bearbeiten, Einstellungen etc.) sind im Entwurf verfügbar
+
+**C) UX-Entscheidungen:**
+- **Überspringbar**: Jeder optionale Schritt kann übersprungen werden ("Später machen")
+- **Fortschritt wird gespeichert**: Bei Abbruch (Browser schließt) → beim nächsten Login dort weitermachen
+- **Wizard neu starten**: Button im Dashboard oder Einstellungen
+- **Mobile-optimiert**: Große Touch-Buttons, einfache Layouts, responsive Design
+- **Fullscreen-Layout**: Eigene Seite ohne Dashboard-Sidebar — fokussiertes Erlebnis
+
+**D) Mehrere Restaurants:**
+- Ein Account kann den Wizard mehrfach durchlaufen für weitere Restaurants
+- Jedes Restaurant = eigenes Projekt mit eigenem Entwurf/Live-Status
+
+**E) Betrifft:**
+- Neuer DB-Status: `projects.status` = `draft` | `live`
+- Neue Seite: `app/dashboard/onboarding/page.tsx` — der Wizard
+- DB: `projects.onboarding_step` (int) — Fortschritt speichern
+- `middleware.ts` → Redirect zu Wizard wenn erstes Projekt im Entwurf
+- `app/(landing)/page.tsx` → Discovery filtert `draft`-Projekte raus
+- `app/[domain]/page.tsx` → Storefront blockiert für `draft`-Projekte
+- `components/dashboard/ProjectCard.tsx` → Draft/Live Badge
+- Stripe Checkout wird aus dem Wizard heraus aufgerufen (nicht vorher)
+
+---
+
 ## 💡 Feature-Ideenpool (noch nicht geplant)
 
 > Kein Milestone zugewiesen. Reihenfolge = keine Priorität.
