@@ -291,6 +291,42 @@ Abwerbung von Lieferando-Kunden durch radikale Vereinfachung und Kosteneffizienz
 
 ---
 
+#### 🔲 M30 — Auto-Profil aus URL-Import — geplant
+
+**Ziel:** Beim URL-Import (M29) nicht nur die Speisekarte, sondern auch das gesamte Restaurant-Profil automatisch ausfüllen — One-URL Onboarding.
+
+**Konzept:**
+Wenn ein neuer Gastronom seine Wolt/Lieferando-URL im Magic Import eingibt, extrahiert die KI zusätzlich zur Speisekarte:
+
+**A) Extrahierte Profildaten:**
+- Restaurantname → Projektname überschreiben
+- Kurzbeschreibung
+- Adresse
+- Telefonnummer (falls verfügbar)
+- Öffnungszeiten (pro Wochentag, Format: „11:00–22:00" oder „geschlossen")
+- Küchen-Typ (z.B. „Syrisch", „Italienisch")
+- Cover-Bild → automatisch nach Supabase Storage hochladen
+- Web-Adresse (Slug) → aus Restaurantname ableiten (z.B. „Syriana Bistro" → `syriana-bistro`)
+
+**B) UI-Vorschau:**
+- Profildaten werden in der Import-Vorschau angezeigt (vor Speisekarte)
+- Gastronom kann Felder vor Bestätigung korrigieren
+- Hinweis auf fehlende Felder: „Telefonnummer war nicht verfügbar — bitte manuell nachtragen"
+
+**C) Import-Logik:**
+- Nur **leere Felder** werden befüllt (keine Überschreibung bestehender Daten)
+- Cover-Bild wird in Supabase Storage geladen (`profile/{projectId}/cover.webp`)
+- Slug wird generiert und auf Einzigartigkeit geprüft
+- Eine URL pro Import (kein Multi-URL-Merging)
+
+**D) Betrifft:**
+- `POST /api/menu/url-import` → Gemini-Prompt erweitern um Profildaten-Extraktion
+- `POST /api/menu/url-import/confirm` → Profildaten + Slug + Cover-Bild speichern
+- `magic-import/page.tsx` → Vorschau-Sektion für Profildaten
+- `projects`-Tabelle → Name, Description, Address, Phone, Opening Hours, Cuisine, Cover, Slug
+
+---
+
 ## 💡 Feature-Ideenpool (noch nicht geplant)
 
 > Kein Milestone zugewiesen. Reihenfolge = keine Priorität.

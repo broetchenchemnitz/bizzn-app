@@ -269,8 +269,8 @@ ${combinedMarkdown.substring(0, 80000)}
 
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
 
-    // Build content parts: prompt + optional screenshot (only use screenshot if markdown is sparse)
-    const useScreenshot = screenshot && (combinedMarkdown.length < 2000)
+    // Build content parts: prompt + screenshot (always include screenshot when available for better accuracy)
+    const useScreenshot = !!screenshot
     const contentParts: Parameters<typeof model.generateContent>[0] = useScreenshot
       ? [
           prompt,
