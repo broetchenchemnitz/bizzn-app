@@ -341,9 +341,18 @@ Wenn ein neuer Gastronom seine Wolt/Lieferando-URL im Magic Import eingibt, extr
 | 2 | **URL-Import** | ❌ | Wolt/Lieferando-URL eingeben → Speisekarte + Profildaten (M30) automatisch. Alternative: "Keine URL, ich mache es manuell" → überspringen |
 | 3 | **Profil vervollständigen** | ❌ | Beschreibung, Adresse, Telefon, Öffnungszeiten, Küchen-Typ, Cover-Bild. Ggf. aus M30 vorausgefüllt. Hinweis auf fehlende Felder ("Telefon war nicht verfügbar") |
 | 4 | **Web-Adresse wählen** | ✅ | Slug: `dein-restaurant.bizzn.de`. Auto-Vorschlag aus Restaurantname. Einzigartigkeit wird geprüft |
-| 5 | **Bestellkanäle aktivieren** | ❌ | Toggle: Abholung ✅, Lieferung ❌, Vor-Ort ❌. Default: nur Abholung |
-| 6 | **Vorschau** | - | "So sieht dein Restaurant aus" — inline Vorschau der Storefront im Wizard |
-| 7 | **Live schalten** (Stripe 99€) | ❌ | "Jetzt online gehen" → Stripe Checkout → Restaurant wird öffentlich. ODER "Später" → Entwurf bleibt gespeichert |
+| 5 | **Bestellkanäle & Lieferung** | ❌ | Toggles: Abholung ✅ (Default an), Lieferung ❌, Tischbestellung (In-Store) ❌. Bei Lieferung aktiviert → inline Liefergebühr (€), Mindestbestellwert (€), Gratislieferung ab (€) einstellen |
+| 6 | **Standort & Discovery** | ❌ | Stadt + PLZ eingeben (nötig für bizzn.de Discovery-Filterung). "Auf bizzn.de entdeckt werden" Toggle (Default: an nach Bezahlung) |
+| 7 | **Willkommensrabatt** | ❌ | Erstbestellungsrabatt %-Slider (Default: 10%). Erklärung: "Dein stärkstes Werkzeug um Gäste von Lieferando abzuwerben." Kann deaktiviert werden |
+| 8 | **Vorschau** | - | "So sieht dein Restaurant aus" — inline Vorschau der Storefront im Wizard (wie Kunden es auf `slug.bizzn.de` sehen werden) |
+| 9 | **Live schalten** (Stripe 99€) | ❌ | "Jetzt online gehen" → Stripe Checkout → Restaurant wird öffentlich + auf bizzn.de sichtbar. ODER "Später" → Entwurf bleibt gespeichert, unbegrenzt |
+
+**Nicht im Wizard (zu fortgeschritten, später über Einstellungen):**
+- Local-Hero Bonuskarte (Default: an) — läuft automatisch
+- Abholzeit-Slots/Vorlaufzeit — Feintuning
+- Online-Zahlung / Stripe Connect — komplexes Setup
+- No-Show-Schutz / Blacklist — erst relevant nach ersten Bestellungen
+- Drive-In (VIP) — Bizzn-Pass Feature
 
 **B) Entwurfsmodus:**
 - Projekte starten im Status `draft` (Entwurf)
