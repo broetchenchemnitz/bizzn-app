@@ -249,10 +249,12 @@ export default function MagicImportPage() {
 
       if (!response.ok) {
         setUrlScanPhase('error');
-        setErrorMsg(data.error || 'Scan fehlgeschlagen');
-        // If fallback suggested, show it
-        if (data.fallback) {
-          setErrorMsg((data.error || 'Scan fehlgeschlagen') + '\n\n💡 Tipp: Mache stattdessen einen Screenshot der Speisekarte und nutze den Foto-Import.');
+        const errText = data.error || 'Scan fehlgeschlagen';
+        // If fallback suggested and error doesn't already contain a tip, append one
+        if (data.fallback && !errText.includes('Foto-Import') && !errText.includes('PDF / Bild')) {
+          setErrorMsg(errText + '\n\n💡 Tipp: Mache stattdessen einen Screenshot der Speisekarte und nutze den Foto-Import.');
+        } else {
+          setErrorMsg(errText);
         }
         return;
       }
