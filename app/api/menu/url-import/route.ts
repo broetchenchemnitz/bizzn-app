@@ -424,13 +424,15 @@ export async function POST(req: NextRequest) {
     // ── Step 1: Scrape & Parse ─────────────────────────────────────────────
     console.log(`[M29] Scraping URL: ${url} (platform: ${platform?.id ?? 'unknown'})`)
 
-    // ── Lieferando: Cloudflare bot protection blocks all automated access ──
+    // ── Lieferando: Cloudflare blocks automated access → use paste-source flow ──
     if (platform?.id === 'lieferando') {
-      console.log('[M29] Lieferando detected — Cloudflare protection prevents automated scraping')
+      console.log('[M29] Lieferando detected — redirecting to paste-source flow')
       return NextResponse.json(
         {
-          error: 'Lieferando blockiert automatische Zugriffe (Cloudflare-Schutz). Nutze stattdessen den Foto-Import: Öffne die Speisekarte auf Lieferando, mache einen Screenshot und lade ihn über „PDF / Bild" hoch.',
-          fallback: true,
+          error: 'lieferando_paste_source',
+          platform: 'lieferando',
+          platformName: 'Lieferando',
+          sourceUrl: url,
         },
         { status: 422 }
       )
