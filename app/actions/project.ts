@@ -21,7 +21,19 @@ export async function updateProjectName(projectId: string, newName: string) {
   }
 
   // M3: RBAC — nur Owner und Admin dürfen umbenennen
-  const canEdit = await roleService.hasPermission(projectId, user.id, ['owner', 'admin'])
+  // Fallback: Direkte Ownership-Prüfung falls project_members nicht existiert
+  let canEdit = false
+  try {
+    canEdit = await roleService.hasPermission(projectId, user.id, ['owner', 'admin'])
+  } catch {
+    // project_members table might not exist yet
+  }
+  if (!canEdit) {
+    // Fallback: direkter Ownership-Check
+    const { data: owned } = await supabase
+      .from('projects').select('id').eq('id', projectId).eq('user_id', user.id).maybeSingle()
+    canEdit = !!owned
+  }
   if (!canEdit) {
     return { error: 'Unzureichende Berechtigungen für diese Aktion.' }
   }
@@ -200,7 +212,15 @@ export async function updateProjectProfile(projectId: string, input: ProfileInpu
   if (!user) return { error: 'Nicht authentifiziert.' }
 
   // Nur Owner/Admin dürfen das Profil bearbeiten
-  const canEdit = await roleService.hasPermission(projectId, user.id, ['owner', 'admin'])
+  let canEdit = false
+  try {
+    canEdit = await roleService.hasPermission(projectId, user.id, ['owner', 'admin'])
+  } catch { /* project_members table might not exist */ }
+  if (!canEdit) {
+    const { data: owned } = await supabase
+      .from('projects').select('id').eq('id', projectId).eq('user_id', user.id).maybeSingle()
+    canEdit = !!owned
+  }
   if (!canEdit) return { error: 'Unzureichende Berechtigungen.' }
 
   const admin = createAdminClient()
