@@ -203,13 +203,11 @@ function htmlToSimpleMarkdown(html: string): string {
 // ── Helper: extract category sub-page links from Wolt markdown ───────────────
 function extractWoltCategoryLinks(markdown: string, baseUrl: string): { name: string; url: string }[] {
   const links: { name: string; url: string }[] = []
-  // Wolt pattern: [CATEGORY NAME 🍗🍔](/de/deu/city/restaurant/slug/items/category-slug)
   const regex = /\[(?:!\[.*?\]\(.*?\)\s*)?([^\]]+)\]\((\/(de|en)\/\w+\/\w+\/restaurant\/[^/]+\/items\/[^\)]+)\)/g
   let match
   while ((match = regex.exec(markdown)) !== null) {
     const name = match[1].replace(/[🍗🍔🧀🌱🥪🍛🔥🌟💧🥤🍰📦]/g, '').trim()
     const path = match[2]
-    // Build full URL from path
     const origin = new URL(baseUrl).origin
     links.push({ name, url: `${origin}${path}` })
   }
@@ -218,8 +216,185 @@ function extractWoltCategoryLinks(markdown: string, baseUrl: string): { name: st
 
 // ── Helper: extract category sub-page links from Lieferando markdown ─────────
 function extractLieferandoCategoryLinks(markdown: string, originalUrl: string): string[] {
-  // Lieferando usually loads everything on one page, but if we detect category anchors, return them
-  return [] // Lieferando loads all items on main page
+  return []
+}
+
+// ── Wolt Native JSON Parser ──────────────────────────────────────────────────
+// Wolt embeds full menu data as structured JSON in <script type="application/json"> tags.
+// This is far more reliable than HTML parsing + Gemini.
+interface WoltJsonCategory {
+  id: string
+  name: string
+  slug: string
+  images?: { url: string }[]
+  item_ids: string[]
+}
+interface WoltJsonItem {
+  id: string
+  name: string
+  description?: string
+  price: number // cents
+  images?: { url: string }[]
+  is_cutlery?: boolean
+  options?: {
+    id: string
+    option_id: string
+    name: string
+    multi_choice_config?: { total_range?: { min: number; max: number } }
+  }[]
+}
+interface WoltJsonOption {
+  id: string
+  name: string
+  type: string
+  values: {
+    id: string
+    name: string
+    price: number
+  }[]
+}
+interface WoltMenuData {
+  categories: WoltJsonCategory[]
+  items: WoltJsonItem[]
+  options: WoltJsonOption[]
+}
+
+async function tryWoltNativeParse(url: string): Promise<ParsedMenu | null> {
+  try {
+    console.log('[M29] Wolt: Trying native JSON extraction...')
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'de-DE,de;q=0.9,en;q=0.8',
+      },
+      redirect: 'follow',
+      signal: AbortSignal.timeout(15000),
+    })
+
+    if (!response.ok) {
+      console.log(`[M29] Wolt native: HTTP ${response.status}`)
+      return null
+    }
+
+    const html = await response.text()
+
+    // Extract all <script type="application/json"> blocks
+    const jsonBlocks = html.match(new RegExp('<script[^>]*type="application\/json"[^>]*>(.*?)<\/script>', 'gs'))
+    if (!jsonBlocks) {
+      console.log('[M29] Wolt native: No JSON script blocks found')
+      return null
+    }
+
+    // Find the large block containing menu data (queries with categories+items)
+    let menuData: WoltMenuData | null = null
+    for (const block of jsonBlocks) {
+      const jsonContent = block.replace(/<script[^>]*>/, '').replace(/<\/script>/, '')
+      if (jsonContent.length < 10000) continue // Skip small config blocks
+
+      try {
+        const parsed = JSON.parse(jsonContent)
+        if (!parsed.queries) continue
+
+        for (const query of parsed.queries) {
+          const data = query?.state?.data
+          if (
+            data &&
+            typeof data === 'object' &&
+            Array.isArray(data.categories) &&
+            Array.isArray(data.items) &&
+            data.categories.length > 0 &&
+            data.items.length > 0
+          ) {
+            menuData = data as WoltMenuData
+            break
+          }
+        }
+        if (menuData) break
+      } catch {
+        continue
+      }
+    }
+
+    if (!menuData) {
+      console.log('[M29] Wolt native: No menu data found in JSON blocks')
+      return null
+    }
+
+    console.log(`[M29] Wolt native: Found ${menuData.categories.length} categories, ${menuData.items.length} items, ${menuData.options?.length ?? 0} options`)
+
+    // Build items lookup map
+    const itemsMap = new Map<string, WoltJsonItem>()
+    for (const item of menuData.items) {
+      itemsMap.set(item.id, item)
+    }
+
+    // Build options lookup map
+    const optionsMap = new Map<string, WoltJsonOption>()
+    for (const opt of (menuData.options ?? [])) {
+      optionsMap.set(opt.id, opt)
+    }
+
+    // Convert to our ParsedMenu format
+    const categories: ParsedCategory[] = []
+
+    for (const cat of menuData.categories) {
+      const items: ParsedItem[] = []
+
+      for (const itemId of cat.item_ids) {
+        const woltItem = itemsMap.get(itemId)
+        if (!woltItem) continue
+        // Skip cutlery items
+        if (woltItem.is_cutlery) continue
+
+        // Build option groups
+        const optionGroups: ParsedOptionGroup[] = []
+        for (const itemOpt of (woltItem.options ?? [])) {
+          const optionDef = optionsMap.get(itemOpt.option_id)
+          if (!optionDef || !optionDef.values?.length) continue
+
+          const minSelect = itemOpt.multi_choice_config?.total_range?.min ?? 0
+          const maxSelect = itemOpt.multi_choice_config?.total_range?.max ?? optionDef.values.length
+
+          optionGroups.push({
+            name: itemOpt.name || optionDef.name,
+            isRequired: minSelect > 0,
+            maxSelect,
+            options: optionDef.values.map(v => ({
+              name: v.name,
+              priceCents: v.price ?? 0,
+            })),
+          })
+        }
+
+        // Get the best image URL
+        const imageUrl = woltItem.images?.[0]?.url ?? undefined
+
+        items.push({
+          name: woltItem.name,
+          description: woltItem.description || undefined,
+          price: woltItem.price / 100, // Convert cents to euros
+          imageUrl,
+          optionGroups,
+        })
+      }
+
+      if (items.length === 0) continue
+
+      categories.push({
+        name: cat.name.replace(/[^\w\s\-äöüÄÖÜß&+.,()]/g, '').trim(), // Strip emojis from category name
+        items,
+      })
+    }
+
+    if (categories.length === 0) return null
+
+    console.log(`[M29] Wolt native: ✅ Converted ${categories.length} categories with ${categories.reduce((s, c) => s + c.items.length, 0)} items`)
+    return { categories }
+  } catch (err) {
+    console.error('[M29] Wolt native parse error:', err)
+    return null
+  }
 }
 
 // ── POST /api/menu/url-import ─────────────────────────────────────────────────
@@ -246,11 +421,47 @@ export async function POST(req: NextRequest) {
     const browserlessBase = process.env.BROWSERLESS_BASE_URL || 'https://production-ams.browserless.io'
     const token = process.env.BROWSERLESS_API_TOKEN
 
-    // ── Step 1: Scrape main page ──────────────────────────────────────────
-    // Strategy: Try direct HTTP fetch first (fast, free, works for SSR pages like Wolt/Lieferando).
-    // Fall back to Browserless for JS-heavy pages that don't serve content in HTML.
+    // ── Step 1: Scrape & Parse ─────────────────────────────────────────────
     console.log(`[M29] Scraping URL: ${url} (platform: ${platform?.id ?? 'unknown'})`)
 
+    // ── Strategy 0: Native JSON parser for known platforms (no Gemini needed!) ──
+    if (platform?.id === 'wolt') {
+      const nativeMenu = await tryWoltNativeParse(url)
+      if (nativeMenu && nativeMenu.categories.length > 0) {
+        // Success! Return directly — no Gemini needed
+        const totalItems = nativeMenu.categories.reduce((sum, cat) => sum + cat.items.length, 0)
+        const totalOptions = nativeMenu.categories.reduce(
+          (sum, cat) => sum + cat.items.reduce(
+            (s, item) => s + (item.optionGroups ?? []).reduce(
+              (os, g) => os + (g.options?.length ?? 0), 0
+            ), 0
+          ), 0
+        )
+        const imageUrls = nativeMenu.categories.flatMap(cat =>
+          cat.items.filter(item => item.imageUrl).map(item => item.imageUrl!)
+        )
+
+        console.log(`[M29] ✅ Wolt native: ${nativeMenu.categories.length} categories, ${totalItems} items, ${totalOptions} options, ${imageUrls.length} images`)
+
+        return NextResponse.json({
+          success: true,
+          platform: platform.id,
+          platformName: platform.name,
+          sourceUrl: url,
+          scrapedAt: new Date().toISOString(),
+          categories: nativeMenu.categories,
+          stats: {
+            categories: nativeMenu.categories.length,
+            items: totalItems,
+            options: totalOptions,
+            images: imageUrls.length,
+          },
+        })
+      }
+      console.log('[M29] Wolt native parse failed, falling back to generic strategy...')
+    }
+
+    // ── Generic strategy: Scrape HTML → Gemini AI parsing ─────────────────
     let combinedMarkdown = ''
     let screenshot: string | null = null
     let scrapeStrategy = 'none'
@@ -275,31 +486,7 @@ export async function POST(req: NextRequest) {
           combinedMarkdown = mainScrape.markdown ?? ''
           screenshot = mainScrape.screenshot ?? null
           scrapeStrategy = `browserless-${mainScrape.strategy ?? 'unknown'}`
-          console.log(`[M29] Browserless OK — Strategy: ${mainScrape.strategy}, Markdown: ${combinedMarkdown.length} chars, Screenshot: ${screenshot ? 'yes' : 'no'}`)
-
-          // Multi-page scraping for Wolt category sub-pages
-          if (platform?.id === 'wolt' && combinedMarkdown) {
-            const categoryLinks = extractWoltCategoryLinks(combinedMarkdown, url)
-            if (categoryLinks.length > 0) {
-              console.log(`[M29] Wolt: Found ${categoryLinks.length} category sub-pages, scraping each...`)
-              const BATCH_SIZE = 3
-              for (let i = 0; i < categoryLinks.length; i += BATCH_SIZE) {
-                const batch = categoryLinks.slice(i, i + BATCH_SIZE)
-                const results = await Promise.all(
-                  batch.map(async (link) => {
-                    const result = await scrapeUrl(link.url, browserlessBase, token, ['markdown'])
-                    return { name: link.name, result }
-                  })
-                )
-                for (const { name, result } of results) {
-                  if (result.ok && result.markdown) {
-                    combinedMarkdown += `\n\n--- KATEGORIE: ${name} ---\n\n${result.markdown}`
-                  }
-                }
-              }
-              console.log(`[M29] Wolt total markdown after sub-scrapes: ${combinedMarkdown.length} chars`)
-            }
-          }
+          console.log(`[M29] Browserless OK — ${combinedMarkdown.length} chars, Screenshot: ${screenshot ? 'yes' : 'no'}`)
         } else {
           console.error('[M29] Browserless also failed:', mainScrape.error)
         }
