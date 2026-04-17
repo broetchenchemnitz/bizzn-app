@@ -63,7 +63,7 @@ const ORDER_TYPE_LABELS: Record<string, string> = {
 }
 
 type Tab = 'profile' | 'orders' | 'loyalty' | 'abo'
-type AuthMode = 'login' | 'register'
+type AuthMode = 'login' | 'register' | 'forgot'
 
 // ─── Style tokens ─────────────────────────────────────────────────────────────
 
@@ -92,19 +92,21 @@ const labelStyle: React.CSSProperties = {
 
 // ─── Login/Register View ──────────────────────────────────────────────────────
 
-function AuthView({ onSuccess }: { onSuccess: () => void }) {
+function AuthView({ onSuccess, resetLinkError }: { onSuccess: () => void; resetLinkError?: string | null }) {
   const [mode, setMode] = useState<AuthMode>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [name, setName] = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
   const [showPw, setShowPw] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [resetSent, setResetSent] = useState(false)
   const [isPending, startTransition] = useTransition()
 
   const handleSubmit = () => {
     setError(null)
     if (!email.trim() || !password) { setError('Bitte alle Felder ausfüllen.'); return }
-    if (mode === 'register' && !name.trim()) { setError('Bitte deinen Namen eingeben.'); return }
+    if (mode === 'register' && (!firstName.trim() || !lastName.trim())) { setError('Bitte Vor- und Nachnamen eingeben.'); return }
     if (password.length < 6) { setError('Passwort muss mindestens 6 Zeichen haben.'); return }
 
     startTransition(async () => {
@@ -113,12 +115,25 @@ function AuthView({ onSuccess }: { onSuccess: () => void }) {
         if ('error' in result) { setError(result.error); return }
       } else {
         const result = await signUpCustomer({
-          projectId: '', name, email, password,
+          projectId: '', firstName, lastName, email, password,
           consentPush: false, consentEmail: false,
         })
         if ('error' in result) { setError(result.error); return }
       }
       onSuccess()
+    })
+  }
+
+  const handleForgotPassword = () => {
+    setError(null)
+    if (!email.trim()) { setError('Bitte gib deine E-Mail-Adresse ein.'); return }
+    startTransition(async () => {
+      const supabase = createClient()
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
+      })
+      if (resetError) { setError(resetError.message); return }
+      setResetSent(true)
     })
   }
 
@@ -166,50 +181,82 @@ function AuthView({ onSuccess }: { onSuccess: () => void }) {
             <User style={{ width: '22px', height: '22px', color: '#C7A17A' }} />
           </div>
 
+          {/* Mode Tabs */}
+          {mode !== 'forgot' && (
+            <div style={{ display: 'flex', borderRadius: '10px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)', marginBottom: '24px' }}>
+              {(['login', 'register'] as const).map(m => (
+                <button
+                  key={m}
+                  onClick={() => { setMode(m); setError(null); setResetSent(false) }}
+                  style={{
+                    flex: 1, padding: '10px', border: 'none', cursor: 'pointer',
+                    fontSize: '13px', fontWeight: 700,
+                    background: mode === m ? 'rgba(199,161,122,0.15)' : 'transparent',
+                    color: mode === m ? '#C7A17A' : '#6b7280',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {m === 'login' ? 'Anmelden' : 'Registrieren'}
+                </button>
+              ))}
+            </div>
+          )}
+
           <h1 style={{ color: '#f0f0f0', fontWeight: 900, fontSize: '22px', textAlign: 'center', margin: '0 0 4px' }}>
-            {mode === 'login' ? 'Willkommen zurück' : 'Konto erstellen'}
+            {mode === 'forgot' ? 'Passwort zurücksetzen' : mode === 'login' ? 'Willkommen zurück' : 'Konto erstellen'}
           </h1>
           <p style={{ color: '#6b7280', fontSize: '13px', textAlign: 'center', margin: '0 0 28px' }}>
-            {mode === 'login' ? 'Melde dich mit deinem Kundenkonto an' : 'Erstelle dein kostenloses Bizzn-Konto'}
+            {mode === 'forgot' ? 'Wir senden dir einen Link zum Zurücksetzen' : mode === 'login' ? 'Melde dich mit deinem Kundenkonto an' : 'Erstelle dein kostenloses Bizzn-Konto'}
           </p>
-
-          {/* Mode toggle */}
-          <div style={{ display: 'flex', background: 'rgba(255,255,255,0.04)', borderRadius: '10px', padding: '3px', marginBottom: '24px' }}>
-            {(['login', 'register'] as const).map(m => (
-              <button
-                key={m}
-                onClick={() => { setMode(m); setError(null) }}
-                style={{
-                  flex: 1, padding: '8px', borderRadius: '8px', border: 'none', cursor: 'pointer',
-                  fontSize: '13px', fontWeight: 700, transition: 'all 0.18s',
-                  background: mode === m ? 'rgba(199,161,122,0.15)' : 'transparent',
-                  color: mode === m ? '#C7A17A' : '#6b7280',
-                  boxShadow: mode === m ? 'inset 0 0 0 1px rgba(199,161,122,0.2)' : 'none',
-                }}
-              >
-                {m === 'login' ? 'Anmelden' : 'Registrieren'}
-              </button>
-            ))}
-          </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
 
+            {/* Abgelaufener Reset-Link Hinweis */}
+            {resetLinkError && mode === 'login' && (
+              <div style={{ padding: '12px 14px', borderRadius: '10px', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)', color: '#f59e0b', fontSize: '13px', lineHeight: '1.5' }}>
+                ⚠️ {resetLinkError}
+                <button
+                  type="button"
+                  onClick={() => { setMode('forgot'); setError(null) }}
+                  style={{ display: 'block', marginTop: '6px', background: 'none', border: 'none', color: '#C7A17A', fontSize: '12px', fontWeight: 700, cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
+                >
+                  Neuen Link anfordern →
+                </button>
+              </div>
+            )}
+
             {/* Name (nur Register) */}
             {mode === 'register' && (
+              <>
               <div>
-                <label htmlFor="auth-name" style={labelStyle}>Name *</label>
+                <label htmlFor="auth-firstname" style={labelStyle}>Vorname *</label>
                 <div style={{ position: 'relative' }}>
                   <User style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '15px', height: '15px', color: '#4b5563', pointerEvents: 'none' }} />
                   <input
-                    id="auth-name" type="text" value={name}
-                    onChange={e => setName(e.target.value)}
-                    placeholder="Dein Name"
+                    id="auth-firstname" type="text" value={firstName}
+                    onChange={e => setFirstName(e.target.value)}
+                    placeholder="Dein Vorname"
                     style={inputStyle}
                     onFocus={e => (e.currentTarget.style.borderColor = 'rgba(199,161,122,0.6)')}
                     onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)')}
                   />
                 </div>
               </div>
+              <div>
+                <label htmlFor="auth-lastname" style={labelStyle}>Nachname *</label>
+                <div style={{ position: 'relative' }}>
+                  <User style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '15px', height: '15px', color: '#4b5563', pointerEvents: 'none' }} />
+                  <input
+                    id="auth-lastname" type="text" value={lastName}
+                    onChange={e => setLastName(e.target.value)}
+                    placeholder="Dein Nachname"
+                    style={inputStyle}
+                    onFocus={e => (e.currentTarget.style.borderColor = 'rgba(199,161,122,0.6)')}
+                    onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)')}
+                  />
+                </div>
+              </div>
+              </>
             )}
 
             {/* E-Mail */}
@@ -229,7 +276,8 @@ function AuthView({ onSuccess }: { onSuccess: () => void }) {
               </div>
             </div>
 
-            {/* Passwort */}
+            {/* Passwort (nicht im Passwort-vergessen-Modus) */}
+            {mode !== 'forgot' && (
             <div>
               <label htmlFor="auth-password" style={labelStyle}>Passwort *</label>
               <div style={{ position: 'relative' }}>
@@ -251,6 +299,31 @@ function AuthView({ onSuccess }: { onSuccess: () => void }) {
                 </button>
               </div>
             </div>
+            )}
+
+            {/* Passwort vergessen Link */}
+            {mode === 'login' && (
+              <button
+                type="button"
+                onClick={() => { setMode('forgot'); setError(null); setResetSent(false) }}
+                style={{
+                  background: 'none', border: 'none', color: '#6b7280', fontSize: '12px',
+                  cursor: 'pointer', textAlign: 'right', padding: 0,
+                  transition: 'color 0.15s',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.color = '#C7A17A')}
+                onMouseLeave={e => (e.currentTarget.style.color = '#6b7280')}
+              >
+                Passwort vergessen?
+              </button>
+            )}
+
+            {/* Forgot Password View */}
+            {mode === 'forgot' && resetSent && (
+              <div style={{ padding: '14px', borderRadius: '10px', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', color: '#22c55e', fontSize: '13px', textAlign: 'center' }}>
+                ✅ Link gesendet! Prüfe dein E-Mail-Postfach (auch Spam).
+              </div>
+            )}
 
             {/* Error */}
             {error && (
@@ -260,25 +333,66 @@ function AuthView({ onSuccess }: { onSuccess: () => void }) {
             )}
 
             {/* Submit */}
-            <button
-              id="auth-submit"
-              onClick={handleSubmit}
-              disabled={isPending}
-              style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                width: '100%', padding: '13px', borderRadius: '12px', border: 'none',
-                cursor: isPending ? 'not-allowed' : 'pointer',
-                background: isPending ? 'rgba(199,161,122,0.35)' : 'linear-gradient(135deg, #c7a17a, #d4a870)',
-                color: '#111', fontWeight: 900, fontSize: '14px',
-                boxShadow: isPending ? 'none' : '0 4px 20px rgba(199,161,122,0.3)',
-                transition: 'all 0.2s', marginTop: '4px',
-              }}
-            >
-              {isPending
-                ? <><Loader2 style={{ width: '16px', height: '16px', animation: 'spin 0.8s linear infinite' }} /> Bitte warten…</>
-                : mode === 'login' ? 'Anmelden' : 'Konto erstellen'
-              }
-            </button>
+            {mode === 'forgot' ? (
+              !resetSent && (
+                <button
+                  id="auth-submit"
+                  onClick={handleForgotPassword}
+                  disabled={isPending}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                    width: '100%', padding: '13px', borderRadius: '12px', border: 'none',
+                    cursor: isPending ? 'not-allowed' : 'pointer',
+                    background: isPending ? 'rgba(199,161,122,0.35)' : 'linear-gradient(135deg, #c7a17a, #d4a870)',
+                    color: '#111', fontWeight: 900, fontSize: '14px',
+                    boxShadow: isPending ? 'none' : '0 4px 20px rgba(199,161,122,0.3)',
+                    transition: 'all 0.2s', marginTop: '4px',
+                  }}
+                >
+                  {isPending
+                    ? <><Loader2 style={{ width: '16px', height: '16px', animation: 'spin 0.8s linear infinite' }} /> Bitte warten…</>
+                    : 'Link senden'
+                  }
+                </button>
+              )
+            ) : (
+              <button
+                id="auth-submit"
+                onClick={handleSubmit}
+                disabled={isPending}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                  width: '100%', padding: '13px', borderRadius: '12px', border: 'none',
+                  cursor: isPending ? 'not-allowed' : 'pointer',
+                  background: isPending ? 'rgba(199,161,122,0.35)' : 'linear-gradient(135deg, #c7a17a, #d4a870)',
+                  color: '#111', fontWeight: 900, fontSize: '14px',
+                  boxShadow: isPending ? 'none' : '0 4px 20px rgba(199,161,122,0.3)',
+                  transition: 'all 0.2s', marginTop: '4px',
+                }}
+              >
+                {isPending
+                  ? <><Loader2 style={{ width: '16px', height: '16px', animation: 'spin 0.8s linear infinite' }} /> Bitte warten…</>
+                  : mode === 'login' ? 'Anmelden' : 'Konto erstellen'
+                }
+              </button>
+            )}
+
+            {/* Zurück zum Login (from forgot mode) */}
+            {mode === 'forgot' && (
+              <button
+                type="button"
+                onClick={() => { setMode('login'); setError(null); setResetSent(false) }}
+                style={{
+                  background: 'none', border: 'none', color: '#6b7280', fontSize: '12px',
+                  cursor: 'pointer', textAlign: 'center', padding: '4px', width: '100%',
+                  transition: 'color 0.15s',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.color = '#C7A17A')}
+                onMouseLeave={e => (e.currentTarget.style.color = '#6b7280')}
+              >
+                ← Zurück zum Login
+              </button>
+            )}
           </div>
 
           {/* Gastronomen-Hinweis */}
@@ -288,6 +402,144 @@ function AuthView({ onSuccess }: { onSuccess: () => void }) {
               Zum Restaurant-Login →
             </a>
           </p>
+        </div>
+      </div>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } } * { box-sizing: border-box; }`}</style>
+    </div>
+  )
+}
+
+// ─── Neues Passwort setzen (nach Klick auf Reset-Link) ───────────────────────
+
+function ResetPasswordView({ onDone }: { onDone: () => void }) {
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPw, setShowPw] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
+  const [isPending, startTransition] = useTransition()
+
+  const handleReset = () => {
+    setError(null)
+    if (!newPassword || newPassword.length < 6) { setError('Passwort muss mindestens 6 Zeichen haben.'); return }
+    if (newPassword !== confirmPassword) { setError('Passwörter stimmen nicht überein.'); return }
+
+    startTransition(async () => {
+      const supabase = createClient()
+      const { error: updateError } = await supabase.auth.updateUser({ password: newPassword })
+      if (updateError) { setError(updateError.message); return }
+      setSuccess(true)
+      setTimeout(() => onDone(), 2000)
+    })
+  }
+
+  return (
+    <div style={{ background: '#080808', minHeight: '100vh', fontFamily: "'Inter', sans-serif", display: 'flex', flexDirection: 'column' }}>
+      <div aria-hidden style={{
+        position: 'fixed', top: '-200px', left: '50%', transform: 'translateX(-50%)',
+        width: '600px', height: '400px', borderRadius: '50%',
+        background: 'radial-gradient(ellipse, rgba(199,161,122,0.12) 0%, transparent 70%)',
+        pointerEvents: 'none', zIndex: 0,
+      }} />
+      <div style={{ maxWidth: '440px', margin: '0 auto', width: '100%', padding: '0 20px 60px', position: 'relative', zIndex: 1, flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+          <Link href="/" aria-label="Bizzn Startseite">
+            <Image src="/logo.svg" alt="Bizzn" width={120} height={48} style={{ width: '120px', height: 'auto', margin: '0 auto 20px', display: 'block' }} priority />
+          </Link>
+        </div>
+
+        <div style={{
+          background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: '24px', padding: '32px',
+          boxShadow: '0 24px 80px rgba(0,0,0,0.5)',
+        }}>
+          <div style={{
+            width: '52px', height: '52px', borderRadius: '50%', margin: '0 auto 20px',
+            background: 'linear-gradient(135deg, rgba(199,161,122,0.3), rgba(199,100,60,0.2))',
+            border: '2px solid rgba(199,161,122,0.3)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Lock style={{ width: '22px', height: '22px', color: '#C7A17A' }} />
+          </div>
+
+          <h1 style={{ color: '#f0f0f0', fontWeight: 900, fontSize: '22px', textAlign: 'center', margin: '0 0 4px' }}>
+            Neues Passwort
+          </h1>
+          <p style={{ color: '#6b7280', fontSize: '13px', textAlign: 'center', margin: '0 0 28px' }}>
+            Vergib ein neues Passwort für dein Konto
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div>
+              <label style={labelStyle}>Neues Passwort *</label>
+              <div style={{ position: 'relative' }}>
+                <Lock style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '15px', height: '15px', color: '#4b5563', pointerEvents: 'none' }} />
+                <input
+                  type={showPw ? 'text' : 'password'} value={newPassword}
+                  onChange={e => setNewPassword(e.target.value)}
+                  placeholder="Mind. 6 Zeichen"
+                  style={{ ...inputStyle, paddingRight: '40px' }}
+                  onFocus={e => (e.currentTarget.style.borderColor = 'rgba(199,161,122,0.6)')}
+                  onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)')}
+                />
+                <button
+                  type="button" onClick={() => setShowPw(v => !v)}
+                  style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', display: 'flex', padding: '4px' }}
+                >
+                  {showPw ? <EyeOff style={{ width: '15px', height: '15px' }} /> : <Eye style={{ width: '15px', height: '15px' }} />}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label style={labelStyle}>Passwort bestätigen *</label>
+              <div style={{ position: 'relative' }}>
+                <Lock style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '15px', height: '15px', color: '#4b5563', pointerEvents: 'none' }} />
+                <input
+                  type={showPw ? 'text' : 'password'} value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleReset()}
+                  placeholder="Passwort wiederholen"
+                  style={inputStyle}
+                  onFocus={e => (e.currentTarget.style.borderColor = 'rgba(199,161,122,0.6)')}
+                  onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)')}
+                />
+              </div>
+            </div>
+
+            {success && (
+              <div style={{ padding: '14px', borderRadius: '10px', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', color: '#22c55e', fontSize: '13px', textAlign: 'center' }}>
+                ✅ Passwort geändert! Du wirst weitergeleitet…
+              </div>
+            )}
+
+            {error && (
+              <div style={{ padding: '10px 14px', borderRadius: '10px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171', fontSize: '13px' }}>
+                {error}
+              </div>
+            )}
+
+            {!success && (
+              <button
+                onClick={handleReset}
+                disabled={isPending}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                  width: '100%', padding: '13px', borderRadius: '12px', border: 'none',
+                  cursor: isPending ? 'not-allowed' : 'pointer',
+                  background: isPending ? 'rgba(199,161,122,0.35)' : 'linear-gradient(135deg, #c7a17a, #d4a870)',
+                  color: '#111', fontWeight: 900, fontSize: '14px',
+                  boxShadow: isPending ? 'none' : '0 4px 20px rgba(199,161,122,0.3)',
+                  transition: 'all 0.2s', marginTop: '4px',
+                }}
+              >
+                {isPending
+                  ? <><Loader2 style={{ width: '16px', height: '16px', animation: 'spin 0.8s linear infinite' }} /> Bitte warten…</>
+                  : 'Passwort speichern'
+                }
+              </button>
+            )}
+          </div>
         </div>
       </div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } } * { box-sizing: border-box; }`}</style>
@@ -309,6 +561,8 @@ export default function MeinKontoPage() {
   })
   const [loading, setLoading] = useState(true)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [isRecovery, setIsRecovery] = useState(false)
+  const [resetLinkError, setResetLinkError] = useState<string | null>(null)
   const [profile, setProfile] = useState<CustomerProfile | null>(null)
   const [orders, setOrders] = useState<OrderHistoryItem[]>([])
   const [ordersLoaded, setOrdersLoaded] = useState(false)
@@ -333,7 +587,8 @@ export default function MeinKontoPage() {
   const [passError, setPassError] = useState<string | null>(null)
 
   // Edit state
-  const [name, setName] = useState('')
+  const [profileFirstName, setProfileFirstName] = useState('')
+  const [profileLastName, setProfileLastName] = useState('')
   const [phone, setPhone] = useState('')
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saveSuccess, setSaveSuccess] = useState(false)
@@ -344,9 +599,41 @@ export default function MeinKontoPage() {
     if (!s.userId) { setIsLoggedIn(false); setLoading(false); return }
     setIsLoggedIn(true)
     const p = await getCustomerProfile()
-    if (p) { setProfile(p); setName(p.name); setPhone(p.phone ?? '') }
+    if (p) {
+      setProfile(p)
+      setProfileFirstName(p.first_name ?? p.name?.split(' ')[0] ?? '')
+      setProfileLastName(p.last_name ?? p.name?.split(' ').slice(1).join(' ') ?? '')
+      setPhone(p.phone ?? '')
+    }
     setLoading(false)
   }
+
+  // Detect password recovery from Supabase reset link
+  useEffect(() => {
+    const supabase = createClient()
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsRecovery(true)
+        setLoading(false)
+      }
+    })
+
+    // Check for expired/invalid reset link error in URL params
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      const errorCode = params.get('error_code')
+      if (errorCode === 'otp_expired') {
+        setResetLinkError('Der Link ist abgelaufen. Bitte fordere einen neuen Link an.')
+      }
+      // Detect recovery=true from auth callback redirect
+      if (params.get('recovery') === 'true') {
+        setIsRecovery(true)
+        setLoading(false)
+      }
+    }
+
+    return () => subscription.unsubscribe()
+  }, [])
 
   useEffect(() => { loadProfile() }, [])
 
@@ -497,14 +784,35 @@ export default function MeinKontoPage() {
     }
   }
 
+  const handleReactivatePass = async () => {
+    setPassLoading(true)
+    setPassError(null)
+    try {
+      const res = await fetch('/api/bizzn-pass/reactivate', { method: 'POST' })
+      const data = await res.json() as { success?: boolean; error?: string }
+      if (data.success) {
+        // Pass-Status neu laden
+        const statusRes = await fetch('/api/bizzn-pass/status')
+        const statusData = await statusRes.json()
+        setPassInfo(statusData)
+      } else {
+        setPassError(data.error ?? 'Reaktivierung fehlgeschlagen.')
+      }
+    } catch {
+      setPassError('Netzwerkfehler.')
+    } finally {
+      setPassLoading(false)
+    }
+  }
+
   const handleSaveProfile = () => {
     setSaveError(null); setSaveSuccess(false)
     startTransition(async () => {
-      const result = await updateCustomerProfile({ name, phone })
+      const result = await updateCustomerProfile({ name: `${profileFirstName} ${profileLastName}`, phone })
       if ('error' in result) { setSaveError(result.error) }
       else {
         setSaveSuccess(true)
-        setProfile(prev => prev ? { ...prev, name, phone: phone || null } : prev)
+        setProfile(prev => prev ? { ...prev, name: `${profileFirstName} ${profileLastName}`, phone: phone || null } : prev)
         setTimeout(() => setSaveSuccess(false), 3000)
       }
     })
@@ -518,7 +826,8 @@ export default function MeinKontoPage() {
     setProfile(null)
     setOrders([])
     setOrdersLoaded(false)
-    setName('')
+    setProfileFirstName('')
+    setProfileLastName('')
     setPhone('')
   }
 
@@ -540,8 +849,11 @@ export default function MeinKontoPage() {
   }
 
   // ── Nicht eingeloggt → Login-Form ─────────────────────────────────────────
+  if (isRecovery) {
+    return <ResetPasswordView onDone={() => { setIsRecovery(false); setLoading(true); loadProfile() }} />
+  }
   if (!isLoggedIn) {
-    return <AuthView onSuccess={() => { setLoading(true); loadProfile() }} />
+    return <AuthView onSuccess={() => { setLoading(true); loadProfile() }} resetLinkError={resetLinkError} />
   }
 
   const initials = name.trim().split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase() || '?'
@@ -665,12 +977,17 @@ export default function MeinKontoPage() {
             </h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
-                <label htmlFor="profile-name" style={labelStyle}>Name *</label>
+                <label htmlFor="profile-firstname" style={labelStyle}>Vorname (nicht änderbar)</label>
                 <div style={{ position: 'relative' }}>
                   <User style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '15px', height: '15px', color: '#4b5563', pointerEvents: 'none' }} />
-                  <input id="profile-name" type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Dein Name" style={inputStyle}
-                    onFocus={e => (e.currentTarget.style.borderColor = 'rgba(199,161,122,0.6)')}
-                    onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)')} />
+                  <input id="profile-firstname" type="text" value={profileFirstName} readOnly disabled style={{ ...inputStyle, opacity: 0.5, cursor: 'not-allowed' }} />
+                </div>
+              </div>
+              <div>
+                <label htmlFor="profile-lastname" style={labelStyle}>Nachname (nicht änderbar)</label>
+                <div style={{ position: 'relative' }}>
+                  <User style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '15px', height: '15px', color: '#4b5563', pointerEvents: 'none' }} />
+                  <input id="profile-lastname" type="text" value={profileLastName} readOnly disabled style={{ ...inputStyle, opacity: 0.5, cursor: 'not-allowed' }} />
                 </div>
               </div>
               <div>
@@ -814,13 +1131,41 @@ export default function MeinKontoPage() {
                         </div>
                       )}
 
-                      {/* M27b: Drive-In */}
+                      {/* M27b: Drive-In VIP-Hinweis */}
                       {driveInStatus[order.id] && (
-                        <DriveInArrivalCard
-                          orderId={order.id}
-                          arrived={driveInStatus[order.id].arrived}
-                          arrivedPlate={driveInStatus[order.id].plate}
-                        />
+                        <div style={{
+                          background: 'linear-gradient(135deg, rgba(199,161,122,0.08), rgba(212,168,112,0.04))',
+                          border: '1.5px solid rgba(199,161,122,0.3)',
+                          borderRadius: '12px', padding: '14px', marginTop: '10px',
+                          position: 'relative', overflow: 'hidden',
+                        }}>
+                          <div style={{
+                            position: 'absolute', top: '-20px', right: '-20px',
+                            width: '80px', height: '80px', borderRadius: '50%',
+                            background: 'radial-gradient(circle, rgba(199,161,122,0.12) 0%, transparent 70%)',
+                            pointerEvents: 'none',
+                          }} />
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                            <span style={{ fontSize: '16px' }}>🚗</span>
+                            <div>
+                              <p style={{ color: '#C7A17A', fontWeight: 800, fontSize: '13px', margin: 0 }}>
+                                VIP Drive-In verfügbar!
+                              </p>
+                              <p style={{ color: '#6b7280', fontSize: '10px', margin: 0 }}>
+                                👑 Exklusiv für Bizzn-Pass
+                              </p>
+                            </div>
+                          </div>
+                          <p style={{ color: '#9ca3af', fontSize: '11px', lineHeight: '1.5', margin: '0 0 10px' }}>
+                            Am Restaurant angekommen? Klicke <strong style={{ color: '#C7A17A' }}>„Ich bin da!"</strong> —
+                            dein Essen wird direkt zu deinem Auto gebracht.
+                          </p>
+                          <DriveInArrivalCard
+                            orderId={order.id}
+                            arrived={driveInStatus[order.id].arrived}
+                            arrivedPlate={driveInStatus[order.id].plate}
+                          />
+                        </div>
                       )}
                     </div>
                   )
@@ -850,7 +1195,7 @@ export default function MeinKontoPage() {
                 </div>
                 <p style={{ color: '#9ca3af', fontWeight: 700, fontSize: '15px', margin: '0 0 6px' }}>Noch keine Bonuspunkte</p>
                 <p style={{ color: '#4b5563', fontSize: '13px', margin: '0 0 20px' }}>
-                  Bestelle bei einem Bizzn-Restaurant — {passInfo?.hasPass ? '15 %' : '10 %'} jeder Bestellung werden automatisch gutgeschrieben.
+                  Bestelle bei einem Bizzn-Restaurant — {passInfo?.hasPass ? '10 %' : '5 %'} jeder Bestellung werden automatisch gutgeschrieben.
                   {passInfo?.hasPass && <span style={{ color: '#C7A17A', fontWeight: 700 }}> (Bizzn-Pass Bonus!)</span>}
                 </p>
                 <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '9px 18px', borderRadius: '10px', fontSize: '13px', fontWeight: 700, background: 'rgba(199,161,122,0.1)', color: '#C7A17A', border: '1px solid rgba(199,161,122,0.2)', textDecoration: 'none' }}>
@@ -922,8 +1267,8 @@ export default function MeinKontoPage() {
             )}
             <div style={{ marginTop: '20px', padding: '14px 16px', borderRadius: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
               <p style={{ color: '#4b5563', fontSize: '12px', margin: 0, lineHeight: '1.7' }}>
-                🏆 <strong style={{ color: '#6b7280' }}>Wie es funktioniert:</strong> Du sammelst {passInfo?.hasPass ? '15 %' : '10 %'} jedes Bestellwerts als Guthaben — pro Restaurant separat. Nach 5 Bestellungen wird das Guthaben automatisch bei der 6. Bestellung abgezogen. Guthaben verfällt nach 90 Tagen Inaktivität.
-                {passInfo?.hasPass && <> <span style={{ color: '#C7A17A', fontWeight: 700 }}>Dein Bizzn-Pass erhöht die Rate auf 15 %! 👑</span></>}
+                🏆 <strong style={{ color: '#6b7280' }}>Wie es funktioniert:</strong> Du sammelst {passInfo?.hasPass ? '10 %' : '5 %'} jedes Bestellwerts als Guthaben — pro Restaurant separat. Nach 5 Bestellungen wird das Guthaben automatisch bei der 6. Bestellung abgezogen. Guthaben verfällt nach 90 Tagen Inaktivität.
+                {passInfo?.hasPass && <> <span style={{ color: '#C7A17A', fontWeight: 700 }}>Dein Bizzn-Pass erhöht die Rate auf 10 %! 👑</span></>}
               </p>
             </div>
           </div>
@@ -965,24 +1310,36 @@ export default function MeinKontoPage() {
                       <Crown style={{ width: '22px', height: '22px', color: '#C7A17A' }} />
                     </div>
                     <div>
-                      <p style={{ color: '#f0f0f0', fontWeight: 900, fontSize: '16px', margin: '0 0 2px' }}>Bizzn-Pass Aktiv 👑</p>
+                      <p style={{ color: '#f0f0f0', fontWeight: 900, fontSize: '16px', margin: '0 0 2px' }}>
+                        {passInfo.cancelAtPeriodEnd ? 'Bizzn-Pass Gekündigt' : 'Bizzn-Pass Aktiv 👑'}
+                      </p>
                       <p style={{ color: '#6b7280', fontSize: '12px', margin: 0 }}>4,99 €/Monat</p>
                     </div>
-                    <span style={{
-                      marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '5px',
-                      padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 700,
-                      background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.25)', color: '#4ade80',
-                    }}>
-                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#4ade80', display: 'inline-block', animation: 'dotPulse 1.4s ease-in-out infinite' }} />
-                      Aktiv
-                    </span>
+                    {passInfo.cancelAtPeriodEnd ? (
+                      <span style={{
+                        marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '5px',
+                        padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 700,
+                        background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.25)', color: '#fbbf24',
+                      }}>
+                        ⏳ Gekündigt
+                      </span>
+                    ) : (
+                      <span style={{
+                        marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '5px',
+                        padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 700,
+                        background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.25)', color: '#4ade80',
+                      }}>
+                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#4ade80', display: 'inline-block', animation: 'dotPulse 1.4s ease-in-out infinite' }} />
+                        Aktiv
+                      </span>
+                    )}
                   </div>
 
                   {/* Features */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
                     {[
-                      { icon: <Star style={{ width: '14px', height: '14px', color: '#C7A17A' }} />, text: '15 % Loyalty-Gutschrift statt 10 %' },
-                      { icon: <Car style={{ width: '14px', height: '14px', color: '#C7A17A' }} />, text: 'Drive-In: Essen wird zum Auto gebracht' },
+                      { icon: <Star style={{ width: '14px', height: '14px', color: '#C7A17A' }} />, text: '10 % Loyalty-Gutschrift statt 5 %' },
+                      { icon: <Car style={{ width: '14px', height: '14px', color: '#C7A17A' }} />, text: 'Drive-In: Essen wird zum Auto gebracht (Online-Zahlung)' },
                       { icon: <Sparkles style={{ width: '14px', height: '14px', color: '#C7A17A' }} />, text: 'Bizzn-Pass Badge auf deinem Profil' },
                     ].map((f, i) => (
                       <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -992,34 +1349,80 @@ export default function MeinKontoPage() {
                     ))}
                   </div>
 
+                  {/* Transparenz-Hinweis Drive-In */}
+                  <div style={{
+                    padding: '10px 12px', borderRadius: '10px', marginBottom: '16px',
+                    background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.12)',
+                    display: 'flex', alignItems: 'center', gap: '8px',
+                  }}>
+                    <span style={{ fontSize: '13px', flexShrink: 0 }}>ℹ️</span>
+                    <p style={{ color: '#9ca3af', fontSize: '11px', margin: 0, lineHeight: '1.5' }}>
+                      <strong style={{ color: '#f59e0b' }}>Drive-In</strong> ist nur bei Online-Vorauszahlung verfügbar.
+                    </p>
+                  </div>
+
                   {/* Period info */}
-                  {passInfo.currentPeriodEnd && (
+                  {passInfo.currentPeriodEnd && passInfo.cancelAtPeriodEnd && (
+                    <div style={{
+                      padding: '12px 14px', borderRadius: '10px', marginBottom: '16px',
+                      background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)',
+                      display: 'flex', alignItems: 'center', gap: '10px',
+                    }}>
+                      <span style={{ fontSize: '16px', flexShrink: 0 }}>⚠️</span>
+                      <div>
+                        <p style={{ color: '#fbbf24', fontSize: '13px', fontWeight: 700, margin: '0 0 2px' }}>
+                          Dein Pass endet am {new Date(passInfo.currentPeriodEnd).toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' })}
+                        </p>
+                        <p style={{ color: '#9ca3af', fontSize: '11px', margin: 0 }}>
+                          Bis dahin kannst du alle Vorteile weiter nutzen. Danach wird dein Pass automatisch deaktiviert.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {passInfo.currentPeriodEnd && !passInfo.cancelAtPeriodEnd && (
                     <p style={{ color: '#6b7280', fontSize: '12px', margin: '0 0 16px' }}>
-                      {passInfo.cancelAtPeriodEnd
-                        ? `⚠️ Abo endet am ${new Date(passInfo.currentPeriodEnd).toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' })}`
-                        : `Nächste Abrechnung: ${new Date(passInfo.currentPeriodEnd).toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' })}`
-                      }
+                      Nächste Abrechnung: {new Date(passInfo.currentPeriodEnd).toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' })}
                     </p>
                   )}
 
-                  {/* Manage Button */}
-                  <button
-                    id="bizzn-pass-manage"
-                    onClick={handleManageSubscription}
-                    disabled={passLoading}
-                    style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                      width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid rgba(199,161,122,0.25)',
-                      cursor: passLoading ? 'not-allowed' : 'pointer',
-                      background: 'rgba(199,161,122,0.08)', color: '#C7A17A',
-                      fontWeight: 700, fontSize: '13px', transition: 'all 0.18s',
-                    }}
-                  >
-                    {passLoading
-                      ? <><Loader2 style={{ width: '14px', height: '14px', animation: 'spin 0.8s linear infinite' }} /> Öffne Portal…</>
-                      : 'Abo verwalten / kündigen →'
-                    }
-                  </button>
+                  {/* Buttons */}
+                  {passInfo.cancelAtPeriodEnd ? (
+                    <button
+                      id="bizzn-pass-reactivate"
+                      onClick={handleReactivatePass}
+                      disabled={passLoading}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                        width: '100%', padding: '12px', borderRadius: '12px', border: 'none',
+                        cursor: passLoading ? 'not-allowed' : 'pointer',
+                        background: 'linear-gradient(135deg, #C7A17A, #d4a870)', color: '#1a1a1a',
+                        fontWeight: 800, fontSize: '13px', transition: 'all 0.18s',
+                      }}
+                    >
+                      {passLoading
+                        ? <><Loader2 style={{ width: '14px', height: '14px', animation: 'spin 0.8s linear infinite' }} /> Wird reaktiviert…</>
+                        : '👑 Pass reaktivieren'
+                      }
+                    </button>
+                  ) : (
+                    <button
+                      id="bizzn-pass-manage"
+                      onClick={handleManageSubscription}
+                      disabled={passLoading}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                        width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid rgba(199,161,122,0.25)',
+                        cursor: passLoading ? 'not-allowed' : 'pointer',
+                        background: 'rgba(199,161,122,0.08)', color: '#C7A17A',
+                        fontWeight: 700, fontSize: '13px', transition: 'all 0.18s',
+                      }}
+                    >
+                      {passLoading
+                        ? <><Loader2 style={{ width: '14px', height: '14px', animation: 'spin 0.8s linear infinite' }} /> Öffne Portal…</>
+                        : 'Abo verwalten / kündigen →'
+                      }
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -1051,8 +1454,8 @@ export default function MeinKontoPage() {
                   {/* Features */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left', marginBottom: '24px' }}>
                     {[
-                      { emoji: '⭐', title: 'Stempel-Booster', desc: '15 % statt 10 % Gutschrift auf deine Bonuskarte' },
-                      { emoji: '🚗', title: 'Drive-In VIP-Abholung', desc: 'Essen wird direkt zu deinem Auto gebracht' },
+                      { emoji: '⭐', title: 'Stempel-Booster', desc: '10 % statt 5 % Gutschrift auf deine Bonuskarte' },
+                      { emoji: '🚗', title: 'Drive-In VIP-Abholung', desc: 'Essen wird direkt zu deinem Auto gebracht (nur bei Online-Zahlung)' },
                       { emoji: '👑', title: 'Exklusives Badge', desc: 'Zeige dein Bizzn-Pass-Icon auf deinem Profil' },
                     ].map((f, i) => (
                       <div key={i} style={{
@@ -1092,10 +1495,22 @@ export default function MeinKontoPage() {
                   <p style={{ color: '#4b5563', fontSize: '11px', textAlign: 'center', marginTop: '8px' }}>
                     🔒 Sichere Zahlung über die Stripe-Checkout-Seite
                   </p>
+
+                  {/* Transparenz-Hinweis: Drive-In nur bei Online-Vorauszahlung */}
+                  <div style={{
+                    marginTop: '16px', padding: '12px 14px', borderRadius: '12px',
+                    background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)',
+                    display: 'flex', alignItems: 'flex-start', gap: '10px',
+                  }}>
+                    <span style={{ fontSize: '16px', flexShrink: 0, marginTop: '1px' }}>ℹ️</span>
+                    <p style={{ color: '#9ca3af', fontSize: '12px', margin: 0, lineHeight: '1.6' }}>
+                      <strong style={{ color: '#f59e0b' }}>Hinweis zum Drive-In:</strong> Die VIP-Abholung (Essen wird zu deinem Auto gebracht) steht ausschließlich bei <strong style={{ color: '#d1d5db' }}>Online-Vorauszahlung</strong> zur Verfügung. Bei Barzahlung ist die Drive-In-Funktion nicht nutzbar.
+                    </p>
+                  </div>
                 </div>
 
 
-                <p style={{ color: '#374151', fontSize: '11px', textAlign: 'center', lineHeight: '1.6' }}>
+                <p style={{ color: '#374151', fontSize: '11px', textAlign: 'center', lineHeight: '1.6', marginTop: '12px' }}>
                   Keine Mindestlaufzeit. Jederzeit in deinem Konto oder im Stripe-Portal kündbar.
                 </p>
               </div>

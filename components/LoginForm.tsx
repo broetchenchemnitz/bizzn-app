@@ -40,9 +40,15 @@ export default function LoginForm() {
         {isSignUp ? 'Konto erstellen' : 'Willkommen zurück'}
       </h2>
 
-      {state.error && (
+      {state?.error && (
         <div className="mb-4 p-3 bg-red-950 text-red-400 text-sm rounded-lg text-center border border-red-800">
           {state.error}
+        </div>
+      )}
+
+      {state?.success && (
+        <div className="mb-4 p-3 bg-green-950 text-green-400 text-sm rounded-lg text-center border border-green-800">
+          ✅ {state.success}
         </div>
       )}
 

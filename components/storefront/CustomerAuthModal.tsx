@@ -18,7 +18,8 @@ export default function CustomerAuthModal({ projectId, projectName, onSuccess, c
   const [isOpen, setIsOpen] = useState(false)
   const [tab, setTab] = useState<Tab>('register')
 
-  const [name, setName] = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [phone, setPhone] = useState('')
@@ -46,7 +47,7 @@ export default function CustomerAuthModal({ projectId, projectName, onSuccess, c
   }, [isOpen])
 
   const reset = () => {
-    setError(null); setName(''); setEmail(''); setPassword(''); setPhone('')
+    setError(null); setFirstName(''); setLastName(''); setEmail(''); setPassword(''); setPhone('')
     setConsentPush(true); setConsentEmail(false)
   }
 
@@ -57,7 +58,7 @@ export default function CustomerAuthModal({ projectId, projectName, onSuccess, c
 
     let result
     if (tab === 'register') {
-      result = await signUpCustomer({ projectId, name, email, password, phone: phone || undefined, consentPush, consentEmail })
+      result = await signUpCustomer({ projectId, firstName, lastName, email, password, phone: phone || undefined, consentPush, consentEmail })
     } else {
       result = await signInCustomer({ projectId, email, password })
     }
@@ -67,7 +68,7 @@ export default function CustomerAuthModal({ projectId, projectName, onSuccess, c
 
     setIsOpen(false)
     reset()
-    const displayName = tab === 'register' ? name : email.split('@')[0]
+    const displayName = tab === 'register' ? `${firstName} ${lastName}` : email.split('@')[0]
     onSuccess?.(displayName)
   }
 
@@ -183,16 +184,17 @@ export default function CustomerAuthModal({ projectId, projectName, onSuccess, c
 
               {/* Name — nur Register */}
               {tab === 'register' && (
+                <>
                 <div>
                   <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>
-                    Name *
+                    Vorname *
                   </label>
                   <div style={{ position: 'relative' }}>
                     <User style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '15px', height: '15px', color: '#4b5563' }} />
                     <input
-                      id="customer-name" type="text" value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="Dein Name" required
+                      id="customer-firstname" type="text" value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      placeholder="Dein Vorname" required
                       style={{
                         width: '100%', padding: '11px 12px 11px 36px', borderRadius: '10px', boxSizing: 'border-box',
                         background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
@@ -203,6 +205,27 @@ export default function CustomerAuthModal({ projectId, projectName, onSuccess, c
                     />
                   </div>
                 </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>
+                    Nachname *
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <User style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '15px', height: '15px', color: '#4b5563' }} />
+                    <input
+                      id="customer-lastname" type="text" value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      placeholder="Dein Nachname" required
+                      style={{
+                        width: '100%', padding: '11px 12px 11px 36px', borderRadius: '10px', boxSizing: 'border-box',
+                        background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                        color: '#f0f0f0', fontSize: '14px', outline: 'none',
+                      }}
+                      onFocus={(e) => (e.currentTarget.style.borderColor = 'rgba(199,161,122,0.6)')}
+                      onBlur={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)')}
+                    />
+                  </div>
+                </div>
+                </>
               )}
 
               {/* E-Mail */}

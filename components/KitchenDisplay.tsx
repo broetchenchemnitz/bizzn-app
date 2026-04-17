@@ -188,10 +188,17 @@ export default function KitchenDisplay({ projectId }: { projectId: string }) {
   )
 
   const fetchOrders = useCallback(async () => {
+    // Nur Bestellungen von heute (ab Mitternacht)
+    const todayStart = new Date()
+    todayStart.setHours(0, 0, 0, 0)
+
     const { data } = await supabase
       .from('orders')
       .select('*, order_items(id, quantity, price_at_time, item_name)')
       .eq('project_id', projectId)
+      .gte('created_at', todayStart.toISOString())
+      // null/unpaid = Barzahlung, paid = Karte; 'pending' = Karte noch offen → blockieren
+      .or('payment_status.is.null,payment_status.eq.paid,payment_status.eq.unpaid')
       .order('created_at', { ascending: true })
 
     if (data) setOrders(data as OrderWithItems[])

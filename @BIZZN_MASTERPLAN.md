@@ -196,15 +196,98 @@ Abwerbung von Lieferando-Kunden durch radikale Vereinfachung und Kosteneffizienz
 
 ---
 
-#### 👑 M27 — Bizzn-Pass (Kunden-Abo 4,99 €/Monat)
+#### ✅ M27 — Bizzn-Pass (Kunden-Abo 4,99 €/Monat) — abgeschlossen 2026-04-17
 
 **Ziel:** Premium-Abo für Endkunden
 
-**Features:**
-- Dynamischer 0 € Liefer-MBW (Restaurant legt pro PLZ selbst fest)
-- Bizzn Drive-In: VIP-Abholung (Kellner bringt Essen ans Auto)
-- Stempel-Booster: 15% statt 10% auf die Local-Hero Bonuskarte
-- Verwaltung: `bizzn.de/mein-konto` → Abo-Tab
+**Implementiert:**
+- DB-Migration `20260411_m27_bizzn_pass.sql`: Tabelle `bizzn_pass_subscriptions`, SQL-Funktion `has_active_bizzn_pass()`, `projects.drive_in_enabled`
+- Stripe-Abo-Flow: `/api/stripe/bizzn-pass/subscribe` (Checkout Session), `/portal` (Kundenportal), `/api/bizzn-pass/verify` (Post-Checkout-Sync), `/reactivate`, `/status`
+- Webhook-Sync: `customer.subscription.updated/deleted` → `bizzn_pass_subscriptions` automatisch aktualisiert
+- Stempel-Booster: Bizzn-Pass-Inhaber erhalten 10 % statt 5 % Loyalty-Gutschrift (`placeOrder()` → `creditRate = passActive ? 0.10 : 0.05`)
+- Drive-In VIP-Abholung: `DriveInArrivalCard`, `DriveInSettingsBlock`, `DriveInToast`, `app/actions/drive-in.ts` — exklusiv bei Online-Vorauszahlung (`payment_status = 'paid'`) + Bizzn-Pass
+- Abo-Tab in `bizzn.de/mein-konto`: Sales-Page (Nicht-Abonnenten), Verwaltungs-Ansicht (aktive/gekündigte Abos), Reaktivierung, Stripe-Portal-Link
+- Transparenz-Hinweis: Drive-In nur bei Online-Zahlung — auf Sales-Page und aktiver Pass-Ansicht
+- Admin-Dashboard: `/admin/passes` — Bizzn-Pass Übersicht (Abonnenten, Kündigungen, Einnahmen)
+
+---
+
+### PHASE 4: ERWEITERTE FEATURES (M28–M29)
+
+---
+
+#### ✅ M28 — Optionen, Extras & Kundennotiz — abgeschlossen 2026-04-17
+
+**Ziel:** Gerichte mit konfigurierbaren Optionsgruppen (Größe, Extras, Beilagen) erweitern + Freitext-Bestellnotiz
+
+**Implementiert:**
+
+**A) Datenmodell:**
+- DB-Migration `20260417_m28_menu_options.sql`: Tabellen `menu_option_groups`, `menu_options`, `order_item_options` + Spalte `order_items.customer_note`
+- Performance-Indizes + RLS-Policies (anon READ für Storefront/Checkout)
+- Zusätzlich: `20260415_m28_customer_management.sql` — Pro-Restaurant Kundensperre (`is_banned`, `ban_reason` auf `restaurant_customers`)
+- TypeScript-Typen in `types/supabase.ts` für alle drei neuen Tabellen
+
+**B) Dashboard (Gastronom):**
+- `EditMenuItemForm.tsx`: Optionen & Extras-Sektion im Item-Editor mit Gruppen-CRUD
+- `MenuOptionGroupEditor.tsx`: Inline-Add/Edit/Delete für Optionen, Reorder (Pfeile), Pflicht-Badge, Default-Stern, Preis-Eingabe
+- `CopyOptionsModal.tsx`: Optionsgruppen von einem Gericht auf ein anderes kopieren
+- Server Actions: `getOptionGroups`, `createOptionGroup`, `updateOptionGroup`, `deleteOptionGroup`, `createOption`, `updateOption`, `deleteOption`, `reorderOptionGroups`, `reorderOptions`, `copyOptionGroupsToItem`
+
+**C) Checkout (Kunde):**
+- `InlineMenuBoard.tsx`: Options-Drawer beim "In den Warenkorb"-Klick, Pflichtgruppen-Validierung, Aufpreise live eingerechnet, `customerNote` pro Artikel
+- API-Route `/api/menu/[slug]`: Nested Select `menu_option_groups(*, menu_options(*))`
+- `placeOrder()`: Subtotal inkl. Options-Aufpreise, `order_item_options`-Snapshot, `customer_note` gespeichert
+
+**D) KDS (Küche):**
+- `KitchenDisplayFullscreen.tsx`: Optionen + `📝 customer_note` auf Bestellkarten, Supabase Select inkl. `order_item_options`, Bon-Druck mit Optionen + Notiz
+
+---
+
+#### ✅ M29 — URL-Import (Lieferando & Co.) — abgeschlossen 2026-04-17
+
+**Ziel:** Speisekarte per URL von Lieferando, Wolt, Uber Eats oder beliebiger Website automatisch importieren — Zero-Friction Onboarding
+
+**Implementiert:**
+
+**A) 3-Tab Magic-Import (UI):**
+- Tab 1: 🔗 URL importieren (NEU, Default)
+- Tab 2: 📄 PDF / Bild (besteht)
+- Tab 3: ✏️ Text (besteht)
+- Plattform-Logos (Lieferando-Orange, Wolt-Blau, Uber-Eats-Grün) + Hinweis „auch andere Websites"
+- Fortschritts-Steps beim Scan: Seite laden → KI analysiert → Vorschau
+- Detaillierte Vorschau-Tabelle: Kategorien-Akkordeon, Checkboxes pro Gericht, Preis, Optionen-Count, Bild-Indikator
+- „Alles auswählen / abwählen"-Toggle, selektiver Import
+- Responsive: Mobile + Desktop optimiert
+- Fallback-Hinweis bei Fehler: „Nutze den Foto-Import als Alternative"
+
+**B) Scraping-Pipeline:**
+- **Browserless.io `/smart-scrape`** API (Amsterdam-Endpoint, Free-Tier 1k Units/Monat)
+- Cascading Strategy: HTTP-Fetch → Proxy → Headless Browser → Captcha-Solving
+- Output: Markdown + Screenshot (dual-input für höhere AI-Accuracy)
+- Plattform-Erkennung: Lieferando, Wolt, Uber Eats + beliebige URLs
+
+**C) AI-Parsing (Gemini 2.5 Flash):**
+- Markdown + Screenshot als dual-input → strukturiertes JSON
+- Extrahiert: Kategorien, Gerichte (Name, Preis, Beschreibung), Optionsgruppen + Optionen (M28-Struktur)
+- Aufpreise in Cent, isRequired/maxSelect-Erkennung, Bild-URLs
+- Plattform-spezifischer Prompt-Hint für bessere Ergebnisse
+
+**D) Import-Daten:**
+- Kategorien → `menu_categories`
+- Gerichte → `menu_items` (Name, Preis in Cent, Beschreibung, is_active)
+- Optionsgruppen → `menu_option_groups` (M28: is_required, min/max_select, sort_order)
+- Optionen → `menu_options` (M28: price_cents, is_default, sort_order)
+- Bilder → Download nach Supabase Storage (`menu-images` Bucket), Pfad: `url-import/{projectId}/...`
+
+**E) Neue Dateien:**
+- `POST /api/menu/url-import` → Browserless Scrape + Gemini Parse → Vorschau-JSON (kein DB-Write)
+- `POST /api/menu/url-import/confirm` → Vorschau → DB-Insert (Kategorien, Items, Optionen, Bilder)
+- `app/dashboard/project/[id]/menu/magic-import/page.tsx` → 3-Tab UI mit Vorschau
+
+**F) Infrastruktur:**
+- Env: `BROWSERLESS_API_TOKEN`, `BROWSERLESS_BASE_URL` (Amsterdam: `production-ams.browserless.io`)
+- Kosten: ~1 Unit pro Scrape (Free-Tier: 1.000/Monat), Gemini Flash: ~$0.001 pro Parse
 
 ---
 

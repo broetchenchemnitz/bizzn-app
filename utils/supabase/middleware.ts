@@ -45,18 +45,26 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // 2. Prevent authenticated users from seeing auth pages
-  //    Exception: /auth/confirm and /auth/impersonate must always be reachable
-  //    (they handle session switching for admin impersonation)
+  // 2. Prevent authenticated GASTRONOMEN from seeing the restaurant auth pages
+  //    Exception: /auth/confirm, /auth/impersonate, and /auth/callback must always be reachable
+  //    NOTE: We no longer blindly redirect to /dashboard here, because Kunden
+  //    (who share the same Supabase auth) would incorrectly land on the dashboard.
+  //    The dashboard layout itself now handles the Gastronom-vs-Kunden distinction.
   const isAuthPage = request.nextUrl.pathname.startsWith('/auth')
   const isPassthroughAuthRoute =
     request.nextUrl.pathname.startsWith('/auth/confirm') ||
-    request.nextUrl.pathname.startsWith('/auth/impersonate')
+    request.nextUrl.pathname.startsWith('/auth/impersonate') ||
+    request.nextUrl.pathname.startsWith('/auth/callback')
 
   if (user && isAuthPage && !isPassthroughAuthRoute) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/dashboard'
-    return NextResponse.redirect(url)
+    // Nur die Login/Register-Seite redirecten — der User ist schon eingeloggt
+    // Redirect zum Dashboard, das Layout dort entscheidet ob Gastronom oder Kunde
+    if (request.nextUrl.pathname === '/auth/login' || request.nextUrl.pathname === '/auth/register') {
+      const url = request.nextUrl.clone()
+      url.pathname = '/dashboard'
+      return NextResponse.redirect(url)
+    }
+    // Alle anderen /auth Routen (z.B. /auth/reset-password) durchlassen
   }
 
   return supabaseResponse

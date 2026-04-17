@@ -3,10 +3,10 @@
 ## 📍 MICRO-STATE
 | Feld | Wert |
 |---|---|
-| **Phase** | 6 |
-| **Letzter Build** | ✅ Erfolgreich — M18 abgeschlossen (tsc clean, alle Routen kompiliert) |
-| **Aktueller Schritt** | Phase 6 — Alle Milestones abgeschlossen ✅ Bereit für nächste Phase |
-| **Constitution-Sync** | 2026-04-07 10:22 |
+| **Phase** | 7 |
+| **Letzter Build** | ✅ Erfolgreich — M28 abgeschlossen (tsc clean) |
+| **Aktueller Schritt** | Phase 7 — M1–M28 abgeschlossen ✅ Nächster Milestone: M29 URL-Import |
+| **Constitution-Sync** | 2026-04-17 13:28 |
 
 ## 🏁 Milestone-Fortschritt
 
@@ -30,6 +30,16 @@
 | **M16** | **Willkommensrabatt (Erstbesteller-Bonus)** | ✅ Abgeschlossen — 2026-04-06 |
 | **M17** | **Discovery-App (bizzn.de — Restaurant-Entdeckung)** | ✅ Abgeschlossen — 2026-04-06 |
 | **M18** | **Web Push Broadcast (Restaurant → alle Kunden)** | ✅ Abgeschlossen — 2026-04-07 |
+| **M19** | **Discovery Visual Upgrade** | ✅ Abgeschlossen — 2026-04-08 |
+| **M20** | **Checkout & Discovery Neubau (Slide-In)** | ✅ Abgeschlossen — 2026-04-08 |
+| **M21** | **Kundenkonto-Portal (bizzn.de/mein-konto)** | ✅ Abgeschlossen — 2026-04-08 |
+| **M22** | **Kitchen Display Vollbild-Upgrade** | ✅ Abgeschlossen — 2026-04-08 |
+| **M23** | **Local-Hero Bonuskarte (Loyalty)** | ✅ Abgeschlossen — 2026-04-08 |
+| **M24** | **Abholzeit-Slots** | ✅ Abgeschlossen — 2026-04-10 |
+| **M25** | **Online-Zahlung (Stripe Connect)** | ✅ Abgeschlossen — 2026-04-10 |
+| **M26** | **No-Show-Schutz (Blacklist)** | ✅ Abgeschlossen — 2026-04-10 |
+| **M27** | **Bizzn-Pass (Kunden-Abo 4,99 €/Monat)** | ✅ Abgeschlossen — 2026-04-17 |
+| **M28** | **Optionen, Extras & Kundennotiz** | ✅ Abgeschlossen — 2026-04-17 |
 
 ## 🛠 M18 Aktionsplan (Sub-Tasks)
 - [x] **M18.1 npm install:** `web-push @types/web-push` — 11 Packages. ✅
@@ -45,7 +55,7 @@
 - [x] **M18.Y DB-Migration:** `push_subscriptions` Tabelle + 3 RLS-Policies in Supabase Production ausgeführt + verifiziert. ✅
 
 ## 💾 Save-Game
-Alle Milestones M1–M18 vollständig abgeschlossen und produktionsbereit. M18 finale CEO-Actions erledigt: 4 VAPID-Keys in Vercel eingetragen, push_subscriptions-Tabelle + 3 RLS-Policies in Supabase Prod ausgeführt und verifiziert (7 Spalten, 3 Policies: push_subs_delete_own, push_subs_insert_anon, push_subs_select_owner). Web Push Broadcast ist jetzt in Production voll einsatzbereit. Offene Punkte: Playwright (@playwright/test) nicht installiert → TSC-Fehler in tests/e2e. <img>-Tags auf Discovery-Page (ESLint-Warning). Constitution-Sync: 2026-04-07 10:22.
+Alle Milestones M1–M28 vollständig abgeschlossen und produktionsbereit. M19–M28 umfassen: Discovery Visual Upgrade, Checkout & Slide-In Neubau, Kundenkonto-Portal, KDS Vollbild-Upgrade, Local-Hero Bonuskarte, Abholzeit-Slots, Stripe Connect Online-Zahlung, No-Show-Schutz, Bizzn-Pass Kunden-Abo, sowie Optionen/Extras/Kundennotiz. DB-Migration `20260417_m28_menu_options.sql` in Supabase Production verifiziert: Tabellen `menu_option_groups`, `menu_options`, `order_item_options` + Spalte `order_items.customer_note` existieren mit Live-Daten. TypeScript `tsc --noEmit` clean. Nächster Milestone: M29 URL-Import (Lieferando & Co.). Constitution-Sync: 2026-04-17 13:28.
 
 ## 🛠 M10 Aktionsplan (Sub-Tasks)
 - [x] **M10.1 UI Overhaul:** `menu/magic-import/page.tsx` — Dual-Tab (PDF/Bild + Text), Drag & Drop Dropzone, FileGuard (10MB, Typ-Validierung), WCAG A11y (aria-live, aria-busy, role=alert/status). ✅ Erledigt

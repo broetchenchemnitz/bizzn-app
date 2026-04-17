@@ -1,19 +1,22 @@
 'use client'
 
-import { useState, useTransition, useRef } from 'react'
+import { useState, useTransition, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Save, X, Loader2, Trash2, ImagePlus, ImageOff } from 'lucide-react'
-import { updateMenuItem, deleteMenuItem } from '@/app/actions/menu'
+import { Save, X, Loader2, Trash2, ImagePlus, ImageOff, Settings2, Plus, Copy } from 'lucide-react'
+import { updateMenuItem, deleteMenuItem, getOptionGroups, createOptionGroup, type OptionGroupWithOptions } from '@/app/actions/menu'
+import MenuOptionGroupEditor from '@/components/MenuOptionGroupEditor'
+import CopyOptionsModal from '@/components/CopyOptionsModal'
 import type { Database } from '@/types/supabase'
 
 type MenuItem = Database['public']['Tables']['menu_items']['Row']
 
 interface EditMenuItemFormProps {
   item: MenuItem
+  projectId: string
   onClose: () => void
 }
 
-export default function EditMenuItemForm({ item, onClose }: EditMenuItemFormProps) {
+export default function EditMenuItemForm({ item, projectId, onClose }: EditMenuItemFormProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [isDeleting, startDeleteTransition] = useTransition()
@@ -27,6 +30,21 @@ export default function EditMenuItemForm({ item, onClose }: EditMenuItemFormProp
   const [isActive, setIsActive] = useState(item.is_active)
   const [imageUrl, setImageUrl] = useState<string | null>(item.image_url ?? null)
   const [error, setError] = useState<string | null>(null)
+
+  // M28: Optionsgruppen
+  const [optionGroups, setOptionGroups] = useState<OptionGroupWithOptions[]>([])
+  const [optionsLoading, setOptionsLoading] = useState(true)
+  const [showCopyModal, setShowCopyModal] = useState(false)
+  const [addingGroup, setAddingGroup] = useState(false)
+  const [newGroupName, setNewGroupName] = useState('')
+
+  const loadOptionGroups = useCallback(async () => {
+    const result = await getOptionGroups(item.id)
+    if (result.data) setOptionGroups(result.data)
+    setOptionsLoading(false)
+  }, [item.id])
+
+  useEffect(() => { loadOptionGroups() }, [loadOptionGroups])
 
   const handleSave = () => {
     const priceCents = Math.round(parseFloat(priceEuro.replace(',', '.')) * 100)
@@ -116,9 +134,25 @@ export default function EditMenuItemForm({ item, onClose }: EditMenuItemFormProp
     }
   }
 
+  const handleAddGroup = () => {
+    if (!newGroupName.trim()) return
+    startTransition(async () => {
+      setError(null)
+      const result = await createOptionGroup(item.id, { name: newGroupName.trim() })
+      if (result.error) setError(result.error)
+      else {
+        setNewGroupName('')
+        setAddingGroup(false)
+        await loadOptionGroups()
+        router.refresh()
+      }
+    })
+  }
+
   const isAnyLoading = isPending || isDeleting || isUploadingImg || isDeletingImg
 
   return (
+    <>
     <div className="mt-3 bg-[#1a1a1a] border border-[#C7A17A]/30 rounded-2xl p-4 space-y-3 shadow-[0_0_20px_rgba(199,161,122,0.08)] animate-in slide-in-from-top-2 duration-200">
 
       {/* Bild-Upload */}
@@ -240,6 +274,73 @@ export default function EditMenuItemForm({ item, onClose }: EditMenuItemFormProp
         </div>
       </div>
 
+      {/* ═══ M28: Optionen & Extras ═══════════════════════════════════════ */}
+      <div className="pt-2 border-t border-gray-800">
+        <div className="flex items-center justify-between mb-2.5">
+          <div className="flex items-center gap-2">
+            <Settings2 className="w-3.5 h-3.5 text-[#C7A17A]" />
+            <span className="text-xs font-bold text-gray-300 uppercase tracking-wider">Optionen & Extras</span>
+            {optionGroups.length > 0 && (
+              <span className="text-[10px] font-semibold text-[#C7A17A]/70 bg-[#C7A17A]/10 px-1.5 py-0.5 rounded">
+                {optionGroups.length} Gruppe{optionGroups.length !== 1 ? 'n' : ''}
+              </span>
+            )}
+          </div>
+          <button
+            onClick={() => setShowCopyModal(true)}
+            className="inline-flex items-center gap-1 text-[10px] font-semibold text-gray-500 hover:text-[#C7A17A] transition-colors"
+          >
+            <Copy className="w-3 h-3" /> Von Gericht kopieren
+          </button>
+        </div>
+
+        {optionsLoading ? (
+          <div className="flex items-center justify-center py-4 gap-2 text-gray-600">
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            <span className="text-xs">Laden…</span>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {optionGroups.map(group => (
+              <MenuOptionGroupEditor
+                key={group.id}
+                group={group}
+                allGroups={optionGroups}
+                menuItemId={item.id}
+                onRefresh={loadOptionGroups}
+              />
+            ))}
+
+            {/* Neue Gruppe anlegen */}
+            {addingGroup ? (
+              <div className="flex items-center gap-2 bg-[#1a1a1a] border border-gray-700 rounded-xl px-3 py-2">
+                <input
+                  value={newGroupName}
+                  onChange={e => setNewGroupName(e.target.value)}
+                  placeholder='z.B. "Größe", "Extra Belag"'
+                  className="flex-1 bg-[#242424] border border-gray-700 focus:border-[#C7A17A]/60 rounded-lg px-2 py-1.5 text-xs text-white outline-none"
+                  autoFocus
+                  onKeyDown={e => { if (e.key === 'Enter') handleAddGroup(); if (e.key === 'Escape') { setAddingGroup(false); setNewGroupName('') } }}
+                />
+                <button onClick={handleAddGroup} disabled={isPending || !newGroupName.trim()}
+                  className="text-xs font-semibold text-[#1a1a1a] bg-[#C7A17A] hover:bg-[#B58E62] px-3 py-1.5 rounded-lg disabled:opacity-40">
+                  {isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Erstellen'}
+                </button>
+                <button onClick={() => { setAddingGroup(false); setNewGroupName('') }}
+                  className="text-xs text-gray-500 hover:text-gray-300 px-2 py-1.5">Abbrechen</button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setAddingGroup(true)}
+                className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-[#C7A17A] py-1.5 transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" /> Optionsgruppe hinzufügen
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* Error */}
       {error && (
         <p role="alert" className="text-xs text-red-400 bg-red-900/20 border border-red-900/40 px-3 py-2 rounded-lg">
@@ -283,5 +384,17 @@ export default function EditMenuItemForm({ item, onClose }: EditMenuItemFormProp
         </div>
       </div>
     </div>
+
+    {/* CopyOptions Modal */}
+    {showCopyModal && (
+      <CopyOptionsModal
+        projectId={projectId}
+        currentItemId={item.id}
+        currentItemName={item.name}
+        onClose={() => setShowCopyModal(false)}
+        onRefresh={loadOptionGroups}
+      />
+    )}
+    </>
   )
 }

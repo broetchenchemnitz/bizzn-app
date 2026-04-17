@@ -24,11 +24,20 @@ function createAdminClient() {
   )
 }
 
+export interface CartItemOption {
+  optionName: string
+  groupName: string
+  priceCents: number
+}
+
 export interface CartItem {
   menuItemId: string
   name: string
   priceInCents: number
   quantity: number
+  // M28: Gewählte Optionen + Artikelnotiz
+  selectedOptions?: CartItemOption[]
+  customerNote?: string
 }
 
 export interface PlaceOrderInput {
@@ -43,6 +52,8 @@ export interface PlaceOrderInput {
   overrideUserId?: string
   // M24: Abholzeit-Slot
   pickupSlot?: string
+  // M25: Zahlungsart — 'card' setzt payment_status='pending' (Order erst nach Zahlung im KDS)
+  paymentMode?: 'cash' | 'card'
 }
 
 // ─── M16: Erstbesteller-Prüfung ──────────────────────────────────────────────
@@ -63,6 +74,7 @@ async function isFirstTimeCustomer(
     .select('id', { count: 'exact', head: true })
     .eq('project_id', projectId)
     .eq('user_id', userId)
+    .neq('payment_status', 'failed') // Alle aufgegebenen Bestellungen zählen (außer fehlgeschlagene)
 
   return (count ?? 0) === 0
 }
@@ -83,8 +95,12 @@ export async function placeOrder(
     return { orderId: null, error: 'Bitte gib eine Lieferadresse an.' }
   }
 
+  // M28: Subtotal inkl. Options-Aufpreise
   const subtotalCents = items.reduce(
-    (sum, i) => sum + i.priceInCents * i.quantity,
+    (sum, i) => {
+      const optionsSurcharge = (i.selectedOptions ?? []).reduce((s, o) => s + o.priceCents, 0)
+      return sum + (i.priceInCents + optionsSurcharge) * i.quantity
+    },
     0
   )
 
@@ -97,7 +113,9 @@ export async function placeOrder(
   }
 
   // ── M16: Projekt-Rabatteinstellungen + M19: Liefergebühr lesen ─────────────
-  const { data: project } = await supabase
+  // Admin-Client nutzen da RLS einige Spalten (loyalty_enabled) nicht exponiert
+  const projectAdmin = createAdminClient()
+  const { data: project } = await projectAdmin
     .from('projects')
     .select('welcome_discount_enabled, welcome_discount_pct, delivery_fee_cents, min_order_cents, delivery_enabled, free_delivery_above_cents, loyalty_enabled')
     .eq('id', projectId)
@@ -109,8 +127,64 @@ export async function placeOrder(
   if (project?.welcome_discount_enabled && project.welcome_discount_pct > 0 && session.userId) {
     const isFirst = await isFirstTimeCustomer(projectId, session.userId)
     if (isFirst) {
-      discountPct = project.welcome_discount_pct
-      discountAmountCents = Math.round(subtotalCents * discountPct / 100)
+      // ── Anti-Fraud: Prüfe Mehrfach-Registrierung ───────────────────────
+      // Gleiche Telefonnummer ODER gleiche Name+Kontakt-Kombi bei anderem Account?
+      const admin = createAdminClient()
+      let fraudDetected = false
+
+      // 1. Telefonnummer-Match: Gibt es einen anderen Kunden mit gleicher Telefonnummer?
+      const { data: profile } = await admin
+        .from('customer_profiles')
+        .select('phone')
+        .eq('id', session.userId)
+        .maybeSingle()
+
+      if (profile?.phone) {
+        const normalizedPhone = profile.phone.replace(/[\s\-()]/g, '')
+        if (normalizedPhone.length >= 6) {
+          // Andere Profile mit gleicher Telefonnummer suchen
+          const { data: phoneDupes } = await admin
+            .from('customer_profiles')
+            .select('id')
+            .neq('id', session.userId)
+            .eq('phone', profile.phone)
+            .limit(1)
+
+          if (phoneDupes && phoneDupes.length > 0) {
+            // Hat einer dieser Accounts schon bei diesem Restaurant bestellt?
+            const { count: dupeOrders } = await admin
+              .from('orders')
+              .select('id', { count: 'exact', head: true })
+              .eq('project_id', projectId)
+              .in('user_id', phoneDupes.map(d => d.id))
+
+            if ((dupeOrders ?? 0) > 0) {
+              fraudDetected = true
+              console.warn(`[anti-fraud] Phone match detected for user ${session.userId} — skipping welcome discount`)
+            }
+          }
+        }
+      }
+
+      // 2. Kontakt-Fingerprint: Gleiche E-Mail-Adresse bei anderem Account
+      if (!fraudDetected && customerContact) {
+        const { count: contactCount } = await admin
+          .from('orders')
+          .select('id', { count: 'exact', head: true })
+          .eq('project_id', projectId)
+          .eq('customer_contact', customerContact)
+          .neq('user_id', session.userId)
+
+        if ((contactCount ?? 0) > 0) {
+          fraudDetected = true
+          console.warn(`[anti-fraud] Contact match detected for user ${session.userId} — skipping welcome discount`)
+        }
+      }
+
+      if (!fraudDetected) {
+        discountPct = project.welcome_discount_pct
+        discountAmountCents = Math.round(subtotalCents * discountPct / 100)
+      }
     }
   }
 
@@ -181,9 +255,11 @@ export async function placeOrder(
     loyalty_spent_cents: loyaltySpentCents,
     // M24: Abholzeit-Slot
     pickup_slot: pickupSlot ?? null,
+    // M25: Bei Kartenzahlung → payment_status 'pending' (erscheint erst nach Zahlung im KDS)
+    ...(input.paymentMode === 'card' ? { payment_status: 'pending' } : {}),
   }
 
-  const { data: order, error: orderError } = await supabase
+  const { data: order, error: orderError } = await createAdminClient()
     .from('orders')
     .insert(orderInsert)
     .select('id')
@@ -194,38 +270,65 @@ export async function placeOrder(
     return { orderId: null, error: 'Bestellung konnte nicht gespeichert werden.' }
   }
 
-  // Insert order items
-  const itemInserts: OrderItemInsert[] = items.map((item) => ({
-    order_id: order.id,
-    menu_item_id: item.menuItemId,
-    item_name: item.name,
-    quantity: item.quantity,
-    price_at_time: item.priceInCents,
-  }))
+  // Insert order items (M28: inkl. Aufpreise + Notiz)
+  const itemInserts: OrderItemInsert[] = items.map((item) => {
+    const optionsSurcharge = (item.selectedOptions ?? []).reduce((s, o) => s + o.priceCents, 0)
+    return {
+      order_id: order.id,
+      menu_item_id: item.menuItemId,
+      item_name: item.name,
+      quantity: item.quantity,
+      price_at_time: item.priceInCents + optionsSurcharge, // Gesamtpreis pro Stück inkl. Optionen
+      customer_note: item.customerNote?.trim() || null,
+    }
+  })
 
-  const { error: itemsError } = await supabase
+  const { data: insertedItems, error: itemsError } = await createAdminClient()
     .from('order_items')
     .insert(itemInserts)
+    .select('id')
 
-  if (itemsError) {
+  if (itemsError || !insertedItems) {
     console.error('placeOrder items error:', itemsError)
     return { orderId: null, error: 'Bestellpositionen konnten nicht gespeichert werden.' }
+  }
+
+  // M28: Gewählte Optionen als Snapshot speichern
+  const optionInserts: { order_item_id: string; option_name: string; option_group_name: string; price_cents: number }[] = []
+  items.forEach((item, idx) => {
+    if (item.selectedOptions?.length && insertedItems[idx]) {
+      for (const opt of item.selectedOptions) {
+        optionInserts.push({
+          order_item_id: insertedItems[idx].id,
+          option_name: opt.optionName,
+          option_group_name: opt.groupName,
+          price_cents: opt.priceCents,
+        })
+      }
+    }
+  })
+
+  if (optionInserts.length > 0) {
+    const { error: optError } = await createAdminClient()
+      .from('order_item_options')
+      .insert(optionInserts)
+    if (optError) console.error('placeOrder option inserts error:', optError)
   }
 
   // ── M23: Loyalty-Guthaben aktualisieren ──────────────────────────────────
   if (project?.loyalty_enabled && session.userId) {
     const admin = createAdminClient()
-    // M27: Bizzn-Pass-Inhaber erhalten 15 % statt 10 % Gutschrift
+    // Loyalty-Split: Bizzn-Pass-Inhaber erhalten 10 % statt 5 % Gutschrift
     const passActive = await hasBizznPass(session.userId)
-    const creditRate = passActive ? 0.15 : 0.10
+    const creditRate = passActive ? 0.10 : 0.05
     const creditCents = Math.round((subtotalCents - discountAmountCents) * creditRate)
 
     const newOrderCount = shouldRedeemLoyalty ? 0 : (loyaltyOrderCount + 1)
     const newBalance = shouldRedeemLoyalty
-      ? creditCents  // Reset + erste Gutschrift nach Einlösung
+      ? 0  // Einlösung: Guthaben komplett auf 0 zurücksetzen
       : loyaltyBalance + creditCents
 
-    await admin
+    const { error: loyaltyError } = await admin
       .from('loyalty_balances')
       .upsert(
         {
@@ -237,6 +340,7 @@ export async function placeOrder(
         },
         { onConflict: 'user_id,project_id' }
       )
+    if (loyaltyError) console.error('[Loyalty] upsert error:', loyaltyError)
   }
 
   return { orderId: order.id, error: null }

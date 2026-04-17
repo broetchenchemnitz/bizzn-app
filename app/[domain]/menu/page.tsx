@@ -32,7 +32,7 @@ async function getMenuData(slug: string) {
 
   const { data: categories } = await supabase
     .from('menu_categories')
-    .select('*, menu_items(*)')
+    .select('*, menu_items(*, menu_option_groups(*, menu_options(*)))')
     .eq('project_id', project.id)
     .order('sort_order', { ascending: true })
 
@@ -105,6 +105,7 @@ export default async function MenuPage({
         .select('id', { count: 'exact', head: true })
         .eq('project_id', project.id)
         .eq('user_id', user.id)
+        .neq('payment_status', 'failed') // Alle aufgegebenen Bestellungen zählen
       // Wenn bereits Bestellungen vorhanden → kein Willkommensrabatt mehr
       if ((count ?? 0) > 0) isEligibleForDiscount = false
     }

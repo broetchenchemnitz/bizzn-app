@@ -51,6 +51,8 @@ export interface Database {
           online_payment_enabled: boolean | null
           // M27: Drive-In
           drive_in_enabled: boolean
+          // Checkout: Barzahlung-Limit Erstbesteller
+          cash_limit_first_order_cents: number
         }
         Insert: {
           id?: string
@@ -93,6 +95,8 @@ export interface Database {
           online_payment_enabled?: boolean | null
           // M27: Drive-In
           drive_in_enabled?: boolean
+          // Checkout: Barzahlung-Limit Erstbesteller
+          cash_limit_first_order_cents?: number
         }
         Update: {
           id?: string
@@ -135,6 +139,8 @@ export interface Database {
           online_payment_enabled?: boolean | null
           // M27: Drive-In
           drive_in_enabled?: boolean
+          // Checkout: Barzahlung-Limit Erstbesteller
+          cash_limit_first_order_cents?: number
         }
         Relationships: []
       }
@@ -174,6 +180,8 @@ export interface Database {
         Row: {
           id: string
           name: string
+          first_name: string | null
+          last_name: string | null
           phone: string | null
           created_at: string
           // M26: No-Show-Schutz
@@ -185,6 +193,8 @@ export interface Database {
         Insert: {
           id: string
           name: string
+          first_name?: string | null
+          last_name?: string | null
           phone?: string | null
           created_at?: string
           // M26: No-Show-Schutz
@@ -196,6 +206,8 @@ export interface Database {
         Update: {
           id?: string
           name?: string
+          first_name?: string | null
+          last_name?: string | null
           phone?: string | null
           created_at?: string
           // M26: No-Show-Schutz
@@ -214,6 +226,11 @@ export interface Database {
           marketing_consent_push: boolean
           marketing_consent_email: boolean
           created_at: string
+          // M28: Kundenverwaltung — Pro-Restaurant-Sperre
+          is_banned: boolean
+          ban_reason: string | null
+          banned_at: string | null
+          banned_by: string | null
         }
         Insert: {
           id?: string
@@ -222,6 +239,10 @@ export interface Database {
           marketing_consent_push?: boolean
           marketing_consent_email?: boolean
           created_at?: string
+          is_banned?: boolean
+          ban_reason?: string | null
+          banned_at?: string | null
+          banned_by?: string | null
         }
         Update: {
           id?: string
@@ -230,6 +251,10 @@ export interface Database {
           marketing_consent_push?: boolean
           marketing_consent_email?: boolean
           created_at?: string
+          is_banned?: boolean
+          ban_reason?: string | null
+          banned_at?: string | null
+          banned_by?: string | null
         }
         Relationships: [
           {
@@ -466,6 +491,8 @@ export interface Database {
           item_name: string | null
           quantity: number
           price_at_time: number
+          // M28: Kundennotiz pro Artikel
+          customer_note: string | null
           created_at: string
         }
         Insert: {
@@ -475,6 +502,8 @@ export interface Database {
           item_name?: string | null
           quantity: number
           price_at_time: number
+          // M28: Kundennotiz pro Artikel
+          customer_note?: string | null
           created_at?: string
         }
         Update: {
@@ -484,6 +513,8 @@ export interface Database {
           item_name?: string | null
           quantity?: number
           price_at_time?: number
+          // M28: Kundennotiz pro Artikel
+          customer_note?: string | null
           created_at?: string
         }
         Relationships: [
@@ -575,6 +606,120 @@ export interface Database {
           updated_at?: string
         }
         Relationships: []
+      }
+      // M28: Menü-Optionsgruppen
+      menu_option_groups: {
+        Row: {
+          id: string
+          menu_item_id: string
+          name: string
+          is_required: boolean
+          min_select: number
+          max_select: number
+          sort_order: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          menu_item_id: string
+          name: string
+          is_required?: boolean
+          min_select?: number
+          max_select?: number
+          sort_order?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          menu_item_id?: string
+          name?: string
+          is_required?: boolean
+          min_select?: number
+          max_select?: number
+          sort_order?: number
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'menu_option_groups_menu_item_id_fkey'
+            columns: ['menu_item_id']
+            referencedRelation: 'menu_items'
+            referencedColumns: ['id']
+          }
+        ]
+      }
+      // M28: Menü-Optionen (Einzel-Auswahl innerhalb einer Gruppe)
+      menu_options: {
+        Row: {
+          id: string
+          option_group_id: string
+          name: string
+          price_cents: number
+          is_default: boolean
+          sort_order: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          option_group_id: string
+          name: string
+          price_cents?: number
+          is_default?: boolean
+          sort_order?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          option_group_id?: string
+          name?: string
+          price_cents?: number
+          is_default?: boolean
+          sort_order?: number
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'menu_options_option_group_id_fkey'
+            columns: ['option_group_id']
+            referencedRelation: 'menu_option_groups'
+            referencedColumns: ['id']
+          }
+        ]
+      }
+      // M28: Bestellte Optionen (Snapshot pro Bestellposition)
+      order_item_options: {
+        Row: {
+          id: string
+          order_item_id: string
+          option_name: string
+          option_group_name: string
+          price_cents: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          order_item_id: string
+          option_name: string
+          option_group_name: string
+          price_cents?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          order_item_id?: string
+          option_name?: string
+          option_group_name?: string
+          price_cents?: number
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'order_item_options_order_item_id_fkey'
+            columns: ['order_item_id']
+            referencedRelation: 'order_items'
+            referencedColumns: ['id']
+          }
+        ]
       }
     }
     Views: {

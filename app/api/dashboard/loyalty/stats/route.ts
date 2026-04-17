@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { createClient as createUserClient } from '@/utils/supabase/server'
 import type { Database } from '@/types/supabase'
 
 function createAdminClient() {
@@ -11,9 +12,29 @@ function createAdminClient() {
 
 // GET: Statistiken abrufen (aktive Teilnehmer, ausstehende Gutschriften)
 export async function GET(req: NextRequest) {
+  // ── Auth Guard: Session + Ownership ─────────────────────────────────────────
+  const supabase = await createUserClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
+    return NextResponse.json({ error: 'Nicht authentifiziert.' }, { status: 401 })
+  }
+
   const { searchParams } = new URL(req.url)
   const projectId = searchParams.get('projectId')
   if (!projectId) return NextResponse.json({ error: 'Missing projectId' }, { status: 400 })
+
+  // Ownership-Check: Nur der Projekt-Owner darf Statistiken sehen
+  const { data: project } = await supabase
+    .from('projects')
+    .select('id')
+    .eq('id', projectId)
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  if (!project) {
+    return NextResponse.json({ error: 'Keine Berechtigung.' }, { status: 403 })
+  }
 
   const admin = createAdminClient()
 

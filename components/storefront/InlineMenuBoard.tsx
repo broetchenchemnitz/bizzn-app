@@ -1,10 +1,12 @@
 'use client'
 
-import { useState, useEffect, useTransition, useCallback, useRef } from 'react'
+import { useState, useEffect, useTransition, useCallback } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { checkoutWithAuth, getCustomerSession } from '@/app/actions/checkout'
-import { signOutCustomer } from '@/app/actions/customer'
+import { checkoutWithAuth, getCustomerSession, getPaymentRestrictions } from '@/app/actions/checkout'
+import { signOutCustomer, signUpCustomer, signInCustomer } from '@/app/actions/customer'
+import { validatePhoneNumber } from '@/lib/validation'
 import type { SlotDay } from '@/app/api/slots/[slug]/route'
+import { DriveInArrivalCard } from '@/components/DriveInArrivalCard'
 import {
   ShoppingCart, Plus, Minus, Trash2, ChevronDown, ChevronLeft,
   User, Mail, Lock, Phone, CheckCircle, Loader2, Tag, LogOut, Eye, EyeOff, Clock,
@@ -13,6 +15,25 @@ import {
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
+// M28: Optionsgruppen-Typen
+interface MenuOptionItem {
+  id: string
+  name: string
+  price_cents: number
+  is_default: boolean
+  sort_order: number
+}
+
+interface MenuOptionGroup {
+  id: string
+  name: string
+  is_required: boolean
+  min_select: number
+  max_select: number
+  sort_order: number
+  menu_options: MenuOptionItem[]
+}
+
 interface MenuItem {
   id: string
   name: string
@@ -20,6 +41,7 @@ interface MenuItem {
   price: number
   is_active: boolean
   image_url: string | null
+  menu_option_groups?: MenuOptionGroup[]
 }
 
 interface Category {
@@ -28,11 +50,22 @@ interface Category {
   menu_items: MenuItem[]
 }
 
+interface SelectedOption {
+  optionId: string
+  optionName: string
+  groupName: string
+  priceCents: number
+}
+
 interface CartItem {
+  cartEntryId: string
   menuItemId: string
   name: string
   priceInCents: number
   quantity: number
+  selectedOptions: SelectedOption[]
+  optionsSurcharge: number
+  customerNote?: string
 }
 
 interface DiscountInfo { enabled: boolean; pct: number }
@@ -41,10 +74,13 @@ interface DeliveryInfo { enabled: boolean; feeCents: number; minOrderCents: numb
 interface CustomerSession {
   userId: string | null
   name: string | null
+  firstName: string | null
+  lastName: string | null
   email: string | null
+  phone: string | null
 }
 
-type View = 'menu' | 'cart' | 'checkout' | 'status'
+type View = 'menu' | 'cart' | 'auth' | 'checkout' | 'status'
 type AuthTab = 'register' | 'login'
 type OrderType = 'takeaway' | 'delivery' | 'in-store'
 type OrderStatus = 'pending' | 'preparing' | 'ready' | 'delivered' | 'cancelled'
@@ -93,6 +129,21 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
   ready: '#22c55e',
   delivered: '#C7A17A',
   cancelled: '#ef4444',
+}
+
+// M28: Migrate old cart items from localStorage (pre-M28 format → new format)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function migrateCartItem(item: any): CartItem {
+  return {
+    cartEntryId: item.cartEntryId || (typeof crypto !== 'undefined' ? crypto.randomUUID() : Math.random().toString(36)),
+    menuItemId: item.menuItemId,
+    name: item.name,
+    priceInCents: item.priceInCents,
+    quantity: item.quantity,
+    selectedOptions: item.selectedOptions ?? [],
+    optionsSurcharge: item.optionsSurcharge ?? 0,
+    customerNote: item.customerNote,
+  }
 }
 
 // ─── Style tokens ─────────────────────────────────────────────────────────────
@@ -148,6 +199,34 @@ const S = {
   }),
 }
 
+// ─── InputField (must be top-level to avoid remount on each keystroke) ─────────
+
+function InputField({
+  id, label, type = 'text', value, onChange, placeholder, icon: Icon, required, suffix
+}: {
+  id: string; label: string; type?: string; value: string
+  onChange: (v: string) => void; placeholder: string; icon: React.ElementType
+  required?: boolean; suffix?: React.ReactNode
+}) {
+  return (
+    <div>
+      <label htmlFor={id} style={S.label}>{label}{required && ' *'}</label>
+      <div style={{ position: 'relative' }}>
+        <Icon style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '15px', height: '15px', color: '#4b5563', pointerEvents: 'none' }} />
+        <input
+          id={id} type={type} value={value}
+          onChange={e => onChange(e.target.value)}
+          placeholder={placeholder}
+          style={S.input}
+          onFocus={e => (e.currentTarget.style.borderColor = 'rgba(199,161,122,0.6)')}
+          onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)')}
+        />
+        {suffix && <div style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)' }}>{suffix}</div>}
+      </div>
+    </div>
+  )
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function InlineMenuBoard({ projectId, slug, categories, discountInfo, deliveryInfo, cartKey, inStoreEnabled = false, tableNumber = null, pickupSlotsEnabled = false, stripeEnabled = false, stripePublishableKey }: Props) {
@@ -160,7 +239,8 @@ export default function InlineMenuBoard({ projectId, slug, categories, discountI
 
   // Auth fields
   const [authTab, setAuthTab] = useState<AuthTab>('register')
-  const [name, setName] = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
@@ -181,9 +261,27 @@ export default function InlineMenuBoard({ projectId, slug, categories, discountI
   const [stripeInstance, setStripeInstance] = useState<import('@stripe/stripe-js').Stripe | null>(null)
   const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null)
   const [stripeLoading, setStripeLoading] = useState(false)
-  const stripeContainerRef = useRef<HTMLDivElement>(null)
+
+  // Barzahlung-Limit
+  const [payRestrictions, setPayRestrictions] = useState<{
+    isFirstOrder: boolean
+    isBlacklisted: boolean
+    blacklistReason: string | null
+    cashLimitCents: number
+    isBanned: boolean
+    banReason: string | null
+  } | null>(null)
+
+  // M23: Loyalty-Guthaben
+  const [loyaltyInfo, setLoyaltyInfo] = useState<{
+    balanceCents: number
+    orderCount: number
+    willRedeem: boolean
+    redeemCents: number
+  } | null>(null)
 
   const [isPending, startTransition] = useTransition()
+  const [authPending, setAuthPending] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
 
   // Order status
@@ -191,6 +289,28 @@ export default function InlineMenuBoard({ projectId, slug, categories, discountI
   const [orderStatus, setOrderStatus] = useState<OrderStatus>('pending')
   const [orderItems, setOrderItems] = useState<CartItem[]>([])
   const [orderTotal, setOrderTotal] = useState(0)
+
+  // M27b: Drive-In Status
+  const [driveIn, setDriveIn] = useState<{
+    eligible: boolean
+    arrived: boolean
+    plate: string | null
+  } | null>(null)
+
+  // M28: Options Drawer
+  const [drawerItem, setDrawerItem] = useState<MenuItem | null>(null)
+  const [drawerSelections, setDrawerSelections] = useState<Map<string, Set<string>>>(new Map())
+  const [drawerQty, setDrawerQty] = useState(1)
+  const [drawerNote, setDrawerNote] = useState('')
+
+  // ── M27b: Drive-In Status laden ───────────────────────────────────────────
+  useEffect(() => {
+    if (!orderId) return
+    fetch(`/api/drive-in/status?orderId=${orderId}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setDriveIn(d) })
+      .catch(() => {})
+  }, [orderId])
 
   // ── Live Status: Realtime + Polling Fallback ──────────────────────────────
   useEffect(() => {
@@ -240,17 +360,56 @@ export default function InlineMenuBoard({ projectId, slug, categories, discountI
         setSession(s)
         if (s.userId) {
           // Eingeloggt: Gespeicherten Cart laden & Formular vorausfüllen
-          if (s.name) setName(s.name)
+          getPaymentRestrictions(projectId).then(r => {
+            setPayRestrictions(r)
+            // Gebannter Kunde → sofort ausloggen
+            if (r.isBanned) {
+              signOutCustomer().then(() => {
+                setSession({ userId: null, name: null, firstName: null, lastName: null, email: null, phone: null })
+                setFormError(`🚫 Dein Konto ist bei diesem Restaurant gesperrt.${r.banReason ? ` Grund: ${r.banReason}` : ''} Bitte kontaktiere das Restaurant.`)
+              })
+              return
+            }
+          }).catch(() => {})
+          if (s.firstName) setFirstName(s.firstName)
+          if (s.lastName) setLastName(s.lastName)
           if (s.email) setEmail(s.email)
+          if (s.phone) setPhone(s.phone)
           try {
             const saved = localStorage.getItem(cartKey)
             if (saved) {
-              const items = JSON.parse(saved) as CartItem[]
+              const items = (JSON.parse(saved) as CartItem[]).map(migrateCartItem)
               if (items.length > 0) {
                 setCartRaw(items)
               }
             }
           } catch { /**/ }
+
+          // M23: Loyalty-Balance laden
+          fetch(`/api/loyalty/balance`)
+            .then(r => r.json())
+            .then((balances: { project_id: string; balance_cents: number; order_count: number; last_order_at: string | null }[]) => {
+              const b = Array.isArray(balances) ? balances.find(lb => lb.project_id === projectId) : null
+              if (b && b.balance_cents > 0) {
+                // 90-Tage-Verfall prüfen
+                let effectiveBalance = b.balance_cents
+                let effectiveCount = b.order_count
+                if (b.last_order_at) {
+                  const daysSince = (Date.now() - new Date(b.last_order_at).getTime()) / (1000 * 60 * 60 * 24)
+                  if (daysSince > 90) { effectiveBalance = 0; effectiveCount = 0 }
+                }
+                const willRedeem = (effectiveCount + 1) >= 6 && effectiveBalance > 0
+                setLoyaltyInfo({
+                  balanceCents: effectiveBalance,
+                  orderCount: effectiveCount,
+                  willRedeem,
+                  redeemCents: 0, // wird in Pricing berechnet
+                })
+              } else {
+                setLoyaltyInfo(null)
+              }
+            })
+            .catch(() => { /* ignorieren */ })
         } else {
           // Nicht eingeloggt: Cart aus localStorage löschen (Logout-Schutz)
           try { localStorage.removeItem(cartKey) } catch { /**/ }
@@ -263,7 +422,7 @@ export default function InlineMenuBoard({ projectId, slug, categories, discountI
         try {
           const saved = localStorage.getItem(cartKey)
           if (saved) {
-            const items = JSON.parse(saved) as CartItem[]
+            const items = (JSON.parse(saved) as CartItem[]).map(migrateCartItem)
             if (items.length > 0) setCartRaw(items)
           }
         } catch { /**/ }
@@ -296,15 +455,58 @@ export default function InlineMenuBoard({ projectId, slug, categories, discountI
   }
 
   const addToCart = (item: MenuItem) => {
+    const groups = (item.menu_option_groups ?? []).filter(g => g.menu_options?.length > 0)
+    if (groups.length > 0) {
+      // Has options → open drawer
+      setDrawerItem(item)
+      setDrawerQty(1)
+      setDrawerNote('')
+      // Pre-select defaults
+      const defaults = new Map<string, Set<string>>()
+      groups.forEach(g => {
+        const defaultOpts = g.menu_options.filter(o => o.is_default)
+        if (defaultOpts.length > 0) defaults.set(g.id, new Set(defaultOpts.map(o => o.id)))
+        else defaults.set(g.id, new Set())
+      })
+      setDrawerSelections(defaults)
+      return
+    }
+    // No options → add directly
     setCart(prev => {
-      const ex = prev.find(c => c.menuItemId === item.id)
-      if (ex) return prev.map(c => c.menuItemId === item.id ? { ...c, quantity: c.quantity + 1 } : c)
-      return [...prev, { menuItemId: item.id, name: item.name, priceInCents: item.price, quantity: 1 }]
+      const ex = prev.find(c => c.menuItemId === item.id && (c.selectedOptions ?? []).length === 0)
+      if (ex) return prev.map(c => c.cartEntryId === ex.cartEntryId ? { ...c, quantity: c.quantity + 1 } : c)
+      return [...prev, { cartEntryId: crypto.randomUUID(), menuItemId: item.id, name: item.name, priceInCents: item.price, quantity: 1, selectedOptions: [], optionsSurcharge: 0 }]
     })
   }
 
-  const changeQty = (menuItemId: string, delta: number) => {
-    setCart(prev => prev.map(c => c.menuItemId === menuItemId ? { ...c, quantity: c.quantity + delta } : c).filter(c => c.quantity > 0))
+  const addToCartWithOptions = () => {
+    if (!drawerItem) return
+    const groups = (drawerItem.menu_option_groups ?? [])
+    const allOptions: SelectedOption[] = []
+    for (const g of groups) {
+      const selected = drawerSelections.get(g.id) ?? new Set()
+      for (const optId of selected) {
+        const opt = g.menu_options.find(o => o.id === optId)
+        if (opt) allOptions.push({ optionId: opt.id, optionName: opt.name, groupName: g.name, priceCents: opt.price_cents })
+      }
+    }
+    const surcharge = allOptions.reduce((s, o) => s + o.priceCents, 0)
+    const entry: CartItem = {
+      cartEntryId: crypto.randomUUID(),
+      menuItemId: drawerItem.id,
+      name: drawerItem.name,
+      priceInCents: drawerItem.price,
+      quantity: drawerQty,
+      selectedOptions: allOptions,
+      optionsSurcharge: surcharge,
+      customerNote: drawerNote.trim() || undefined,
+    }
+    setCart(prev => [...prev, entry])
+    setDrawerItem(null)
+  }
+
+  const changeQty = (cartEntryId: string, delta: number) => {
+    setCart(prev => prev.map(c => c.cartEntryId === cartEntryId ? { ...c, quantity: c.quantity + delta } : c).filter(c => c.quantity > 0))
   }
 
   const clearCart = () => {
@@ -314,23 +516,48 @@ export default function InlineMenuBoard({ projectId, slug, categories, discountI
 
   // ── Pricing ───────────────────────────────────────────────────────────────
   const totalItems = cart.reduce((s, i) => s + i.quantity, 0)
-  const subtotalCents = cart.reduce((s, i) => s + i.priceInCents * i.quantity, 0)
-  const showDiscount = !!(discountInfo.enabled && discountInfo.pct > 0)
+  // M28: Subtotal inkl. Options-Aufpreise
+  const subtotalCents = cart.reduce((s, i) => s + (i.priceInCents + i.optionsSurcharge) * i.quantity, 0)
+  // Rabatt: Eingeloggt → clientseitige DB-Prüfung (payRestrictions) als Source-of-Truth
+  const discountProjectEnabled = discountInfo.pct > 0 // Restaurant hat Willkommensrabatt konfiguriert
+  const isEligibleForDiscount = session?.userId
+    ? (payRestrictions ? payRestrictions.isFirstOrder : discountInfo.enabled) // eingeloggt: live DB-Check, Fallback Server-Prop
+    : discountInfo.enabled // nicht eingeloggt: Server-Prop
+  const showDiscount = !!(isEligibleForDiscount && discountProjectEnabled && session?.userId)
   const discountCents = showDiscount ? Math.round(subtotalCents * discountInfo.pct / 100) : 0
   const freeAbove = deliveryInfo.freeAboveCents
   const freeReached = freeAbove > 0 && subtotalCents >= freeAbove
   const deliveryFeeCents = (orderType === 'delivery' && !freeReached) ? (deliveryInfo.feeCents ?? 0) : 0
-  const totalCents = subtotalCents - discountCents + deliveryFeeCents
+  const totalBeforeLoyalty = subtotalCents - discountCents + deliveryFeeCents
+
+  // M23: Loyalty-Abzug nur im Checkout anzeigen (nicht beim Speisen-Browsing)
+  const isCheckoutView = view === 'checkout'
+  const loyaltyRedeemCents = (isCheckoutView && loyaltyInfo?.willRedeem && loyaltyInfo.balanceCents > 0)
+    ? Math.min(loyaltyInfo.balanceCents, totalBeforeLoyalty)
+    : 0
+  const loyaltyLostCents = (isCheckoutView && loyaltyInfo?.willRedeem && loyaltyInfo.balanceCents > totalBeforeLoyalty)
+    ? loyaltyInfo.balanceCents - totalBeforeLoyalty
+    : 0
+  const totalCents = totalBeforeLoyalty - loyaltyRedeemCents
+  const loyaltyCoversAll = loyaltyRedeemCents > 0 && totalCents <= 0
 
   const minOrderCents = deliveryInfo.minOrderCents ?? 0
   const belowMin = orderType === 'delivery' && minOrderCents > 0 && subtotalCents < minOrderCents
 
-  // ── M25: Stripe lazy-init when card payment selected ─────────────────────
-  const mountStripeElements = useCallback(async (clientSecret: string) => {
-    if (!stripePublishableKey || !stripeContainerRef.current) return
+  // ── M25: Stripe mounten (imperativ aufgerufen aus runCardFlow) ─────────────
+  const mountStripe = async (clientSecret: string) => {
     const { loadStripe } = await import('@stripe/stripe-js')
-    const stripe = await loadStripe(stripePublishableKey)
-    if (!stripe || !stripeContainerRef.current) return
+    const stripe = await loadStripe(stripePublishableKey!)
+    if (!stripe) { setStripeLoading(false); return }
+
+    // Warten bis der Container im DOM ist (React State-Update muss erst re-rendern)
+    let container: HTMLElement | null = null
+    for (let i = 0; i < 40; i++) {
+      container = document.getElementById('stripe-payment-element')
+      if (container) break
+      await new Promise<void>(resolve => setTimeout(resolve, 50))
+    }
+    if (!container) { setStripeLoading(false); return }
 
     const elements = stripe.elements({
       clientSecret,
@@ -347,10 +574,31 @@ export default function InlineMenuBoard({ projectId, slug, categories, discountI
       },
     })
     const paymentElement = elements.create('payment')
-    paymentElement.mount(stripeContainerRef.current)
+    paymentElement.mount(container)
     setStripeInstance(stripe)
     setStripeElements(elements)
-  }, [stripePublishableKey])
+    paymentElement.on('ready', () => setStripeLoading(false))
+  }
+
+  // ── Loyalty nach Bestellung neu laden ──────────────────────────────────────
+  const reloadLoyalty = () => {
+    fetch(`/api/loyalty/balance`)
+      .then(r => r.ok ? r.json() : [])
+      .then((all: { project_id: string; balance_cents: number; order_count: number; last_order_at: string | null }[]) => {
+        const b = all.find((x: { project_id: string }) => x.project_id === projectId)
+        if (b) {
+          let effectiveBalance = b.balance_cents
+          let effectiveCount = b.order_count
+          if (b.last_order_at) {
+            const daysSince = (Date.now() - new Date(b.last_order_at).getTime()) / (1000 * 60 * 60 * 24)
+            if (daysSince > 90) { effectiveBalance = 0; effectiveCount = 0 }
+          }
+          const willRedeem = (effectiveCount + 1) >= 6 && effectiveBalance > 0
+          setLoyaltyInfo({ balanceCents: effectiveBalance, orderCount: effectiveCount, willRedeem, redeemCents: 0 })
+        }
+      })
+      .catch(() => {})
+  }
 
   // ── Submit (Cash) ─────────────────────────────────────────────────────────
   const submitOrder = useCallback(async () => {
@@ -358,21 +606,37 @@ export default function InlineMenuBoard({ projectId, slug, categories, discountI
       ? `${deliveryStreet.trim()}, ${deliveryZip.trim()} ${deliveryCity.trim()}`
       : undefined
     const pickupSlotLabel = selectedSlot || undefined
-    const mode = session?.userId ? 'existing' : authTab === 'register' ? 'register' : 'login'
+    // Auth ist bereits abgeschlossen (im Auth-View) — immer 'existing'
+    const mode = 'existing' as const
+
+    // M28: Map cart items → server action format (strip optionId, include customerNote)
+    const serverItems = cart.map(c => ({
+      menuItemId: c.menuItemId,
+      name: c.name,
+      priceInCents: c.priceInCents,
+      quantity: c.quantity,
+      selectedOptions: (c.selectedOptions ?? []).map(o => ({
+        optionName: o.optionName,
+        groupName: o.groupName,
+        priceCents: o.priceCents,
+      })),
+      customerNote: c.customerNote,
+    }))
 
     const result = await checkoutWithAuth({
       mode,
       projectId,
-      name: name.trim(),
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
       email: email.trim(),
       password,
       phone: phone.trim(),
-      items: cart,
+      items: serverItems,
       orderType,
       deliveryAddress,
       tableNumber: tableNumber ?? undefined,
       pickupSlot: pickupSlotLabel,
-      paymentMode: paymentMethod, // M26: Bar vs. Karte
+      paymentMode: paymentMethod,
     })
 
     return result
@@ -380,10 +644,10 @@ export default function InlineMenuBoard({ projectId, slug, categories, discountI
 
   const handleCheckout = () => {
     setFormError(null)
-    if (!name.trim()) { setFormError('Bitte gib deinen Namen ein.'); return }
-    if (!email.trim()) { setFormError('Bitte gib deine E-Mail ein.'); return }
-    if (!phone.trim()) { setFormError('Bitte gib deine Telefonnummer ein.'); return }
-    if (!session?.userId && password.length < 6) { setFormError('Passwort muss mind. 6 Zeichen haben.'); return }
+
+    // User muss eingeloggt sein (sollte durch den Auth-View sichergestellt sein)
+    if (!session?.userId) { setView('auth'); return }
+
     if (orderType === 'delivery') {
       if (!deliveryStreet.trim() || !deliveryZip.trim() || !deliveryCity.trim()) {
         setFormError('Bitte gib deine vollständige Lieferadresse ein.'); return
@@ -392,8 +656,9 @@ export default function InlineMenuBoard({ projectId, slug, categories, discountI
     }
 
     if (paymentMethod === 'card') {
-      // ── Card Flow: Order anlegen → Payment Intent → Stripe confirm
-      startTransition(async () => {
+      // ── Card Flow (kein startTransition — sonst deferred React den Render
+      //    und der Stripe-Container erscheint nicht rechtzeitig im DOM)
+      const runCardFlow = async () => {
         // 1. Bestellung aufgeben
         const result = await submitOrder()
         if (result.error) { setFormError(result.error); return }
@@ -404,31 +669,42 @@ export default function InlineMenuBoard({ projectId, slug, categories, discountI
         setOrderItems([...cart])
         setOrderTotal(totalCents)
 
-        // 2. Payment Intent erstellen
+        // 2. Loyalty deckt alles ab? → Direkt als bezahlt markieren
+        if (loyaltyCoversAll) {
+          clearCart()
+          setView('status')
+          reloadLoyalty()
+          getCustomerSession().then(s => { setSession(s); if (s.userId) getPaymentRestrictions(projectId).then(setPayRestrictions).catch(() => {}) })
+          return
+        }
+
+        // 3. Payment Intent erstellen (mit reduziertem Betrag)
+        const chargeAmount = Math.max(50, totalCents) // Stripe minimum: 50 Cent
         setStripeLoading(true)
         const piRes = await fetch('/api/stripe/create-payment-intent', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ projectId, amountCents: totalCents, orderId: newOrderId }),
+          body: JSON.stringify({ projectId, amountCents: chargeAmount, orderId: newOrderId }),
         })
-        setStripeLoading(false)
         const piText = await piRes.text()
         let piJson: { clientSecret?: string; error?: string } = {}
         try { piJson = JSON.parse(piText) } catch {
+          setStripeLoading(false)
           setFormError('Stripe-Fehler. Bitte versuche Barzahlung.')
           return
         }
 
         if (piJson.error || !piJson.clientSecret) {
+          setStripeLoading(false)
           setFormError(piJson.error ?? 'Stripe-Fehler. Bitte versuche Barzahlung.')
           return
         }
 
+        // 4. clientSecret setzen → Container div erscheint → dann Stripe mounten
         setStripeClientSecret(piJson.clientSecret)
-
-        // 3. Stripe Elements mounten (nächster Render, dann confirm)
-        await mountStripeElements(piJson.clientSecret)
-      })
+        await mountStripe(piJson.clientSecret)
+      }
+      void runCardFlow()
       return
     }
 
@@ -442,7 +718,8 @@ export default function InlineMenuBoard({ projectId, slug, categories, discountI
         setOrderTotal(totalCents)
         clearCart()
         setView('status')
-        getCustomerSession().then(setSession)
+        reloadLoyalty()
+        getCustomerSession().then(s => { setSession(s); if (s.userId) getPaymentRestrictions(projectId).then(setPayRestrictions).catch(() => {}) })
       }
     })
   }
@@ -463,10 +740,25 @@ export default function InlineMenuBoard({ projectId, slug, categories, discountI
         setFormError(error.message ?? 'Zahlung fehlgeschlagen. Bitte versuche es erneut.')
         return
       }
-      // Payment succeeded without redirect (e.g. Google/Apple Pay)
+      // Payment succeeded without redirect (e.g. Google/Apple Pay, test cards)
+      // → Sofort payment_status auf 'paid' setzen (statt auf Webhook zu warten)
+      if (orderId) {
+        fetch('/api/stripe/confirm-paid', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderId }),
+        }).then(() => {
+          // Drive-In Status laden nachdem payment_status aktualisiert wurde
+          fetch(`/api/drive-in/status?orderId=${orderId}`)
+            .then(r => r.ok ? r.json() : null)
+            .then(d => { if (d) setDriveIn(d) })
+            .catch(() => {})
+        }).catch(() => {})
+      }
       clearCart()
       setView('status')
-      getCustomerSession().then(setSession)
+      reloadLoyalty()
+      getCustomerSession().then(s => { setSession(s); if (s.userId) getPaymentRestrictions(projectId).then(setPayRestrictions).catch(() => {}) })
     })
   }
 
@@ -493,8 +785,9 @@ export default function InlineMenuBoard({ projectId, slug, categories, discountI
         setOrderTotal(totalCents)
         clearCart()
         setView('status')
+        reloadLoyalty()
         if (session?.userId) {
-          getCustomerSession().then(setSession)
+          getCustomerSession().then(s => { setSession(s); if (s.userId) getPaymentRestrictions(projectId).then(setPayRestrictions).catch(() => {}) })
         }
       }
     })
@@ -502,36 +795,26 @@ export default function InlineMenuBoard({ projectId, slug, categories, discountI
 
   // ── Render helpers ────────────────────────────────────────────────────────
 
-  const InputField = ({
-    id, label, type = 'text', value, onChange, placeholder, icon: Icon, required,
-    suffix
-  }: {
-    id: string; label: string; type?: string; value: string
-    onChange: (v: string) => void; placeholder: string; icon: React.ElementType
-    required?: boolean; suffix?: React.ReactNode
-  }) => (
-    <div>
-      <label htmlFor={id} style={S.label}>{label}{required && ' *'}</label>
-      <div style={{ position: 'relative' }}>
-        <Icon style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '15px', height: '15px', color: '#4b5563', pointerEvents: 'none' }} />
-        <input
-          id={id} type={type} value={value}
-          onChange={e => onChange(e.target.value)}
-          placeholder={placeholder}
-          style={S.input}
-          onFocus={e => (e.currentTarget.style.borderColor = 'rgba(199,161,122,0.6)')}
-          onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)')}
-        />
-        {suffix && <div style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)' }}>{suffix}</div>}
-      </div>
-    </div>
-  )
-
   // ════════════════════════════════════════════════════════════════════════════
   // VIEW: MENU
   // ════════════════════════════════════════════════════════════════════════════
   if (view === 'menu') return (
     <div style={{ background: '#0d0d0d', minHeight: '100%' }}>
+      {/* Hinweis: Weitere Restaurants auf Bizzn */}
+      <button
+        onClick={() => window.dispatchEvent(new CustomEvent('bizzn:close-panel'))}
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+          width: '100%', padding: '8px 16px', fontSize: '11px', fontWeight: 600,
+          color: '#C7A17A', background: 'rgba(199,161,122,0.05)',
+          borderBottom: '1px solid rgba(199,161,122,0.1)',
+          border: 'none', cursor: 'pointer', transition: 'background 0.15s',
+        }}
+        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(199,161,122,0.1)')}
+        onMouseLeave={e => (e.currentTarget.style.background = 'rgba(199,161,122,0.05)')}
+      >
+        🍽️ Entdecke weitere Restaurants auf Bizzn →
+      </button>
       {/* Category List */}
       <div style={{ padding: '16px', paddingBottom: '120px' }}>
         {categories.length === 0 ? (
@@ -558,14 +841,18 @@ export default function InlineMenuBoard({ projectId, slug, categories, discountI
               {!isCollapsed && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {activeItems.map(item => {
-                    const inCart = cart.find(c => c.menuItemId === item.id)
                     return (
                       <div key={item.id} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.07)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px' }}>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <p style={{ color: '#f0f0f0', fontWeight: 700, fontSize: '14px', margin: '0 0 2px' }}>{item.name}</p>
                             {item.description && <p style={{ color: '#6b7280', fontSize: '12px', margin: '0 0 4px', lineHeight: '1.4', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{item.description}</p>}
-                            <p style={{ color: '#C7A17A', fontWeight: 800, fontSize: '14px', margin: 0 }}>{eur(item.price)}</p>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <p style={{ color: '#C7A17A', fontWeight: 800, fontSize: '14px', margin: 0 }}>{eur(item.price)}</p>
+                              {(item.menu_option_groups ?? []).some(g => g.menu_options?.length > 0) && (
+                                <span style={{ fontSize: '10px', color: '#9ca3af', background: 'rgba(255,255,255,0.06)', padding: '2px 6px', borderRadius: '6px' }}>⚙️ Optionen</span>
+                              )}
+                            </div>
                           </div>
 
                           {item.image_url && (
@@ -576,17 +863,24 @@ export default function InlineMenuBoard({ projectId, slug, categories, discountI
                           )}
 
                           <div style={{ flexShrink: 0 }}>
-                            {inCart ? (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <button onClick={() => changeQty(item.id, -1)} style={{ width: '30px', height: '30px', borderRadius: '8px', background: 'rgba(255,255,255,0.1)', border: 'none', cursor: 'pointer', color: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Minus style={{ width: '13px', height: '13px' }} /></button>
-                                <span style={{ color: '#f0f0f0', fontWeight: 800, fontSize: '14px', minWidth: '16px', textAlign: 'center' }}>{inCart.quantity}</span>
-                                <button onClick={() => changeQty(item.id, 1)} style={{ width: '30px', height: '30px', borderRadius: '8px', background: '#C7A17A', border: 'none', cursor: 'pointer', color: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Plus style={{ width: '13px', height: '13px' }} /></button>
-                              </div>
-                            ) : (
-                              <button onClick={() => addToCart(item)} style={{ width: '34px', height: '34px', borderRadius: '10px', background: 'rgba(199,161,122,0.15)', border: '1px solid rgba(199,161,122,0.2)', cursor: 'pointer', color: '#C7A17A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <Plus style={{ width: '16px', height: '16px' }} />
-                              </button>
-                            )}
+                            {(() => {
+                              const hasOptions = (item.menu_option_groups ?? []).some(g => g.menu_options?.length > 0)
+                              const inCartCount = cart.filter(c => c.menuItemId === item.id).reduce((s, c) => s + c.quantity, 0)
+                              return inCartCount > 0 && !hasOptions ? (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <button onClick={() => { const entry = cart.find(c => c.menuItemId === item.id); if (entry) changeQty(entry.cartEntryId, -1) }} style={{ width: '30px', height: '30px', borderRadius: '8px', background: 'rgba(255,255,255,0.1)', border: 'none', cursor: 'pointer', color: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Minus style={{ width: '13px', height: '13px' }} /></button>
+                                  <span style={{ color: '#f0f0f0', fontWeight: 800, fontSize: '14px', minWidth: '16px', textAlign: 'center' }}>{inCartCount}</span>
+                                  <button onClick={() => addToCart(item)} style={{ width: '30px', height: '30px', borderRadius: '8px', background: '#C7A17A', border: 'none', cursor: 'pointer', color: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Plus style={{ width: '13px', height: '13px' }} /></button>
+                                </div>
+                              ) : (
+                                <button onClick={() => addToCart(item)} style={{ position: 'relative', width: '34px', height: '34px', borderRadius: '10px', background: 'rgba(199,161,122,0.15)', border: '1px solid rgba(199,161,122,0.2)', cursor: 'pointer', color: '#C7A17A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                  <Plus style={{ width: '16px', height: '16px' }} />
+                                  {inCartCount > 0 && (
+                                    <span style={{ position: 'absolute', top: '-4px', right: '-4px', width: '16px', height: '16px', borderRadius: '50%', background: '#C7A17A', color: '#111', fontSize: '10px', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{inCartCount}</span>
+                                  )}
+                                </button>
+                              )
+                            })()}
                           </div>
                         </div>
                       </div>
@@ -612,6 +906,206 @@ export default function InlineMenuBoard({ projectId, slug, categories, discountI
           </button>
         </div>
       )}
+
+      {/* ══ M28: Options Drawer (Bottom Sheet) ══════════════════════════════════ */}
+      {drawerItem && (() => {
+        const groups = (drawerItem.menu_option_groups ?? [])
+          .filter(g => g.menu_options?.length > 0)
+          .sort((a, b) => a.sort_order - b.sort_order)
+
+        // Validation
+        const missingRequired = groups.filter(g => {
+          if (!g.is_required) return false
+          const selected = drawerSelections.get(g.id) ?? new Set()
+          return selected.size < g.min_select || selected.size === 0
+        })
+        const canAdd = missingRequired.length === 0
+
+        // Live price
+        let surcharge = 0
+        for (const g of groups) {
+          const sel = drawerSelections.get(g.id) ?? new Set()
+          for (const optId of sel) {
+            const opt = g.menu_options.find(o => o.id === optId)
+            if (opt) surcharge += opt.price_cents
+          }
+        }
+        const drawerTotal = (drawerItem.price + surcharge) * drawerQty
+
+        const toggleOption = (groupId: string, optionId: string, maxSelect: number) => {
+          setDrawerSelections(prev => {
+            const next = new Map(prev)
+            const current = new Set(next.get(groupId) ?? [])
+            if (current.has(optionId)) {
+              current.delete(optionId)
+            } else {
+              if (maxSelect === 1) {
+                // Radio: nur eine Auswahl
+                current.clear()
+                current.add(optionId)
+              } else if (current.size < maxSelect) {
+                current.add(optionId)
+              }
+            }
+            next.set(groupId, current)
+            return next
+          })
+        }
+
+        return (
+          <div
+            style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
+            onClick={() => setDrawerItem(null)}
+          >
+            <div
+              onClick={e => e.stopPropagation()}
+              style={{
+                background: '#141414', borderRadius: '20px 20px 0 0', width: '100%', maxWidth: '480px',
+                maxHeight: '85vh', display: 'flex', flexDirection: 'column',
+                boxShadow: '0 -10px 40px rgba(0,0,0,0.5)',
+                animation: 'slideUpDrawer 0.25s ease-out',
+              }}
+            >
+              <style>{`@keyframes slideUpDrawer { from { transform: translateY(100%); } to { transform: translateY(0); } }`}</style>
+
+              {/* Header */}
+              <div style={{ padding: '16px 20px 12px', borderBottom: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ color: '#f0f0f0', fontWeight: 900, fontSize: '18px', margin: '0 0 4px' }}>{drawerItem.name}</p>
+                    {drawerItem.description && <p style={{ color: '#6b7280', fontSize: '12px', margin: '0 0 6px', lineHeight: '1.4' }}>{drawerItem.description}</p>}
+                    <p style={{ color: '#C7A17A', fontWeight: 800, fontSize: '15px', margin: 0 }}>ab {eur(drawerItem.price)}</p>
+                  </div>
+                  <button onClick={() => setDrawerItem(null)} style={{ background: 'rgba(255,255,255,0.08)', border: 'none', borderRadius: '10px', width: '32px', height: '32px', cursor: 'pointer', color: '#9ca3af', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0 }}>✕</button>
+                </div>
+              </div>
+
+              {/* Scrollable Options */}
+              <div style={{ flex: 1, overflow: 'auto', padding: '12px 20px' }}>
+                {groups.map(g => {
+                  const selected = drawerSelections.get(g.id) ?? new Set()
+                  const isRadio = g.max_select === 1
+                  const selectLabel = g.is_required
+                    ? (g.min_select === g.max_select ? `genau ${g.min_select}` : `${g.min_select}–${g.max_select}`)
+                    : (g.max_select > 1 ? `bis zu ${g.max_select}` : 'optional')
+                  const isMissing = missingRequired.includes(g)
+
+                  return (
+                    <div key={g.id} style={{ marginBottom: '16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                        <p style={{ color: '#f0f0f0', fontWeight: 800, fontSize: '13px', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{g.name}</p>
+                        <span style={{
+                          fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '6px',
+                          background: g.is_required ? (isMissing ? 'rgba(239,68,68,0.15)' : 'rgba(199,161,122,0.12)') : 'rgba(255,255,255,0.06)',
+                          color: g.is_required ? (isMissing ? '#f87171' : '#C7A17A') : '#6b7280',
+                          border: `1px solid ${g.is_required ? (isMissing ? 'rgba(239,68,68,0.3)' : 'rgba(199,161,122,0.25)') : 'rgba(255,255,255,0.08)'}`,
+                        }}>
+                          {g.is_required ? 'Pflicht' : 'Optional'} · {selectLabel}
+                        </span>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        {g.menu_options.sort((a, b) => a.sort_order - b.sort_order).map(opt => {
+                          const isSelected = selected.has(opt.id)
+                          return (
+                            <button
+                              key={opt.id}
+                              onClick={() => toggleOption(g.id, opt.id, g.max_select)}
+                              style={{
+                                display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px',
+                                borderRadius: '10px', border: '1px solid', cursor: 'pointer', width: '100%', textAlign: 'left',
+                                background: isSelected ? 'rgba(199,161,122,0.1)' : 'rgba(255,255,255,0.03)',
+                                borderColor: isSelected ? 'rgba(199,161,122,0.4)' : 'rgba(255,255,255,0.07)',
+                                transition: 'all 0.15s',
+                              }}
+                            >
+                              {/* Radio / Checkbox indicator */}
+                              <div style={{
+                                width: '20px', height: '20px', borderRadius: isRadio ? '50%' : '6px',
+                                border: `2px solid ${isSelected ? '#C7A17A' : 'rgba(255,255,255,0.2)'}`,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                                background: isSelected ? '#C7A17A' : 'transparent', transition: 'all 0.15s',
+                              }}>
+                                {isSelected && (
+                                  isRadio
+                                    ? <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#111' }} />
+                                    : <span style={{ color: '#111', fontSize: '12px', fontWeight: 900 }}>✓</span>
+                                )}
+                              </div>
+                              <span style={{ flex: 1, color: isSelected ? '#f0f0f0' : '#9ca3af', fontSize: '14px', fontWeight: isSelected ? 700 : 500 }}>{opt.name}</span>
+                              {opt.price_cents > 0 && (
+                                <span style={{ color: '#C7A17A', fontSize: '13px', fontWeight: 700, whiteSpace: 'nowrap' }}>+{eur(opt.price_cents)}</span>
+                              )}
+                              {opt.price_cents === 0 && (
+                                <span style={{ color: '#4b5563', fontSize: '12px' }}>inklusive</span>
+                              )}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )
+                })}
+
+                {/* Artikelnotiz */}
+                <div style={{ marginBottom: '12px' }}>
+                  <p style={{ color: '#6b7280', fontWeight: 700, fontSize: '11px', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>📝 Anmerkung (optional)</p>
+                  <textarea
+                    value={drawerNote}
+                    onChange={e => setDrawerNote(e.target.value)}
+                    placeholder="z.B. ohne Zwiebeln, extra scharf…"
+                    rows={2}
+                    style={{
+                      width: '100%', padding: '10px 12px', borderRadius: '10px',
+                      background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                      color: '#f0f0f0', fontSize: '13px', outline: 'none', resize: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                    onFocus={e => (e.currentTarget.style.borderColor = 'rgba(199,161,122,0.5)')}
+                    onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)')}
+                  />
+                </div>
+              </div>
+
+              {/* Footer: Quantity + Add Button */}
+              <div style={{ padding: '12px 20px 20px', borderTop: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
+                {/* Quantity controls */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', marginBottom: '12px' }}>
+                  <button onClick={() => setDrawerQty(q => Math.max(1, q - 1))} style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(255,255,255,0.1)', border: 'none', cursor: 'pointer', color: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>−</button>
+                  <span style={{ color: '#f0f0f0', fontWeight: 900, fontSize: '18px', minWidth: '20px', textAlign: 'center' }}>{drawerQty}</span>
+                  <button onClick={() => setDrawerQty(q => q + 1)} style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#C7A17A', border: 'none', cursor: 'pointer', color: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', fontWeight: 900 }}>+</button>
+                </div>
+
+                {/* Validation hint */}
+                {!canAdd && missingRequired.length > 0 && (
+                  <p style={{ color: '#f87171', fontSize: '12px', textAlign: 'center', margin: '0 0 8px' }}>
+                    Bitte wähle: {missingRequired.map(g => g.name).join(', ')}
+                  </p>
+                )}
+
+                {/* Add to cart button */}
+                <button
+                  onClick={addToCartWithOptions}
+                  disabled={!canAdd}
+                  style={{
+                    width: '100%', padding: '16px', borderRadius: '14px',
+                    background: canAdd ? 'linear-gradient(135deg, #c7a17a, #d4a870)' : 'rgba(255,255,255,0.08)',
+                    border: 'none', cursor: canAdd ? 'pointer' : 'not-allowed',
+                    color: canAdd ? '#111' : '#4b5563', fontWeight: 900, fontSize: '15px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    boxShadow: canAdd ? '0 4px 20px rgba(199,161,122,0.3)' : 'none',
+                    opacity: canAdd ? 1 : 0.6, transition: 'all 0.2s',
+                  }}
+                >
+                  <ShoppingCart style={{ width: '18px', height: '18px' }} />
+                  <span>In den Warenkorb</span>
+                  <span>{eur(drawerTotal)}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Lightbox */}
       {lightbox && (
@@ -640,15 +1134,36 @@ export default function InlineMenuBoard({ projectId, slug, categories, discountI
         {/* Cart Items */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
           {cart.map(item => (
-            <div key={item.menuItemId} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div key={item.cartEntryId} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
               <div style={{ flex: 1 }}>
                 <p style={{ color: '#f0f0f0', fontWeight: 700, fontSize: '14px', margin: '0 0 2px' }}>{item.name}</p>
-                <p style={{ color: '#6b7280', fontSize: '12px', margin: 0 }}>{item.quantity} × {eur(item.priceInCents)}</p>
+                {(item.selectedOptions ?? []).length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', margin: '4px 0' }}>
+                    {(item.selectedOptions ?? []).map((o, i) => (
+                      <span key={i} style={{ fontSize: '11px', color: '#C7A17A', background: 'rgba(199,161,122,0.1)', border: '1px solid rgba(199,161,122,0.2)', borderRadius: '6px', padding: '2px 6px' }}>
+                        {o.optionName}{o.priceCents > 0 ? ` +${eur(o.priceCents)}` : ''}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {item.customerNote && (
+                  <p style={{ fontSize: '11px', color: '#fbbf24', margin: '3px 0 0', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.15)', borderRadius: '6px', padding: '3px 6px', display: 'inline-block' }}>
+                    📝 {item.customerNote}
+                  </p>
+                )}
+                <p style={{ color: '#6b7280', fontSize: '12px', margin: '4px 0 0' }}>{item.quantity} × {eur(item.priceInCents + item.optionsSurcharge)}</p>
               </div>
-              <p style={{ color: '#f0f0f0', fontWeight: 800, fontSize: '14px', margin: 0 }}>{eur(item.priceInCents * item.quantity)}</p>
-              <button onClick={() => changeQty(item.menuItemId, -item.quantity)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#6b7280', display: 'flex' }}>
-                <Trash2 style={{ width: '16px', height: '16px' }} />
-              </button>
+              <p style={{ color: '#f0f0f0', fontWeight: 800, fontSize: '14px', margin: 0, whiteSpace: 'nowrap' }}>{eur((item.priceInCents + item.optionsSurcharge) * item.quantity)}</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <button onClick={() => changeQty(item.cartEntryId, -1)} style={{ width: '26px', height: '26px', borderRadius: '6px', background: 'rgba(255,255,255,0.1)', border: 'none', cursor: 'pointer', color: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Minus style={{ width: '11px', height: '11px' }} /></button>
+                  <span style={{ color: '#f0f0f0', fontWeight: 800, fontSize: '13px', minWidth: '14px', textAlign: 'center' }}>{item.quantity}</span>
+                  <button onClick={() => changeQty(item.cartEntryId, 1)} style={{ width: '26px', height: '26px', borderRadius: '6px', background: '#C7A17A', border: 'none', cursor: 'pointer', color: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Plus style={{ width: '11px', height: '11px' }} /></button>
+                </div>
+                <button onClick={() => changeQty(item.cartEntryId, -item.quantity)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', color: '#6b7280', display: 'flex' }}>
+                  <Trash2 style={{ width: '14px', height: '14px' }} />
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -664,6 +1179,27 @@ export default function InlineMenuBoard({ projectId, slug, categories, discountI
             <div style={{ textAlign: 'right', flexShrink: 0 }}>
               <p style={{ color: '#6b7280', fontSize: '11px', margin: '0', textDecoration: 'line-through' }}>{eur(subtotalCents)}</p>
               <p style={{ color: '#fbbf24', fontWeight: 800, fontSize: '13px', margin: 0 }}>-{eur(discountCents)}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Willkommensrabatt-Banner für nicht-eingeloggte Nutzer */}
+        {!session?.userId && discountInfo.enabled && discountInfo.pct > 0 && subtotalCents > 0 && (
+          <div style={{
+            borderRadius: '14px', marginBottom: '16px', overflow: 'hidden',
+            border: '1px solid rgba(199,161,122,0.3)',
+            background: 'linear-gradient(135deg, rgba(199,161,122,0.08), rgba(199,161,122,0.02))',
+          }}>
+            <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(199,161,122,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '20px' }}>🎁</div>
+              <div style={{ flex: 1 }}>
+                <p style={{ color: '#C7A17A', fontWeight: 900, fontSize: '14px', margin: '0 0 2px' }}>
+                  {discountInfo.pct}% Willkommensrabatt!
+                </p>
+                <p style={{ color: '#9ca3af', fontSize: '12px', margin: 0 }}>
+                  Registriere dich und spare sofort <strong style={{ color: '#C7A17A' }}>{eur(Math.round(subtotalCents * discountInfo.pct / 100))}</strong> auf deine erste Bestellung
+                </p>
+              </div>
             </div>
           </div>
         )}
@@ -697,8 +1233,8 @@ export default function InlineMenuBoard({ projectId, slug, categories, discountI
         {!tableNumber && (
           <div style={{ marginBottom: '12px' }}>
             <p style={{ ...S.label, marginBottom: '10px' }}>Bestellart</p>
-            <div style={{ display: 'grid', gridTemplateColumns: inStoreEnabled ? '1fr 1fr 1fr' : '1fr 1fr', gap: '8px' }}>
-              {(['takeaway', 'delivery', ...(inStoreEnabled ? ['in-store' as const] : [])] as OrderType[]).map(type => (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              {(['takeaway', 'delivery'] as OrderType[]).map(type => (
                 <button
                   key={type}
                   onClick={() => setOrderType(type)}
@@ -712,7 +1248,7 @@ export default function InlineMenuBoard({ projectId, slug, categories, discountI
                     color: orderType === type ? '#C7A17A' : '#9ca3af',
                   }}
                 >
-                  {type === 'takeaway' ? '🛍️ Abholung' : type === 'delivery' ? '🛵 Lieferung' : '🪑 Vor Ort'}
+                  {type === 'takeaway' ? '🛍️ Abholung' : '🛵 Lieferung'}
                 </button>
               ))}
             </div>
@@ -764,36 +1300,92 @@ export default function InlineMenuBoard({ projectId, slug, categories, discountI
           </button>
         ) : (
           <button
-            onClick={() => setView('checkout')}
+            onClick={() => session?.userId ? setView('checkout') : setView('auth')}
             disabled={cart.length === 0 || belowMin}
             style={{ ...S.btn('primary'), opacity: (cart.length === 0 || belowMin) ? 0.5 : 1 }}
           >
             Weiter zur Kasse →
           </button>
         )}
+        {/* Rabatt-Hinweis für nicht-eingeloggte Nutzer */}
+        {!session?.userId && cart.length > 0 && discountInfo.enabled && discountInfo.pct > 0 && (
+          <p style={{ textAlign: 'center', fontSize: '11px', color: '#C7A17A', margin: '8px 0 0' }}>
+            🎁 Dein <strong>{discountInfo.pct}% Willkommensrabatt</strong> wird im nächsten Schritt abgezogen
+          </p>
+        )}
       </div>
     </div>
   )
 
   // ════════════════════════════════════════════════════════════════════════════
-  // VIEW: CHECKOUT (Review + Auth)
+  // VIEW: AUTH (Login / Register — VOR dem Checkout)
   // ════════════════════════════════════════════════════════════════════════════
-  if (view === 'checkout') return (
-    <div style={{ background: '#0d0d0d', minHeight: '100%' }}>
-      <div style={{ padding: '20px', paddingBottom: '32px' }}>
+  if (view === 'auth') {
+    // Bereits eingeloggt? → Direkt zum Checkout
+    if (session?.userId) {
+      // Use setTimeout to avoid React setState-during-render
+      setTimeout(() => setView('checkout'), 0)
+      return null
+    }
 
-        <button onClick={() => { setView('cart'); setFormError(null) }} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', cursor: 'pointer', color: '#C7A17A', fontWeight: 700, fontSize: '13px', padding: '0', marginBottom: '20px' }}>
-          <ChevronLeft style={{ width: '16px', height: '16px' }} /> Zurück zum Warenkorb
-        </button>
+    const handleAuth = async () => {
+      setFormError(null)
 
-        <h2 style={{ color: '#f0f0f0', fontWeight: 900, fontSize: '20px', margin: '0 0 6px' }}>Deine Angaben</h2>
-        <p style={{ color: '#6b7280', fontSize: '13px', margin: '0 0 24px' }}>
-          {session?.userId ? `Angemeldet als ${session.email}` : 'Erstelle ein Konto oder melde dich an'}
-        </p>
+      if (authTab === 'register') {
+        if (!firstName.trim() || firstName.trim().length < 2) { setFormError('Bitte gib deinen Vornamen ein (mind. 2 Zeichen).'); return }
+        if (!lastName.trim() || lastName.trim().length < 2) { setFormError('Bitte gib deinen Nachnamen ein (mind. 2 Zeichen).'); return }
+        if (!phone.trim()) { setFormError('Bitte gib deine Telefonnummer ein.'); return }
+        const phoneCheck = validatePhoneNumber(phone.trim())
+        if (!phoneCheck.valid) { setFormError(phoneCheck.error || 'Ungültige Telefonnummer.'); return }
+      }
+      if (!email.trim()) { setFormError('Bitte gib deine E-Mail-Adresse ein.'); return }
+      if (!password) { setFormError('Bitte gib ein Passwort ein.'); return }
+      if (authTab === 'register' && password.length < 6) { setFormError('Das Passwort muss mindestens 6 Zeichen lang sein.'); return }
 
-        {/* Auth Tabs (nur wenn nicht eingeloggt) */}
-        {!session?.userId && (
-          <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.07)', marginBottom: '20px' }}>
+      setAuthPending(true)
+      try {
+        if (authTab === 'register') {
+          const result = await signUpCustomer({ projectId, firstName: firstName.trim(), lastName: lastName.trim(), email: email.trim(), password, phone: phone.trim(), consentPush: true, consentEmail: false })
+          if ('error' in result) { setFormError(result.error); setAuthPending(false); return }
+        } else {
+          const result = await signInCustomer({ projectId, email: email.trim(), password })
+          if ('error' in result) { setFormError(result.error); setAuthPending(false); return }
+        }
+
+        // Auth erfolgreich → Session laden + zum Checkout
+        const s = await getCustomerSession()
+        setSession(s)
+        if (s.userId) {
+          getPaymentRestrictions(projectId).then(setPayRestrictions).catch(() => {})
+          if (s.firstName) setFirstName(s.firstName)
+          if (s.lastName) setLastName(s.lastName)
+          if (s.email) setEmail(s.email)
+          if (s.phone) setPhone(s.phone)
+        }
+        setFormError(null)
+        setView('checkout')
+      } catch {
+        setFormError('Ein Fehler ist aufgetreten. Bitte versuche es erneut.')
+      } finally {
+        setAuthPending(false)
+      }
+    }
+
+    return (
+      <div style={{ background: '#0d0d0d', minHeight: '100%' }}>
+        <div style={{ padding: '20px', paddingBottom: '32px' }}>
+
+          <button onClick={() => { setView('cart'); setFormError(null) }} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', cursor: 'pointer', color: '#C7A17A', fontWeight: 700, fontSize: '13px', padding: '0', marginBottom: '20px' }}>
+            <ChevronLeft style={{ width: '16px', height: '16px' }} /> Zurück zum Warenkorb
+          </button>
+
+          <h2 style={{ color: '#f0f0f0', fontWeight: 900, fontSize: '20px', margin: '0 0 4px' }}>Anmelden</h2>
+          <p style={{ color: '#6b7280', fontSize: '13px', margin: '0 0 20px' }}>
+            Erstelle ein Konto oder melde dich an, um deine Bestellung abzuschließen
+          </p>
+
+          {/* Auth Tabs */}
+          <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.07)', marginBottom: '24px' }}>
             {(['register', 'login'] as const).map(t => (
               <button
                 key={t}
@@ -806,49 +1398,25 @@ export default function InlineMenuBoard({ projectId, slug, categories, discountI
                   transition: 'all 0.15s',
                 }}
               >
-                {t === 'register' ? 'Neues Konto' : 'Bereits Konto?'}
+                {t === 'register' ? '✨ Neues Konto' : 'Anmelden'}
               </button>
             ))}
           </div>
-        )}
 
-        {/* Logout option */}
-        {session?.userId && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderRadius: '10px', background: 'rgba(199,161,122,0.06)', border: '1px solid rgba(199,161,122,0.12)', marginBottom: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(199,161,122,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <User style={{ width: '16px', height: '16px', color: '#C7A17A' }} />
-              </div>
-              <div>
-                <p style={{ color: '#f0f0f0', fontWeight: 700, fontSize: '13px', margin: 0 }}>{session.name || session.email?.split('@')[0]}</p>
-                <p style={{ color: '#6b7280', fontSize: '11px', margin: 0 }}>{session.email}</p>
-              </div>
-            </div>
-            <button onClick={async () => { await signOutCustomer(); setSession(null); clearCart() }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', display: 'flex' }}>
-              <LogOut style={{ width: '16px', height: '16px' }} />
-            </button>
-          </div>
-        )}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {/* Name + Telefon: nur bei Registrierung */}
+            {authTab === 'register' && (
+              <>
+                <InputField id="auth-firstname" label="Vorname" value={firstName} onChange={setFirstName} placeholder="Dein Vorname" icon={User} required />
+                <InputField id="auth-lastname" label="Nachname" value={lastName} onChange={setLastName} placeholder="Dein Nachname" icon={User} required />
+                <InputField id="auth-phone" label="Telefon" type="tel" value={phone} onChange={setPhone} placeholder="+49 171 1234567" icon={Phone} required />
+              </>
+            )}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-
-          {/* Name */}
-          {(authTab === 'register' || session?.userId) && (
-            <InputField id="checkout-name" label="Name" value={name} onChange={setName} placeholder="Dein Name" icon={User} required />
-          )}
-
-          {/* E-Mail */}
-          <InputField id="checkout-email" label="E-Mail" type="email" value={email} onChange={setEmail} placeholder="du@beispiel.de" icon={Mail} required />
-
-          {/* Telefon */}
-          {(authTab === 'register' || session?.userId) && (
-            <InputField id="checkout-phone" label="Telefon" type="tel" value={phone} onChange={setPhone} placeholder="+49 171 1234567" icon={Phone} required />
-          )}
-
-          {/* Passwort (nur wenn nicht eingeloggt) */}
-          {!session?.userId && (
+            {/* E-Mail + Passwort */}
+            <InputField id="auth-email" label="E-Mail" type="email" value={email} onChange={setEmail} placeholder="du@beispiel.de" icon={Mail} required />
             <InputField
-              id="checkout-password"
+              id="auth-password"
               label="Passwort"
               type={showPassword ? 'text' : 'password'}
               value={password}
@@ -862,7 +1430,107 @@ export default function InlineMenuBoard({ projectId, slug, categories, discountI
                 </button>
               }
             />
+          </div>
+
+          {/* Rabatt-Vorschau beim Registrieren */}
+          {authTab === 'register' && discountInfo.enabled && discountInfo.pct > 0 && subtotalCents > 0 && (() => {
+            const previewDiscount = Math.round(subtotalCents * discountInfo.pct / 100)
+            return (
+              <div style={{ marginTop: '16px', padding: '12px 14px', borderRadius: '10px', background: 'linear-gradient(135deg, rgba(34,197,94,0.06), rgba(34,197,94,0.02))', border: '1px solid rgba(34,197,94,0.15)' }}>
+                <p style={{ margin: 0, fontSize: '12px', color: '#22c55e', fontWeight: 700 }}>
+                  🎁 Willkommensrabatt ({discountInfo.pct}%): −{eur(previewDiscount)}
+                </p>
+                <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#6b7280' }}>
+                  Wird nach Registrierung automatisch abgezogen
+                </p>
+              </div>
+            )
+          })()}
+
+          {/* Fehler */}
+          {formError && (
+            <div style={{ marginTop: '16px', padding: '10px 14px', borderRadius: '10px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)' }}>
+              <p style={{ margin: 0, fontSize: '12px', fontWeight: 600, color: '#f87171' }}>{formError}</p>
+            </div>
           )}
+
+          {/* Auth-Button */}
+          <button
+            onClick={handleAuth}
+            disabled={authPending}
+            style={{ ...S.btn('primary'), marginTop: '20px', opacity: authPending ? 0.7 : 1 }}
+          >
+            {authPending
+              ? <><Loader2 style={{ width: '18px', height: '18px', animation: 'spin 0.8s linear infinite' }} /> Wird verarbeitet…</>
+              : authTab === 'register'
+                ? '✨ Registrieren & weiter zur Bestellung'
+                : '→ Anmelden & weiter zur Bestellung'
+            }
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // VIEW: CHECKOUT (Zusammenfassung + Zahlung — User ist bereits eingeloggt)
+  // ════════════════════════════════════════════════════════════════════════════
+  if (view === 'checkout') return (
+    <div style={{ background: '#0d0d0d', minHeight: '100%' }}>
+      <div style={{ padding: '20px', paddingBottom: '32px' }}>
+
+        <button onClick={() => { setView('cart'); setFormError(null) }} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', cursor: 'pointer', color: '#C7A17A', fontWeight: 700, fontSize: '13px', padding: '0', marginBottom: '20px' }}>
+          <ChevronLeft style={{ width: '16px', height: '16px' }} /> Zurück zum Warenkorb
+        </button>
+
+        <h2 style={{ color: '#f0f0f0', fontWeight: 900, fontSize: '20px', margin: '0 0 4px' }}>Deine Bestellung</h2>
+        <p style={{ color: '#6b7280', fontSize: '13px', margin: '0 0 20px' }}>
+          Prüfe deine Bestellung und wähle die Zahlungsart
+        </p>
+
+        {/* Gebannt — Bestellung blockiert */}
+        {payRestrictions?.isBanned && (
+          <div style={{
+            padding: '16px 20px', borderRadius: '12px', marginBottom: '20px',
+            background: 'rgba(239,68,68,0.08)', border: '1.5px solid rgba(239,68,68,0.3)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+              <span style={{ fontSize: '18px' }}>🚫</span>
+              <span style={{ color: '#ef4444', fontWeight: 800, fontSize: '14px' }}>
+                Bestellungen gesperrt
+              </span>
+            </div>
+            <p style={{ color: '#9ca3af', fontSize: '12px', lineHeight: '1.5', margin: 0 }}>
+              Du bist für Bestellungen bei diesem Restaurant gesperrt.
+              {payRestrictions.banReason && (
+                <><br /><span style={{ color: '#ef4444' }}>Grund: {payRestrictions.banReason}</span></>
+              )}
+            </p>
+            <p style={{ color: '#6b7280', fontSize: '11px', marginTop: '8px' }}>
+              Bitte kontaktiere das Restaurant für weitere Informationen.
+            </p>
+          </div>
+        )}
+
+        {/* Benutzer-Info */}
+        {session?.userId && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderRadius: '10px', background: 'rgba(199,161,122,0.06)', border: '1px solid rgba(199,161,122,0.12)', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(199,161,122,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <User style={{ width: '16px', height: '16px', color: '#C7A17A' }} />
+              </div>
+              <div>
+                <p style={{ color: '#f0f0f0', fontWeight: 700, fontSize: '13px', margin: 0 }}>{session.firstName && session.lastName ? `${session.firstName} ${session.lastName}` : session.name || session.email?.split('@')[0]}</p>
+                <p style={{ color: '#6b7280', fontSize: '11px', margin: 0 }}>{session.email}</p>
+              </div>
+            </div>
+            <button onClick={async () => { await signOutCustomer(); setSession(null); setView('cart') }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', display: 'flex' }}>
+              <LogOut style={{ width: '16px', height: '16px' }} />
+            </button>
+          </div>
+        )}
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
 
           {/* M24b: Abholzeit-Picker */}
           {pickupSlotsEnabled && orderType !== 'in-store' && (
@@ -992,30 +1660,105 @@ export default function InlineMenuBoard({ projectId, slug, categories, discountI
                   <span style={{ color: '#f0f0f0', fontWeight: 700 }}>{eur(item.priceInCents * item.quantity)}</span>
                 </div>
               ))}
-              <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.07)', marginTop: '4px' }}>
-                <span style={{ color: '#C7A17A', fontWeight: 900, fontSize: '14px' }}>Gesamt</span>
-                <span style={{ color: '#C7A17A', fontWeight: 900, fontSize: '14px' }}>{eur(totalCents)}</span>
+
+              {/* Rabatt-Aufschlüsselung */}
+              {showDiscount && discountCents > 0 && (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.07)', marginTop: '4px', fontSize: '13px' }}>
+                    <span style={{ color: '#9ca3af' }}>Zwischensumme</span>
+                    <span style={{ color: '#9ca3af' }}>{eur(subtotalCents)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                    <span style={{ color: '#22c55e', fontWeight: 700 }}>🎁 Willkommensrabatt ({discountInfo.pct}%)</span>
+                    <span style={{ color: '#22c55e', fontWeight: 700 }}>−{eur(discountCents)}</span>
+                  </div>
+                </>
+              )}
+              {/* Zwischensumme (wenn Loyalty-Abzug angezeigt wird) */}
+              {loyaltyRedeemCents > 0 && (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.07)', marginTop: '4px' }}>
+                    <span style={{ color: '#9ca3af', fontSize: '13px' }}>Zwischensumme</span>
+                    <span style={{ color: '#9ca3af', fontSize: '13px' }}>{eur(totalBeforeLoyalty)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                    <span style={{ color: '#34d399', fontWeight: 700 }}>⭐ Bonuskarten-Guthaben</span>
+                    <span style={{ color: '#34d399', fontWeight: 700 }}>−{eur(loyaltyRedeemCents)}</span>
+                  </div>
+                </>
+              )}
+
+              {/* Hinweis: Guthaben vorhanden aber noch nicht einlösbar */}
+              {loyaltyInfo && !loyaltyInfo.willRedeem && loyaltyInfo.balanceCents > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 10px', borderRadius: '8px', background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.15)', marginTop: '4px' }}>
+                  <span style={{ fontSize: '14px' }}>⭐</span>
+                  <span style={{ color: '#6ee7b7', fontSize: '11px', lineHeight: '1.4' }}>
+                    Noch {6 - loyaltyInfo.orderCount - 1} {6 - loyaltyInfo.orderCount - 1 === 1 ? 'Bestellung' : 'Bestellungen'} bis zur Einlösung deines Guthabens (derzeit {eur(loyaltyInfo.balanceCents)})
+                  </span>
+                </div>
+              )}
+
+              {/* Warnung: Guthaben geht verloren wenn zu wenig bestellt */}
+              {loyaltyLostCents > 0 && (
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', padding: '10px', borderRadius: '8px', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)', marginTop: '4px' }}>
+                  <span style={{ fontSize: '14px', flexShrink: 0 }}>⚠️</span>
+                  <span style={{ color: '#fbbf24', fontSize: '11px', lineHeight: '1.5' }}>
+                    Dein Guthaben beträgt {eur(loyaltyInfo!.balanceCents)}, aber deine Bestellung nur {eur(totalBeforeLoyalty)}.
+                    <strong> {eur(loyaltyLostCents)} verfallen!</strong> Bestelle mehr um dein Guthaben voll zu nutzen.
+                  </span>
+                </div>
+              )}
+
+              {/* Bonuskarten-Gutschrift für diese Bestellung */}
+              {session?.userId && !loyaltyInfo?.willRedeem && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', borderRadius: '8px', background: 'rgba(199,161,122,0.06)', border: '1px solid rgba(199,161,122,0.12)', marginTop: '4px' }}>
+                  <span style={{ color: '#9ca3af', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    🎁 Bonuskarten-Gutschrift
+                  </span>
+                  <span style={{ color: '#C7A17A', fontSize: '11px', fontWeight: 700 }}>
+                    +{eur(Math.round(Math.max(0, subtotalCents - discountCents) * 0.05))}
+                  </span>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: loyaltyRedeemCents > 0 ? '4px' : '8px', borderTop: loyaltyRedeemCents > 0 ? 'none' : '1px solid rgba(255,255,255,0.07)', marginTop: loyaltyRedeemCents > 0 ? '0' : '4px' }}>
+                <span style={{ color: '#C7A17A', fontWeight: 900, fontSize: '14px' }}>{loyaltyRedeemCents > 0 ? 'Zu zahlen' : 'Gesamt'}</span>
+                <span style={{ color: '#C7A17A', fontWeight: 900, fontSize: '14px' }}>{eur(Math.max(0, totalCents))}</span>
               </div>
             </div>
           </div>
 
-          {/* M25: Zahlungsart */}
-          {stripeEnabled && orderType !== 'in-store' && (
+          {/* M25: Zahlungsart — verstecken wenn Guthaben alles deckt */}
+          {stripeEnabled && orderType !== 'in-store' && !loyaltyCoversAll && (() => {
+            // Barzahlung-Limit berechnen
+            const r = payRestrictions
+            const cashBlocked = r?.isBlacklisted || false
+            const cashLimitCents = r?.cashLimitCents ?? 3000
+            const isFirstOrder = r?.isFirstOrder ?? (!session?.userId)
+            const overLimit = isFirstOrder && totalCents > cashLimitCents
+            const cashDisabled = cashBlocked || overLimit
+            // Auto-select card wenn cash gesperrt
+            if (cashDisabled && paymentMethod === 'cash') {
+              setTimeout(() => setPaymentMethod('card'), 0)
+            }
+            return (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <p style={{ ...S.label, marginBottom: '0' }}>💳 Zahlungsart</p>
+              <p style={{ ...S.label, marginBottom: '0' }}>💳 {loyaltyRedeemCents > 0 ? 'Restzahlung' : 'Zahlungsart'}</p>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                 <button
-                  onClick={() => setPaymentMethod('cash')}
+                  onClick={() => !cashDisabled && setPaymentMethod('cash')}
+                  disabled={cashDisabled}
                   style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                     padding: '12px', borderRadius: '10px', fontSize: '13px', fontWeight: 700,
-                    cursor: 'pointer', transition: 'all 0.15s',
-                    background: paymentMethod === 'cash' ? 'rgba(199,161,122,0.15)' : 'rgba(255,255,255,0.03)',
-                    border: `1px solid ${paymentMethod === 'cash' ? 'rgba(199,161,122,0.5)' : 'rgba(255,255,255,0.07)'}`,
-                    color: paymentMethod === 'cash' ? '#C7A17A' : '#9ca3af',
+                    cursor: cashDisabled ? 'not-allowed' : 'pointer', transition: 'all 0.15s',
+                    opacity: cashDisabled ? 0.4 : 1,
+                    background: paymentMethod === 'cash' && !cashDisabled ? 'rgba(199,161,122,0.15)' : 'rgba(255,255,255,0.03)',
+                    border: `1px solid ${paymentMethod === 'cash' && !cashDisabled ? 'rgba(199,161,122,0.5)' : 'rgba(255,255,255,0.07)'}`,
+                    color: paymentMethod === 'cash' && !cashDisabled ? '#C7A17A' : '#9ca3af',
                   }}
                 >
-                  <Banknote style={{ width: '16px', height: '16px' }} /> Bar zahlen
+                  <Banknote style={{ width: '16px', height: '16px' }} /> {loyaltyRedeemCents > 0 ? 'Rest bar' : 'Bar zahlen'}
                 </button>
                 <button
                   onClick={() => setPaymentMethod('card')}
@@ -1028,17 +1771,34 @@ export default function InlineMenuBoard({ projectId, slug, categories, discountI
                     color: paymentMethod === 'card' ? '#a78bfa' : '#9ca3af',
                   }}
                 >
-                  <CreditCard style={{ width: '16px', height: '16px' }} /> Karte / Apple Pay
+                  <CreditCard style={{ width: '16px', height: '16px' }} /> {loyaltyRedeemCents > 0 ? 'Rest mit Karte' : 'Karte / Apple Pay'}
                 </button>
               </div>
+              {/* Hinweise */}
+              {cashBlocked && (
+                <p style={{ fontSize: '11px', color: '#f87171', margin: 0, padding: '6px 10px', background: 'rgba(239,68,68,0.08)', borderRadius: '8px', border: '1px solid rgba(239,68,68,0.15)' }}>
+                  🚫 Barzahlung ist für dein Konto nicht verfügbar. Bitte wähle Kartenzahlung.
+                </p>
+              )}
+              {!cashBlocked && isFirstOrder && !overLimit && (
+                <p style={{ fontSize: '11px', color: '#9ca3af', margin: 0, padding: '6px 10px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
+                  ℹ️ Bei deiner ersten Bestellung ist Barzahlung bis {(cashLimitCents / 100).toFixed(0)} € möglich.
+                </p>
+              )}
+              {!cashBlocked && overLimit && (
+                <p style={{ fontSize: '11px', color: '#a78bfa', margin: 0, padding: '6px 10px', background: 'rgba(99,91,255,0.06)', borderRadius: '8px', border: '1px solid rgba(99,91,255,0.12)' }}>
+                  💳 Bei deiner ersten Bestellung über {(cashLimitCents / 100).toFixed(0)} € ist nur Kartenzahlung möglich. Ab der nächsten Bestellung auch bar.
+                </p>
+              )}
             </div>
-          )}
+            )
+          })()}
 
           {/* Stripe Elements Container (erscheint nach Bestellung + PI erstellt) */}
           {stripeClientSecret && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <p style={{ ...S.label, marginBottom: '0', color: '#a78bfa' }}>🔒 Sichere Zahlung</p>
-              <div ref={stripeContainerRef} id="stripe-payment-element" style={{ minHeight: '120px' }} />
+              <div id="stripe-payment-element" style={{ minHeight: '120px' }} />
               {stripeLoading && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#6b7280', fontSize: '12px' }}>
                   <Loader2 style={{ width: '14px', height: '14px', animation: 'spin 0.8s linear infinite' }} />
@@ -1048,6 +1808,9 @@ export default function InlineMenuBoard({ projectId, slug, categories, discountI
             </div>
           )}
 
+
+
+
           {/* Error */}
           {formError && (
             <div style={{ padding: '10px 14px', borderRadius: '10px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171', fontSize: '13px' }}>
@@ -1056,31 +1819,46 @@ export default function InlineMenuBoard({ projectId, slug, categories, discountI
           )}
 
           {/* Submit */}
-          {stripeClientSecret ? (
+          {loyaltyCoversAll ? (
+            /* Guthaben deckt alles → ein einzelner grüner Button */
+            <button
+              onClick={handleCheckout}
+              disabled={isPending}
+              style={{ ...S.btn('primary'), opacity: isPending ? 0.7 : 1, marginTop: '8px',
+                background: 'linear-gradient(135deg, #34d399, #10b981)',
+                boxShadow: '0 4px 20px rgba(52,211,153,0.4)',
+              }}
+            >
+              {isPending
+                ? <><Loader2 style={{ width: '18px', height: '18px', animation: 'spin 0.8s linear infinite' }} /> Wird verarbeitet…</>
+                : <>⭐ Mit Guthaben bezahlen</>
+              }
+            </button>
+          ) : stripeClientSecret ? (
             <button
               onClick={handleConfirmCardPayment}
-              disabled={isPending || !stripeElements}
-              style={{ ...S.btn('primary'), opacity: (isPending || !stripeElements) ? 0.7 : 1, marginTop: '8px',
+              disabled={isPending || !stripeElements || stripeLoading}
+              style={{ ...S.btn('primary'), opacity: (isPending || !stripeElements || stripeLoading) ? 0.7 : 1, marginTop: '8px',
                 background: 'linear-gradient(135deg, #635bff, #7c6fff)',
                 boxShadow: '0 4px 20px rgba(99,91,255,0.4)',
               }}
             >
               {isPending
                 ? <><Loader2 style={{ width: '18px', height: '18px', animation: 'spin 0.8s linear infinite' }} /> Zahlung wird verarbeitet…</>
-                : <><CreditCard style={{ width: '18px', height: '18px' }} /> Jetzt bezahlen · {eur(totalCents)}</>
+                : <><CreditCard style={{ width: '18px', height: '18px' }} /> Jetzt bezahlen · {eur(Math.max(0, totalCents))}</>
               }
             </button>
           ) : (
             <button
               onClick={handleCheckout}
-              disabled={isPending}
-              style={{ ...S.btn('primary'), opacity: isPending ? 0.7 : 1, marginTop: '8px' }}
+              disabled={isPending || payRestrictions?.isBanned}
+              style={{ ...S.btn('primary'), opacity: (isPending || payRestrictions?.isBanned) ? 0.5 : 1, marginTop: '8px', cursor: payRestrictions?.isBanned ? 'not-allowed' : 'pointer' }}
             >
               {isPending
                 ? <><Loader2 style={{ width: '18px', height: '18px', animation: 'spin 0.8s linear infinite' }} /> Wird verarbeitet…</>
                 : paymentMethod === 'card'
-                  ? <><CreditCard style={{ width: '18px', height: '18px' }} /> Weiter zur Zahlung · {eur(totalCents)}</>
-                  : <><ShoppingCart style={{ width: '18px', height: '18px' }} /> Jetzt bestellen · {eur(totalCents)}</>
+                  ? <><CreditCard style={{ width: '18px', height: '18px' }} /> Weiter zur Zahlung · {eur(Math.max(0, totalCents))}</>
+                  : <><ShoppingCart style={{ width: '18px', height: '18px' }} /> Jetzt bestellen · {eur(Math.max(0, totalCents))}</>
               }
             </button>
           )}
@@ -1153,11 +1931,148 @@ export default function InlineMenuBoard({ projectId, slug, categories, discountI
             <span style={{ color: '#f0f0f0', fontWeight: 700 }}>{eur(item.priceInCents * item.quantity)}</span>
           </div>
         ))}
+        {/* Rabatt-Aufschlüsselung wenn Rabatt gewährt wurde */}
+        {(() => {
+          const itemsSubtotal = orderItems.reduce((s, i) => s + i.priceInCents * i.quantity, 0)
+          const discountApplied = itemsSubtotal - orderTotal
+          if (discountApplied > 0 && discountInfo.pct > 0) {
+            return (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.07)', marginTop: '6px', fontSize: '13px' }}>
+                  <span style={{ color: '#9ca3af' }}>Zwischensumme</span>
+                  <span style={{ color: '#9ca3af' }}>{eur(itemsSubtotal)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginTop: '4px' }}>
+                  <span style={{ color: '#22c55e', fontWeight: 700 }}>🎁 Willkommensrabatt ({discountInfo.pct}%)</span>
+                  <span style={{ color: '#22c55e', fontWeight: 700 }}>−{eur(discountApplied)}</span>
+                </div>
+              </>
+            )
+          }
+          return null
+        })()}
         <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.07)', marginTop: '6px' }}>
           <span style={{ color: '#C7A17A', fontWeight: 900 }}>Gesamt</span>
           <span style={{ color: '#C7A17A', fontWeight: 900 }}>{eur(orderTotal)}</span>
         </div>
       </div>
+
+      {/* ⭐ Bonuskarten-Guthaben */}
+      {session?.userId && (
+        (() => {
+          // DB-Werte nutzen wenn geladen, sonst Fallback
+          const totalBalance = loyaltyInfo ? loyaltyInfo.balanceCents : 0
+          const totalOrders = loyaltyInfo ? loyaltyInfo.orderCount : 1
+          const remaining = Math.max(0, 6 - totalOrders)
+          return (
+            <div style={{
+              width: '100%', maxWidth: '400px', marginBottom: '24px',
+              background: 'linear-gradient(135deg, rgba(199,161,122,0.06), rgba(199,161,122,0.02))',
+              border: '1px solid rgba(199,161,122,0.15)',
+              borderRadius: '12px', padding: '14px 20px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
+                <div style={{
+                  width: '36px', height: '36px', borderRadius: '10px',
+                  background: 'rgba(199,161,122,0.12)', border: '1px solid rgba(199,161,122,0.2)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '18px', flexShrink: 0,
+                }}>⭐</div>
+                <div>
+                  <p style={{ color: '#C7A17A', fontWeight: 800, fontSize: '14px', margin: '0 0 2px' }}>
+                    Bonuskarte
+                  </p>
+                  <p style={{ color: '#6b7280', fontSize: '11px', margin: 0 }}>
+                    Gutschrift für diese Bestellung wurde gutgeschrieben
+                  </p>
+                </div>
+              </div>
+              <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '8px', padding: '10px 12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '6px' }}>
+                  <span style={{ color: '#9ca3af' }}>Gesamtguthaben</span>
+                  <span style={{ color: '#f0f0f0', fontWeight: 800 }}>{eur(totalBalance)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                  <span style={{ color: '#9ca3af' }}>Bestellungen</span>
+                  <span style={{ color: '#f0f0f0', fontWeight: 700 }}>{totalOrders} / 6</span>
+                </div>
+                {/* Fortschrittsbalken */}
+                <div style={{ marginTop: '8px', height: '4px', background: 'rgba(255,255,255,0.07)', borderRadius: '2px', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${Math.min(100, (totalOrders / 6) * 100)}%`, background: 'linear-gradient(90deg, #C7A17A, #d4a870)', borderRadius: '2px', transition: 'width 0.5s ease' }} />
+                </div>
+                <p style={{ color: '#6b7280', fontSize: '10px', margin: '6px 0 0', textAlign: 'center' }}>
+                  {remaining > 0
+                    ? `Noch ${remaining} Bestellung${remaining !== 1 ? 'en' : ''} bis zur Einlösung!`
+                    : '🎉 Wird bei deiner nächsten Bestellung eingelöst!'
+                  }
+                </p>
+              </div>
+            </div>
+          )
+        })()
+      )}
+
+      {/* M27b: Drive-In VIP-Hinweis + „Ich bin da!" */}
+      {driveIn?.eligible && (
+        <div style={{
+          width: '100%', maxWidth: '400px',
+          background: 'linear-gradient(135deg, rgba(199,161,122,0.08), rgba(212,168,112,0.04))',
+          border: '1.5px solid rgba(199,161,122,0.3)',
+          borderRadius: '16px', padding: '20px',
+          position: 'relative', overflow: 'hidden',
+        }}>
+          {/* Decorative glow */}
+          <div style={{
+            position: 'absolute', top: '-30px', right: '-30px',
+            width: '100px', height: '100px', borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(199,161,122,0.15) 0%, transparent 70%)',
+            pointerEvents: 'none',
+          }} />
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+            <div style={{
+              width: '36px', height: '36px', borderRadius: '10px',
+              background: 'linear-gradient(135deg, rgba(199,161,122,0.25), rgba(212,168,112,0.15))',
+              border: '1px solid rgba(199,161,122,0.3)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '18px', flexShrink: 0,
+            }}>🚗</div>
+            <div>
+              <p style={{ color: '#C7A17A', fontWeight: 900, fontSize: '15px', margin: '0 0 1px' }}>
+                VIP Drive-In verfügbar!
+              </p>
+              <p style={{ color: '#9ca3af', fontSize: '11px', margin: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                👑 Exklusiv für Bizzn-Pass-Inhaber
+              </p>
+            </div>
+          </div>
+
+          <p style={{
+            color: '#d1d5db', fontSize: '13px', lineHeight: '1.6', margin: '0 0 16px',
+          }}>
+            Wenn du am Restaurant angekommen bist, klicke auf <strong style={{ color: '#C7A17A' }}>&bdquo;Ich bin da!&ldquo;</strong> und
+            gib dein Kennzeichen ein — dein Essen wird direkt zu deinem Auto gebracht.
+          </p>
+
+          <DriveInArrivalCard
+            orderId={orderId!}
+            arrived={driveIn.arrived}
+            arrivedPlate={driveIn.plate}
+          />
+
+          <p style={{
+            color: '#6b7280', fontSize: '11px', margin: '12px 0 0', textAlign: 'center',
+          }}>
+            Du findest diese Funktion auch unter{' '}
+            <a
+              href="/mein-konto?tab=orders"
+              style={{ color: '#C7A17A', textDecoration: 'underline', fontWeight: 600 }}
+            >
+              Mein Konto → Bestellungen
+            </a>
+          </p>
+        </div>
+      )}
 
       <button onClick={() => { setView('menu'); setOrderId(null); setOrderStatus('pending') }} style={{ ...S.btn('ghost'), maxWidth: '400px' }}>
         Zurück zur Speisekarte

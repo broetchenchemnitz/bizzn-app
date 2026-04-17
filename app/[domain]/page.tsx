@@ -160,7 +160,7 @@ export default async function RestaurantProfilePage({
             {/* CTA-Buttons */}
             <div className="mt-5 flex flex-col sm:flex-row gap-3">
               <Link
-                href="/menu"
+                href={`/${params.domain}/menu`}
                 id="cta-speisekarte"
                 className="flex-1 flex items-center justify-center gap-2 bg-[#C7A17A] hover:bg-[#b8906a] text-white font-bold text-sm py-3 px-5 rounded-xl transition-all duration-150 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
               >

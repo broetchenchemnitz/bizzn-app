@@ -208,6 +208,7 @@ export default function CategoryDetailPage() {
                   {openEditId === item.id && (
                     <EditMenuItemForm
                       item={item}
+                      projectId={params.id}
                       onClose={handleEditClose}
                     />
                   )}

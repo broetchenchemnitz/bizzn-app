@@ -139,8 +139,8 @@ export default function RestaurantOverview({ projectId }: RestaurantOverviewProp
       setStripePayoutsEnabled(proj?.stripe_payouts_enabled ?? false)
     }
 
-    // Initial fetch — today's orders
-    const fetchInitial = async () => {
+    // Reusable fetch for today's orders
+    const fetchOrders = async () => {
       const todayStart = new Date()
       todayStart.setHours(0, 0, 0, 0)
 
@@ -157,7 +157,12 @@ export default function RestaurantOverview({ projectId }: RestaurantOverviewProp
     }
 
     void fetchStripeStatus()
-    void fetchInitial()
+    void fetchOrders()
+
+    // Auto-refresh every 30 seconds as a fallback for Realtime
+    const pollInterval = setInterval(() => {
+      void fetchOrders()
+    }, 30_000)
 
     // Realtime subscription
     const channel = supabase
@@ -191,6 +196,7 @@ export default function RestaurantOverview({ projectId }: RestaurantOverviewProp
       .subscribe()
 
     return () => {
+      clearInterval(pollInterval)
       void supabase.removeChannel(channel)
     }
   }, [projectId])

@@ -28,6 +28,7 @@ export type DriveInArriveResult =
 export async function arriveAtDriveIn(
   orderId: string,
   licensePlate: string,
+  locationHint?: string,
 ): Promise<DriveInArriveResult> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -61,13 +62,10 @@ export async function arriveAtDriveIn(
     return { success: false, error: 'Die Bestellung ist bereits abgeschlossen.' }
   }
 
-  // Zahlung ok? (paid via Stripe oder Guthabenkarte = loyalty)
-  const isPaid =
-    order.payment_status === 'paid' ||
-    (order as { payment_method?: string }).payment_method === 'loyalty'
-
-  if (!isPaid) {
-    return { success: false, error: 'Drive-In ist nur nach Online-Zahlung verfügbar.' }
+  // Drive-In: AUSSCHLIEẞLICH bei Online-Vorauszahlung (payment_status = 'paid')
+  // Barzahlung ist auch für Bizzn-Pass-Inhaber ausgeschlossen.
+  if (order.payment_status !== 'paid') {
+    return { success: false, error: 'Drive-In ist aus Sicherheitsgründen nur bei Online-Vorauszahlung verfügbar.' }
   }
 
   // Betrieb: drive_in_enabled + aktiver Pass
@@ -95,6 +93,7 @@ export async function arriveAtDriveIn(
     .update({
       drive_in_arrived_at: new Date().toISOString(),
       drive_in_license_plate: plate,
+      ...(locationHint?.trim() ? { drive_in_location_hint: locationHint.trim() } : {}),
     })
     .eq('id', orderId)
 
@@ -113,7 +112,7 @@ export async function arriveAtDriveIn(
     if (pushSubs && pushSubs.length > 0) {
       const payload = JSON.stringify({
         title: '🚗 Drive-In — Kunde da!',
-        body: `Kennzeichen: ${plate} · ${order.customer_name ?? 'Kunde'} wartet`,
+        body: `${order.customer_name ?? 'Kunde'} · ${plate}${locationHint?.trim() ? ` · ${locationHint.trim()}` : ''} · wartet auf Lieferung`,
         icon: '/icon-192.png',
         data: {
           orderId,
@@ -177,14 +176,15 @@ export async function getDriveInStatus(orderId: string) {
   })
   if (!hasPass) return null
 
-  const isPaid =
-    order.payment_status === 'paid' ||
-    (order as { payment_method?: string }).payment_method === 'loyalty'
+  // Drive-In ist AUSSCHLIEẞLICH bei Online-Vorauszahlung verfügbar.
+  // Barzahlung ist für JEDEN User (auch Bizzn-Pass-Inhaber) ausgeschlossen,
+  // da ohne Zahlungsgarantie kein Drive-In-Service möglich ist.
+  const isPaidOnline = order.payment_status === 'paid'
 
   const isDone = ['delivered', 'cancelled'].includes(order.status)
 
   return {
-    eligible: isPaid && !isDone,
+    eligible: isPaidOnline && !isDone,
     arrived: !!order.drive_in_arrived_at,
     arrivedAt: order.drive_in_arrived_at,
     plate: order.drive_in_license_plate,

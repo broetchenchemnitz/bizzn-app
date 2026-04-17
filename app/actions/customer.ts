@@ -5,6 +5,8 @@ import { createClient as createSupabaseAdminClient } from '@supabase/supabase-js
 import { cookies } from 'next/headers'
 import type { Database } from '@/types/supabase'
 
+import { normalizePhone } from '@/lib/validation'
+
 // ─── Supabase Client Helper (Kundenkontext) ──────────────────────────────────
 
 export async function createCustomerSupabase() {
@@ -36,18 +38,41 @@ export type CustomerAuthResult =
 
 export async function signUpCustomer(input: {
   projectId: string
-  name: string
+  firstName: string
+  lastName: string
   email: string
   password: string
   phone?: string
   consentPush: boolean
   consentEmail: boolean
 }): Promise<CustomerAuthResult> {
-  const { projectId, name, email, password, phone, consentPush, consentEmail } = input
+  const { projectId, firstName, lastName, email, password, phone, consentPush, consentEmail } = input
+  const fullName = `${firstName.trim()} ${lastName.trim()}`
 
-  if (!name.trim()) return { error: 'Bitte gib deinen Namen ein.' }
+  if (!firstName.trim()) return { error: 'Bitte gib deinen Vornamen ein.' }
+  if (!lastName.trim()) return { error: 'Bitte gib deinen Nachnamen ein.' }
   if (!email.trim()) return { error: 'Bitte gib deine E-Mail ein.' }
   if (password.length < 6) return { error: 'Passwort muss mindestens 6 Zeichen haben.' }
+
+  // ── Telefonnummer-Duplikat prüfen ──────────────────────────────────────────
+  if (phone?.trim()) {
+    const normalized = normalizePhone(phone.trim())
+    const admin = createSupabaseAdminClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    const { data: existing } = await admin
+      .from('customer_profiles')
+      .select('id, phone')
+      .not('phone', 'is', null)
+
+    if (existing?.length) {
+      const duplicate = existing.find(row => row.phone && normalizePhone(row.phone) === normalized)
+      if (duplicate) {
+        return { error: 'Diese Telefonnummer ist bereits registriert. Bitte melde dich an oder verwende eine andere Nummer.' }
+      }
+    }
+  }
 
   const supabase = await createCustomerSupabase()
 
@@ -58,7 +83,7 @@ export async function signUpCustomer(input: {
     options: {
       data: {
         role: 'customer',
-        name: name.trim(),
+        name: fullName,
       },
     },
   })
@@ -77,12 +102,18 @@ export async function signUpCustomer(input: {
   const userId = authData.user?.id
   if (!userId) return { error: 'Registrierung fehlgeschlagen. Bitte versuche es erneut.' }
 
-  // 2. Kundenprofil anlegen
-  const { error: profileError } = await supabase
+  // 2. Kundenprofil anlegen (Admin-Client — RLS blockiert Kunden-Schreibzugriff)
+  const admin = createSupabaseAdminClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+  const { error: profileError } = await admin
     .from('customer_profiles')
     .insert({
       id: userId,
-      name: name.trim(),
+      name: fullName,
+      first_name: firstName.trim(),
+      last_name: lastName.trim(),
       phone: phone?.trim() || null,
     })
 
@@ -92,18 +123,19 @@ export async function signUpCustomer(input: {
   }
 
   // 4. Restaurant-Kunden-Beziehung anlegen
-  const { error: rcError } = await supabase
-    .from('restaurant_customers')
-    .insert({
-      project_id: projectId,
-      user_id: userId,
-      marketing_consent_push: consentPush,
-      marketing_consent_email: consentEmail,
-    })
+  if (projectId) {
+    const { error: rcError } = await admin
+      .from('restaurant_customers')
+      .insert({
+        project_id: projectId,
+        user_id: userId,
+        marketing_consent_push: consentPush,
+        marketing_consent_email: consentEmail,
+      })
 
-  if (rcError && rcError.code !== '23505') {
-    // 23505 = unique_violation (bereits bei diesem Restaurant registriert — kein Problem)
-    console.error('signUpCustomer restaurant_customers error:', rcError)
+    if (rcError && rcError.code !== '23505') {
+      console.error('signUpCustomer restaurant_customers error:', rcError)
+    }
   }
 
   return { success: true, userId }
@@ -135,13 +167,56 @@ export async function signInCustomer(input: {
   const userId = authData.user?.id
   if (!userId) return { error: 'Login fehlgeschlagen.' }
 
-  // Stelle sicher, dass restaurant_customers-Eintrag existiert (upsert)
-  await supabase
-    .from('restaurant_customers')
-    .upsert(
-      { project_id: projectId, user_id: userId },
-      { onConflict: 'project_id,user_id', ignoreDuplicates: true }
+  // Restaurant-Level Ban prüfen
+  {
+    const admin = createSupabaseAdminClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
+
+    if (projectId) {
+      // Spezifisches Restaurant prüfen
+      const { data: banCheck } = await admin
+        .from('restaurant_customers')
+        .select('is_banned, ban_reason')
+        .eq('project_id', projectId)
+        .eq('user_id', userId)
+        .maybeSingle()
+
+      if (banCheck?.is_banned) {
+        await supabase.auth.signOut()
+        return { error: `Dein Konto ist bei diesem Restaurant gesperrt.${banCheck.ban_reason ? ` Grund: ${banCheck.ban_reason}` : ''} Bitte kontaktiere das Restaurant.` }
+      }
+    } else {
+      // Kein projectId (z.B. /mein-konto) → prüfe ob bei IRGENDEINEM Restaurant gesperrt
+      const { data: anyBan } = await admin
+        .from('restaurant_customers')
+        .select('is_banned, ban_reason')
+        .eq('user_id', userId)
+        .eq('is_banned', true)
+        .limit(1)
+        .maybeSingle()
+
+      if (anyBan?.is_banned) {
+        await supabase.auth.signOut()
+        return { error: `Dein Konto ist gesperrt.${anyBan.ban_reason ? ` Grund: ${anyBan.ban_reason}` : ''} Bitte kontaktiere das Restaurant.` }
+      }
+    }
+  }
+
+  // Stelle sicher, dass restaurant_customers-Eintrag existiert (upsert via Admin)
+  if (projectId) {
+    const adminForUpsert = createSupabaseAdminClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    await adminForUpsert
+      .from('restaurant_customers')
+      .upsert(
+        { project_id: projectId, user_id: userId },
+        { onConflict: 'project_id,user_id', ignoreDuplicates: true }
+      )
+  }
 
   return { success: true, userId }
 }
@@ -151,19 +226,36 @@ export async function signInCustomer(input: {
 export async function getCustomerSession(): Promise<{
   userId: string | null
   name: string | null
+  firstName: string | null
+  lastName: string | null
   email: string | null
+  phone: string | null
 }> {
   const supabase = await createCustomerSupabase()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user) return { userId: null, name: null, email: null }
+  if (!user) return { userId: null, name: null, firstName: null, lastName: null, email: null, phone: null }
 
   const name = (user.user_metadata?.name as string | undefined) ?? null
+
+  // Profil-Daten aus customer_profiles lesen (Admin-Client wegen RLS)
+  const admin = createSupabaseAdminClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+  const { data: profile } = await admin
+    .from('customer_profiles')
+    .select('phone, first_name, last_name')
+    .eq('id', user.id)
+    .single()
 
   return {
     userId: user.id,
     name,
+    firstName: profile?.first_name ?? null,
+    lastName: profile?.last_name ?? null,
     email: user.email ?? null,
+    phone: profile?.phone ?? null,
   }
 }
 

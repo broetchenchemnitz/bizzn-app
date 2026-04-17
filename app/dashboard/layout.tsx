@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { ReactNode } from "react";
 import LogoutButton from "@/components/dashboard/LogoutButton";
 import SidebarPreviewLink from "@/components/dashboard/SidebarPreviewLink";
+import { DriveInToastProvider } from "@/components/dashboard/DriveInToastProvider";
 
 export default async function DashboardLayout({
   children,
@@ -20,6 +21,18 @@ export default async function DashboardLayout({
   if (error || !user) {
     redirect("/auth/login");
   }
+
+  // ─── Gastronom-Guard: Nur Gastronomen (Projekt-Owner oder Team-Member) ──────
+  // Kunden ohne eigene Projekte/Mitgliedschaften werden zu /mein-konto geleitet
+  const [{ count: ownedCount }, { count: memberCount }] = await Promise.all([
+    supabase.from("projects").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+    supabase.from("project_members").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+  ]);
+
+  // Gastronom-Guard: Für projektspezifische Routen (/dashboard/project/...)
+  // Neue User ohne Projekte dürfen zum Haupt-Dashboard (um ihr erstes Projekt zu erstellen)
+  // aber nicht zu projekt-spezifischen Seiten
+  const isGastronom = (ownedCount ?? 0) > 0 || (memberCount ?? 0) > 0;
 
   // ─── Layout ────────────────────────────────────────────────────────────────
   return (
@@ -76,6 +89,9 @@ export default async function DashboardLayout({
           {children}
         </div>
       </main>
+
+      {/* M27b: Drive-In Realtime Toast */}
+      <DriveInToastProvider />
     </div>
   );
 }

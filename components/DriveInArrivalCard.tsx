@@ -18,6 +18,7 @@ export function DriveInArrivalCard({
 }: DriveInArrivalCardProps) {
   const [arrived, setArrived] = useState(initialArrived)
   const [plate, setPlate] = useState('')
+  const [locationHint, setLocationHint] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -25,7 +26,7 @@ export function DriveInArrivalCard({
   const handleArrive = async () => {
     setError(null)
     setLoading(true)
-    const res = await arriveAtDriveIn(orderId, plate)
+    const res = await arriveAtDriveIn(orderId, plate, locationHint)
     setLoading(false)
     if (!res.success) {
       setError(res.error)
@@ -51,6 +52,11 @@ export function DriveInArrivalCard({
           {arrivedPlate && (
             <p style={{ margin: 0, fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>
               Kennzeichen: {arrivedPlate}
+            </p>
+          )}
+          {locationHint.trim() && (
+            <p style={{ margin: 0, fontSize: '12px', color: '#6b7280', marginTop: '1px' }}>
+              Standort: {locationHint}
             </p>
           )}
         </div>
@@ -116,6 +122,21 @@ export function DriveInArrivalCard({
               fontSize: '14px', fontWeight: 600, letterSpacing: '1px',
               outline: 'none', boxSizing: 'border-box',
               textTransform: 'uppercase',
+            }}
+            onKeyDown={e => e.key === 'Enter' && handleArrive()}
+          />
+          <input
+            id={`drive-in-location-${orderId}`}
+            type="text"
+            value={locationHint}
+            onChange={e => setLocationHint(e.target.value)}
+            placeholder="Wo stehst du? z.B. Parkplatz vorne links (optional)"
+            maxLength={60}
+            style={{
+              width: '100%', padding: '10px 12px', borderRadius: '10px',
+              border: '1px solid rgba(255,255,255,0.1)',
+              background: 'rgba(255,255,255,0.03)', color: '#d1d5db',
+              fontSize: '13px', outline: 'none', boxSizing: 'border-box',
             }}
             onKeyDown={e => e.key === 'Enter' && handleArrive()}
           />

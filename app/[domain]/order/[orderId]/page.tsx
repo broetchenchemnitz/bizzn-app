@@ -24,9 +24,15 @@ export default async function OrderTrackingPage({
   params: { domain: string; orderId: string }
 }) {
   const { domain, orderId } = params
-  const supabase = await createCustomerSupabase()
 
-  const { data: order } = await supabase
+  // Admin-Client nutzen — RLS auf orders erlaubt Kunden keinen Lesezugriff
+  const { createClient } = await import('@supabase/supabase-js')
+  const admin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+
+  const { data: order } = await admin
     .from('orders')
     .select('*')
     .eq('id', orderId)

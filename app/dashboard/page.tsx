@@ -1,4 +1,5 @@
 import { createClient } from '@/utils/supabase/server'
+import { createAdminClient } from '@/lib/supabase-admin'
 import { FolderGit2, Settings } from 'lucide-react'
 import Link from 'next/link'
 import type { Database } from '@/types/supabase'
@@ -18,15 +19,37 @@ export default async function DashboardPage({
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
+  // Next.js 15: searchParams müssen awaited werden
+  const resolvedParams = await searchParams
+  const isSuccess = resolvedParams?.success === 'true'
+  const isCanceled = resolvedParams?.canceled === 'true'
+
+  // ── Fallback: Projekt erstellen wenn Stripe-Webhook nicht ankam ──────────
+  // Wenn User von Stripe zurückkommt (?success=true) aber kein Projekt hat,
+  // erstellen wir es direkt. Der Webhook erstellt es normalerweise in Production,
+  // aber auf localhost oder bei Webhook-Delays greift dieser Fallback.
+  if (isSuccess && user) {
+    const { count } = await supabase
+      .from('projects')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+
+    if ((count ?? 0) === 0) {
+      console.log('[Dashboard] Fallback: Creating project for user', user.id, '(Stripe webhook may not have fired)')
+      const admin = createAdminClient()
+      await admin.from('projects').insert({
+        user_id: user.id,
+        name: `Mein Restaurant`,
+        status: 'active',
+      })
+    }
+  }
+
   const { data: projectsRaw, error } = await supabase
     .from('projects').select('*').order('created_at', { ascending: false })
 
   const projects = projectsRaw as ProjectRow[] | null
 
-  // Next.js 15: searchParams müssen awaited werden
-  const resolvedParams = await searchParams
-  const isSuccess = resolvedParams?.success === 'true'
-  const isCanceled = resolvedParams?.canceled === 'true'
 
   return (
     <div className="min-h-screen bg-[#1A1A1A] p-4 sm:p-8">

@@ -42,9 +42,10 @@ export async function GET(
     return NextResponse.json({ error: 'Restaurant nicht gefunden' }, { status: 404 })
   }
 
+  // M28: Optionsgruppen + Optionen mit laden (nested select)
   const { data: categories, error: catError } = await supabase
     .from('menu_categories')
-    .select('*, menu_items(*)')
+    .select('*, menu_items(*, menu_option_groups(*, menu_options(*)))')
     .eq('project_id', project.id)
     .order('sort_order', { ascending: true })
 

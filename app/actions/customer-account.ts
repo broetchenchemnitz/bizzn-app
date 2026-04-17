@@ -17,6 +17,8 @@ export interface OrderHistoryItem {
 
 export interface CustomerProfile {
   name: string
+  first_name: string | null
+  last_name: string | null
   email: string | null
   phone: string | null
 }
@@ -30,14 +32,22 @@ export async function getCustomerProfile(): Promise<CustomerProfile | null> {
   } = await supabase.auth.getUser()
   if (!user) return null
 
-  const { data: profile } = await supabase
+  // Admin-Client für Profil-Abfrage (RLS kann Kunden-Lesezugriff blockieren)
+  const { createClient: createAdminClient } = await import('@supabase/supabase-js')
+  const admin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+  const { data: profile } = await admin
     .from('customer_profiles')
-    .select('name, phone')
+    .select('name, first_name, last_name, phone')
     .eq('id', user.id)
     .single()
 
   return {
     name: profile?.name ?? (user.user_metadata?.name as string) ?? '',
+    first_name: profile?.first_name ?? null,
+    last_name: profile?.last_name ?? null,
     email: user.email ?? null,
     phone: profile?.phone ?? null,
   }
@@ -60,8 +70,13 @@ export async function updateCustomerProfile(input: {
 
   if (!name) return { error: 'Name darf nicht leer sein.' }
 
-  // 1. customer_profiles updaten (upsert, falls noch nicht vorhanden)
-  const { error: profileError } = await supabase
+  // 1. customer_profiles updaten (upsert, falls noch nicht vorhanden) — Admin-Client wegen RLS
+  const { createClient: createAdminClient } = await import('@supabase/supabase-js')
+  const admin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+  const { error: profileError } = await admin
     .from('customer_profiles')
     .upsert({ id: user.id, name, phone }, { onConflict: 'id' })
 
@@ -85,8 +100,15 @@ export async function getMyOrders(): Promise<OrderHistoryItem[]> {
   } = await supabase.auth.getUser()
   if (!user) return []
 
+  // Admin-Client nutzen (RLS auf orders erlaubt Kunden keinen Lesezugriff)
+  const { createClient: createAdminClient } = await import('@supabase/supabase-js')
+  const admin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+
   // Orders des Kunden + Projekt-Name + Items
-  const { data: orders, error } = await supabase
+  const { data: orders, error } = await admin
     .from('orders')
     .select(`
       id,

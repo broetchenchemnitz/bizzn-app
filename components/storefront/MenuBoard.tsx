@@ -82,6 +82,7 @@ export default function MenuBoard({ projectId, projectName, domain, categories, 
   const [deliveryStreet, setDeliveryStreet] = useState('')
   const [deliveryZip, setDeliveryZip] = useState('')
   const [deliveryCity, setDeliveryCity] = useState('')
+  const [deliveryPhone, setDeliveryPhone] = useState('')
   const [customerSession, setCustomerSession] = useState<{ userId: string | null, name: string | null, email: string | null } | null>(null)
   
   useEffect(() => {
@@ -155,6 +156,10 @@ export default function MenuBoard({ projectId, projectName, domain, categories, 
         setFormError('Bitte gib deine vollständige Lieferadresse ein.')
         return
       }
+      if (!deliveryPhone.trim()) {
+        setFormError('Bitte gib deine Telefonnummer für die Lieferung an.')
+        return
+      }
       if (belowMinOrder) {
         setFormError(`Mindestbestellwert für Lieferung: ${formatEur(minOrderCents)}`)
         return
@@ -167,7 +172,7 @@ export default function MenuBoard({ projectId, projectName, domain, categories, 
       const result = await placeOrder({
         projectId,
         customerName: customerName.trim(),
-        customerContact: customerContact.trim(),
+        customerContact: orderType === 'delivery' ? deliveryPhone.trim() : customerContact.trim(),
         orderType,
         tableNumber: tableNumber.trim() || undefined,
         items: cart,
@@ -427,8 +432,8 @@ export default function MenuBoard({ projectId, projectName, domain, categories, 
                   )}
                 </div>
               ) : (
-                <div className="grid grid-cols-3 gap-2">
-                  {(['takeaway', 'delivery', ...(inStoreEnabled ? ['in-store' as const] : [])] as ('takeaway' | 'delivery' | 'in-store')[]).map((type) => (
+                <div className="grid grid-cols-2 gap-2">
+                  {(['takeaway', 'delivery'] as const).map((type) => (
                     <button
                       key={type}
                       type="button"
@@ -441,7 +446,7 @@ export default function MenuBoard({ projectId, projectName, domain, categories, 
                             : 'bg-white border-gray-200 text-gray-600 hover:border-[#C7A17A]'
                       }`}
                     >
-                      {type === 'takeaway' ? '🛍️ Abholung' : type === 'delivery' ? '🛵 Lieferung' : '📱 Vor Ort'}
+                      {type === 'takeaway' ? '🛍️ Abholung' : '🛵 Lieferung'}
                     </button>
                   ))}
                 </div>
@@ -497,6 +502,14 @@ export default function MenuBoard({ projectId, projectName, domain, categories, 
                       className={`col-span-3 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#C7A17A] ${isEmbedded ? 'border border-white/15 bg-white/5 text-white placeholder:text-gray-500' : 'border border-gray-200 bg-gray-50'}`}
                     />
                   </div>
+                  <input
+                    type="tel"
+                    placeholder="Telefonnummer *"
+                    value={deliveryPhone}
+                    onChange={(e) => setDeliveryPhone(e.target.value)}
+                    required
+                    className={`w-full rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#C7A17A] ${isEmbedded ? 'border border-white/15 bg-white/5 text-white placeholder:text-gray-500' : 'border border-gray-200 bg-gray-50'}`}
+                  />
                 </div>
               )}
 

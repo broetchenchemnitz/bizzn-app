@@ -2,6 +2,7 @@
 
 import { NextResponse } from 'next/server'
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import type { Database } from '@/types/supabase'
 
@@ -40,11 +41,15 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  // Projekt-Infos nachladen (Namen + Slug für Darstellung)
+  // Projekt-Infos nachladen (Admin-Client da RLS den Kunden-Zugriff auf projects blockiert)
   const projectIds = (balances ?? []).map(b => b.project_id)
   let projects: { id: string; name: string; slug: string; cover_image_url: string | null }[] = []
   if (projectIds.length > 0) {
-    const { data: projectData } = await supabase
+    const admin = createAdminClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    const { data: projectData } = await admin
       .from('projects')
       .select('id, name, slug, cover_image_url')
       .in('id', projectIds)
