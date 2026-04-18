@@ -93,6 +93,7 @@ interface Props {
   discountInfo: DiscountInfo
   deliveryInfo: DeliveryInfo
   cartKey: string
+  pickupEnabled?: boolean
   inStoreEnabled?: boolean
   tableNumber?: string | null
   pickupSlotsEnabled?: boolean
@@ -229,7 +230,7 @@ function InputField({
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function InlineMenuBoard({ projectId, slug, categories, discountInfo, deliveryInfo, cartKey, inStoreEnabled = false, tableNumber = null, pickupSlotsEnabled = false, stripeEnabled = false, stripePublishableKey }: Props) {
+export default function InlineMenuBoard({ projectId, slug, categories, discountInfo, deliveryInfo, cartKey, pickupEnabled = true, inStoreEnabled = false, tableNumber = null, pickupSlotsEnabled = false, stripeEnabled = false, stripePublishableKey }: Props) {
   const [view, setView] = useState<View>('menu')
   const [collapsedCats, setCollapsedCats] = useState<Set<string>>(() => new Set<string>())
   const [cart, setCartRaw] = useState<CartItem[]>([])
@@ -1230,30 +1231,42 @@ export default function InlineMenuBoard({ projectId, slug, categories, discountI
         </div>
 
         {/* Order Type */}
-        {!tableNumber && (
-          <div style={{ marginBottom: '12px' }}>
-            <p style={{ ...S.label, marginBottom: '10px' }}>Bestellart</p>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-              {(['takeaway', 'delivery'] as OrderType[]).map(type => (
-                <button
-                  key={type}
-                  onClick={() => setOrderType(type)}
-                  style={{
-                    padding: '10px 8px', borderRadius: '10px', fontSize: '12px', fontWeight: 700,
-                    border: '1px solid',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s',
-                    background: orderType === type ? 'rgba(199,161,122,0.15)' : 'rgba(255,255,255,0.03)',
-                    borderColor: orderType === type ? 'rgba(199,161,122,0.5)' : 'rgba(255,255,255,0.07)',
-                    color: orderType === type ? '#C7A17A' : '#9ca3af',
-                  }}
-                >
-                  {type === 'takeaway' ? '🛍️ Abholung' : '🛵 Lieferung'}
-                </button>
-              ))}
+        {!tableNumber && (() => {
+          const types: { key: OrderType; label: string; enabled: boolean }[] = [
+            { key: 'takeaway', label: '🛍️ Abholung', enabled: pickupEnabled },
+            { key: 'delivery', label: '🛵 Lieferung', enabled: deliveryInfo.enabled },
+          ]
+          const available = types.filter(t => t.enabled)
+          if (available.length === 0) return null
+          // Auto-select first available if current is disabled
+          if (!available.find(t => t.key === orderType)) {
+            setTimeout(() => setOrderType(available[0].key), 0)
+          }
+          return (
+            <div style={{ marginBottom: '12px' }}>
+              <p style={{ ...S.label, marginBottom: '10px' }}>Bestellart</p>
+              <div style={{ display: 'grid', gridTemplateColumns: available.length > 1 ? '1fr 1fr' : '1fr', gap: '8px' }}>
+                {available.map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => setOrderType(key)}
+                    style={{
+                      padding: '10px 8px', borderRadius: '10px', fontSize: '12px', fontWeight: 700,
+                      border: '1px solid',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s',
+                      background: orderType === key ? 'rgba(199,161,122,0.15)' : 'rgba(255,255,255,0.03)',
+                      borderColor: orderType === key ? 'rgba(199,161,122,0.5)' : 'rgba(255,255,255,0.07)',
+                      color: orderType === key ? '#C7A17A' : '#9ca3af',
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )
+        })()}
 
         {/* Table banner — shown when in-store + tableNumber is set */}
         {orderType === 'in-store' && tableNumber && (

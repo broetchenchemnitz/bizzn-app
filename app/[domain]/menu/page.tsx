@@ -135,6 +135,7 @@ export default async function MenuPage({
           discountInfo={discountInfo}
           deliveryInfo={deliveryInfo}
           cartKey={`bizzn-cart-${project.id}${tableNumber ? `-table-${tableNumber}` : ''}`}
+          pickupEnabled={true}
           inStoreEnabled={project.in_store_enabled ?? false}
           tableNumber={tableNumber}
           pickupSlotsEnabled={project.pickup_slots_enabled ?? false}
