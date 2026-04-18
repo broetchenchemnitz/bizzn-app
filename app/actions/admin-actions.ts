@@ -35,6 +35,7 @@ export type AdminCustomer = {
 export type AdminRestaurant = {
   id: string
   name: string
+  slug: string | null
   ownerEmail: string | null
   planType: string | null
   subscriptionStatus: string | null
@@ -194,7 +195,7 @@ export async function getAdminRestaurants(
 
   const { data: projects } = await admin
     .from('projects')
-    .select('id, name, user_id, status, is_suspended, suspension_reason, created_at, stripe_charges_enabled, subscription_paid_until')
+    .select('id, name, slug, user_id, status, is_suspended, suspension_reason, created_at, stripe_charges_enabled, subscription_paid_until')
 
   if (!projects) return []
 
@@ -218,6 +219,7 @@ export async function getAdminRestaurants(
     return {
       id: p.id,
       name: p.name ?? 'Unnamed',
+      slug: p.slug ?? null,
       ownerEmail: userMap.get(p.user_id) ?? null,
       planType: p.status ?? 'active',
       subscriptionStatus: p.stripe_charges_enabled ? 'active' : 'pending',
@@ -333,6 +335,23 @@ export async function adminSetSubscriptionPaidUntil(
     .update({ subscription_paid_until: paidUntil })
     .eq('id', projectId)
 
+  if (error) return { success: false, error: error.message }
+  return { success: true }
+}
+
+export async function adminUpdateSlug(
+  projectId: string,
+  newSlug: string
+): Promise<{ success: boolean; error?: string }> {
+  const admin = createAdminClient()
+  const slug = newSlug.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/^-+|-+$/g, '')
+  if (slug.length < 3) return { success: false, error: 'Slug muss mindestens 3 Zeichen lang sein.' }
+
+  // Check uniqueness
+  const { data: existing } = await admin.from('projects').select('id').eq('slug', slug).neq('id', projectId).maybeSingle()
+  if (existing) return { success: false, error: `Slug "${slug}" ist bereits vergeben.` }
+
+  const { error } = await admin.from('projects').update({ slug }).eq('id', projectId)
   if (error) return { success: false, error: error.message }
   return { success: true }
 }

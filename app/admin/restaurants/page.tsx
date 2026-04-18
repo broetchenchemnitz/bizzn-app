@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { getAdminRestaurants, adminSuspendRestaurant, adminReactivateRestaurant, adminSetSubscriptionPaidUntil, type AdminRestaurant } from '@/app/actions/admin-actions'
+import { getAdminRestaurants, adminSuspendRestaurant, adminReactivateRestaurant, adminSetSubscriptionPaidUntil, adminUpdateSlug, type AdminRestaurant } from '@/app/actions/admin-actions'
 
 const eur = (cents: number) => `${(cents / 100).toFixed(2).replace('.', ',')} €`
 
@@ -13,6 +13,8 @@ export default function AdminRestaurantsPage() {
   const [suspendModal, setSuspendModal] = useState<AdminRestaurant | null>(null)
   const [suspendReason, setSuspendReason] = useState('')
   const [editPaidUntil, setEditPaidUntil] = useState<{ id: string; value: string } | null>(null)
+  const [editSlug, setEditSlug] = useState<{ id: string; value: string } | null>(null)
+  const [slugError, setSlugError] = useState('')
   const [actionLoading, setActionLoading] = useState(false)
 
   const load = () => {
@@ -54,6 +56,20 @@ export default function AdminRestaurantsPage() {
     if (result.success) {
       setEditPaidUntil(null)
       load()
+    }
+    setActionLoading(false)
+  }
+
+  const handleSaveSlug = async () => {
+    if (!editSlug) return
+    setActionLoading(true)
+    setSlugError('')
+    const result = await adminUpdateSlug(editSlug.id, editSlug.value)
+    if (result.success) {
+      setEditSlug(null)
+      load()
+    } else {
+      setSlugError(result.error ?? 'Fehler')
     }
     setActionLoading(false)
   }
@@ -113,6 +129,7 @@ export default function AdminRestaurantsPage() {
               <thead>
                 <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
                   <th style={thStyle}>Restaurant</th>
+                  <th style={thStyle}>Slug</th>
                   <th style={thStyle}>Inhaber</th>
                   <th style={{ ...thStyle, textAlign: 'center' }}>Bezahlt bis</th>
                   <th style={{ ...thStyle, textAlign: 'center' }}>Kunden</th>
@@ -133,6 +150,43 @@ export default function AdminRestaurantsPage() {
                         <span style={{ fontWeight: 600, color: '#111827' }}>{r.name}</span>
                         <br />
                         <span style={{ fontSize: '10px', color: '#9ca3af' }}>{r.id.slice(0, 8)}</span>
+                      </td>
+                      <td style={tdStyle}>
+                        {editSlug?.id === r.id ? (
+                          <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                            <input
+                              type="text"
+                              value={editSlug.value}
+                              onChange={e => setEditSlug({ ...editSlug, value: e.target.value })}
+                              onKeyDown={e => { if (e.key === 'Enter') handleSaveSlug() }}
+                              style={{ padding: '3px 6px', borderRadius: '4px', border: '1px solid #d1d5db', fontSize: '11px', color: '#111827', width: '120px', fontFamily: 'monospace' }}
+                              autoFocus
+                            />
+                            <button onClick={handleSaveSlug} disabled={actionLoading} style={{
+                              padding: '3px 8px', borderRadius: '4px', border: 'none',
+                              background: '#3b82f6', color: '#fff', fontSize: '10px', fontWeight: 600, cursor: 'pointer',
+                            }}>✓</button>
+                            <button onClick={() => { setEditSlug(null); setSlugError('') }} style={{
+                              padding: '3px 8px', borderRadius: '4px', border: '1px solid #e5e7eb',
+                              background: '#fff', color: '#6b7280', fontSize: '10px', cursor: 'pointer',
+                            }}>✕</button>
+                            {slugError && <span style={{ fontSize: '10px', color: '#ef4444' }}>{slugError}</span>}
+                          </div>
+                        ) : (
+                          <span
+                            onClick={() => { setEditSlug({ id: r.id, value: r.slug ?? '' }); setSlugError('') }}
+                            style={{
+                              cursor: 'pointer', padding: '2px 8px', borderRadius: '6px',
+                              fontSize: '11px', fontFamily: 'monospace', fontWeight: 500,
+                              background: r.slug ? 'rgba(59,130,246,0.06)' : 'rgba(239,68,68,0.06)',
+                              color: r.slug ? '#3b82f6' : '#9ca3af',
+                              border: `1px dashed ${r.slug ? 'rgba(59,130,246,0.25)' : 'rgba(239,68,68,0.25)'}`,
+                            }}
+                            title="Klick zum Bearbeiten"
+                          >
+                            {r.slug ?? '— setzen'}
+                          </span>
+                        )}
                       </td>
                       <td style={tdStyle}><span style={{ color: '#6b7280', fontSize: '12px' }}>{r.ownerEmail ?? '—'}</span></td>
                       <td style={{ ...tdStyle, textAlign: 'center' }}>
