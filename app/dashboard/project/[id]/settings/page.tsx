@@ -208,52 +208,64 @@ export default async function ProjectSettingsPage({
             onlinePaymentEnabled={project.online_payment_enabled}
           />
         </section>
+        {/* ━━━━━━━━━━━━━━━━ BIZZN PASS ━━━━━━━━━━━━━━━━ */}
 
-        {/* 6. Drive-In (VIP-Abholung) */}
-        <section className="bg-[#242424] border border-[#333333] rounded-xl p-6">
-          <div className="flex items-center gap-2 border-b border-[#333333] pb-4 mb-5">
-            <Car className="w-4 h-4 text-[#C7A17A]" />
-            <h2 className="text-sm font-semibold text-white uppercase tracking-wider">
-              Drive-In (VIP-Abholung)
-            </h2>
+        {/* Bizzn Pass — gebündelte Premium-Features */}
+        <section className="bg-gradient-to-br from-[#2a2318] to-[#242424] border border-[#C7A17A]/25 rounded-xl p-6">
+          <div className="flex items-center justify-between border-b border-[#C7A17A]/15 pb-4 mb-5">
+            <div className="flex items-center gap-2">
+              <Star className="w-4 h-4 text-[#C7A17A]" />
+              <h2 className="text-sm font-semibold text-[#C7A17A] uppercase tracking-wider">
+                Bizzn Pass
+              </h2>
+            </div>
+            <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full">
+              ✓ Immer aktiv
+            </span>
           </div>
-          <DriveInSettingsBlock
-            projectId={project.id}
-            initialEnabled={(project as unknown as { drive_in_enabled?: boolean }).drive_in_enabled ?? false}
-          />
-        </section>
-
-        {/* ━━━━━━━━━━━━━━━━ MARKETING ━━━━━━━━━━━━━━━━ */}
-
-        {/* 7. Willkommensrabatt */}
-        <section className="bg-[#242424] border border-[#333333] rounded-xl p-6">
-          <div className="flex items-center gap-2 border-b border-[#333333] pb-4 mb-5">
-            <Tag className="w-4 h-4 text-[#C7A17A]" />
-            <h2 className="text-sm font-semibold text-white uppercase tracking-wider">
-              Willkommensrabatt
-            </h2>
-          </div>
-          <p className="text-xs text-gray-500 mb-5">
-            Neue Kunden erhalten einen Rabatt auf ihre erste Bestellung — direkt im Warenkorb sichtbar.
-            Das ist dein stärkstes Werkzeug, um Gäste von Lieferando abzuwerben.
+          <p className="text-xs text-gray-400 mb-6">
+            Diese Premium-Features sind automatisch für alle deine Kunden aktiv — ohne zusätzliche Kosten, ohne Konfiguration.
           </p>
-          <WelcomeDiscountBlock
-            projectId={project.id}
-            initialPct={project.welcome_discount_pct ?? 10}
-          />
-        </section>
 
-        {/* 8. Local-Hero Bonuskarte */}
-        <section className="bg-[#242424] border border-[#333333] rounded-xl p-6">
-          <div className="flex items-center gap-2 border-b border-[#333333] pb-4 mb-5">
-            <Star className="w-4 h-4 text-[#C7A17A]" />
-            <h2 className="text-sm font-semibold text-white uppercase tracking-wider">
-              Local-Hero Bonuskarte
-            </h2>
+          <div className="space-y-6">
+            {/* Willkommensrabatt */}
+            <div className="bg-white/[0.03] rounded-xl p-4 border border-white/5">
+              <div className="flex items-center gap-2 mb-3">
+                <Tag className="w-3.5 h-3.5 text-[#C7A17A]" />
+                <h3 className="text-xs font-bold text-gray-300 uppercase tracking-wider">Willkommensrabatt</h3>
+              </div>
+              <p className="text-xs text-gray-500 mb-4">
+                Neue Kunden erhalten einen Rabatt auf ihre erste Bestellung — direkt im Warenkorb sichtbar.
+              </p>
+              <WelcomeDiscountBlock
+                projectId={project.id}
+                initialPct={project.welcome_discount_pct ?? 10}
+              />
+            </div>
+
+            {/* Local-Hero Bonuskarte */}
+            <div className="bg-white/[0.03] rounded-xl p-4 border border-white/5">
+              <div className="flex items-center gap-2 mb-3">
+                <Star className="w-3.5 h-3.5 text-[#C7A17A]" />
+                <h3 className="text-xs font-bold text-gray-300 uppercase tracking-wider">Local-Hero Bonuskarte</h3>
+              </div>
+              <LoyaltySettingsBlock
+                projectId={project.id}
+              />
+            </div>
+
+            {/* Drive-In (VIP-Abholung) */}
+            <div className="bg-white/[0.03] rounded-xl p-4 border border-white/5">
+              <div className="flex items-center gap-2 mb-3">
+                <Car className="w-3.5 h-3.5 text-[#C7A17A]" />
+                <h3 className="text-xs font-bold text-gray-300 uppercase tracking-wider">Drive-In (VIP-Abholung)</h3>
+              </div>
+              <DriveInSettingsBlock
+                projectId={project.id}
+                initialEnabled={(project as unknown as { drive_in_enabled?: boolean }).drive_in_enabled ?? false}
+              />
+            </div>
           </div>
-          <LoyaltySettingsBlock
-            projectId={project.id}
-          />
         </section>
 
         {/* 9. Discovery-Opt-in */}
