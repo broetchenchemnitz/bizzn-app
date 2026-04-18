@@ -218,7 +218,7 @@ export default function DeliverySettingsBlock({
         className="flex items-center gap-2 bg-[#C7A17A] hover:bg-[#B58E62] disabled:opacity-50 text-white font-bold text-sm px-5 py-2.5 rounded-xl transition-colors"
       >
         {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-        {isPending ? 'Wird gespeichert…' : 'Liefereinstellungen speichern'}
+        {isPending ? 'Wird gespeichert…' : 'Einstellungen speichern'}
       </button>
     </div>
   )

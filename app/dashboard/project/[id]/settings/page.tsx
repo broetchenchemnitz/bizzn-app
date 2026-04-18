@@ -159,6 +159,23 @@ export default async function ProjectSettingsPage({
 
             <div className="border-t border-[#333333]" />
 
+            {/* Tischbestellung (Vor Ort) */}
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <Coffee className="w-3.5 h-3.5 text-[#C7A17A]" />
+                <h3 className="text-xs font-bold text-gray-300 uppercase tracking-wider">Vor Ort (Tischbestellung)</h3>
+              </div>
+              <p className="text-xs text-gray-500 mb-4">
+                Ermögliche deinen Gästen, direkt am Tisch über die Web-Adresse zu bestellen.
+              </p>
+              <InStoreSettingsBlock
+                projectId={project.id}
+                initialEnabled={project.in_store_enabled ?? false}
+              />
+            </div>
+
+            <div className="border-t border-[#333333]" />
+
             {/* Lieferung */}
             <div>
               <div className="flex items-center gap-2 mb-4">
@@ -174,23 +191,6 @@ export default async function ProjectSettingsPage({
                 initialFeeCents={project.delivery_fee_cents ?? 0}
                 initialMinOrderCents={project.min_order_cents ?? 0}
                 initialFreeAboveCents={project.free_delivery_above_cents ?? 0}
-              />
-            </div>
-
-            <div className="border-t border-[#333333]" />
-
-            {/* Tischbestellung (In-Store) */}
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <Coffee className="w-3.5 h-3.5 text-[#C7A17A]" />
-                <h3 className="text-xs font-bold text-gray-300 uppercase tracking-wider">Vor Ort (Tischbestellung)</h3>
-              </div>
-              <p className="text-xs text-gray-500 mb-4">
-                Ermögliche deinen Gästen, direkt am Tisch über die Web-Adresse zu bestellen.
-              </p>
-              <InStoreSettingsBlock
-                projectId={project.id}
-                initialEnabled={project.in_store_enabled ?? false}
               />
             </div>
           </div>
