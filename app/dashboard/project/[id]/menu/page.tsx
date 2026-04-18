@@ -6,6 +6,7 @@ import { notFound, redirect } from 'next/navigation'
 import { getMenuCategories, getMenuItems } from '@/app/actions/menu'
 import AddCategoryForm from '@/components/AddCategoryForm'
 import EditCategoryInline from '@/components/EditCategoryInline'
+import DeleteEntireMenuButton from '@/components/DeleteEntireMenuButton'
 import type { Database } from '@/types/supabase'
 
 type ProjectRow = Database['public']['Tables']['projects']['Row']
@@ -135,6 +136,13 @@ export default async function MenuBuilderPage({
                 />
               ))}
             </ul>
+          )}
+
+          {/* Delete entire menu – only show when categories exist */}
+          {safeCategories.length > 0 && (
+            <div className="flex justify-end">
+              <DeleteEntireMenuButton projectId={params.id} categoryCount={safeCategories.length} />
+            </div>
           )}
         </div>
 

@@ -770,3 +770,48 @@ export async function getMenuItemsForProject(projectId: string): Promise<{
 
   return { data: items, error: null }
 }
+
+// ── Gesamte Speisekarte löschen ───────────────────────────────────────────────
+
+export async function deleteEntireMenu(projectId: string): Promise<{ deletedCategories: number; error: string | null }> {
+  if (!projectId) return { deletedCategories: 0, error: 'Ungültige Projekt-ID.' }
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) return { deletedCategories: 0, error: 'Not authenticated.' }
+
+  // Ownership check
+  const { data: project } = await supabase
+    .from('projects')
+    .select('id')
+    .eq('id', projectId)
+    .eq('user_id', user.id)
+    .single()
+
+  if (!project) return { deletedCategories: 0, error: 'Kein Zugriff auf dieses Projekt.' }
+
+  // Count categories before deletion
+  const { data: categories } = await supabase
+    .from('menu_categories')
+    .select('id')
+    .eq('project_id', projectId)
+
+  const count = categories?.length ?? 0
+
+  if (count === 0) return { deletedCategories: 0, error: 'Keine Kategorien vorhanden.' }
+
+  // Delete all categories (items + option_groups + options cascade via DB)
+  const { error } = await supabase
+    .from('menu_categories')
+    .delete()
+    .eq('project_id', projectId)
+
+  if (error) {
+    console.error('Failed to delete entire menu:', error)
+    return { deletedCategories: 0, error: 'Fehler beim Löschen der Speisekarte.' }
+  }
+
+  revalidatePath(`/dashboard/project/${projectId}/menu`)
+  return { deletedCategories: count, error: null }
+}
