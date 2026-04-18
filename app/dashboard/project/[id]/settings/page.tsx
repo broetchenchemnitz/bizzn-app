@@ -14,6 +14,7 @@ import StripePaymentBlock from "@/components/StripePaymentBlock";
 import NoShowBlacklistBlock from "@/components/NoShowBlacklistBlock";
 import { DriveInSettingsBlock } from "@/components/DriveInSettingsBlock";
 import { Coffee, Timer, CreditCard } from "lucide-react";
+import { ChannelToggle } from "@/components/ChannelToggle";
 import type { Database } from "@/types/supabase";
 import { getNoShowBlacklist } from "@/app/[domain]/actions";
 
@@ -134,12 +135,19 @@ export default async function ProjectSettingsPage({
           </p>
 
           <div className="space-y-8">
-            {/* Abholzeit-Auswahl */}
+            {/* Abholung an/aus + Zeitslot-Konfiguration */}
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <Timer className="w-3.5 h-3.5 text-[#C7A17A]" />
                 <h3 className="text-xs font-bold text-gray-300 uppercase tracking-wider">Abholung</h3>
               </div>
+              <ChannelToggle
+                projectId={project.id}
+                field="pickup_enabled"
+                label="Abholung anbieten"
+                description="Kunden können ihre Bestellung selbst abholen."
+                initialEnabled={(project as any).pickup_enabled ?? true}
+              />
               <PickupSlotsBlock
                 projectId={project.id}
                 initialEnabled={project.pickup_slots_enabled ?? false}
