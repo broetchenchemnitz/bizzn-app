@@ -224,7 +224,7 @@ export default async function ProjectSettingsPage({
             </span>
           </div>
           <p className="text-xs text-gray-400 mb-6">
-            Diese Premium-Features sind automatisch für alle deine Kunden aktiv — ohne zusätzliche Kosten, ohne Konfiguration.
+            Diese Features sind fester Bestandteil deines Bizzn-Auftritts und sorgen für mehr Stammkunden und höhere Wiederkaufraten.
           </p>
 
           <div className="space-y-6">
