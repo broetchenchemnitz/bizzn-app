@@ -38,9 +38,33 @@ export default function DeliverySettingsBlock({
     initialFreeAboveCents > 0 ? centsToEur(initialFreeAboveCents) : ''
   )
   const [isPending, startTransition] = useTransition()
+  const [isToggling, startToggleTransition] = useTransition()
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [toggleSaved, setToggleSaved] = useState(false)
 
+  // Toggle saves immediately to DB
+  const handleToggle = () => {
+    const next = !enabled
+    setEnabled(next)
+    setToggleSaved(false)
+    startToggleTransition(async () => {
+      const result = await updateDeliverySettings(projectId, {
+        enabled: next,
+        feeCents: eurToCents(feeEur || '0'),
+        minOrderCents: eurToCents(minOrderEur || '0'),
+        freeAboveCents: eurToCents(freeAboveEur || '0'),
+      })
+      if ('error' in result) {
+        setEnabled(!next) // revert
+      } else {
+        setToggleSaved(true)
+        setTimeout(() => setToggleSaved(false), 2500)
+      }
+    })
+  }
+
+  // Save button for fee/min/free settings
   const handleSave = () => {
     setStatus('idle')
     setErrorMsg(null)
@@ -66,32 +90,40 @@ export default function DeliverySettingsBlock({
 
   return (
     <div className="space-y-5">
-      {/* Toggle Lieferung aktiv */}
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <p className="text-sm font-semibold text-white">Lieferung anbieten</p>
+      {/* Toggle Lieferung aktiv — saves immediately */}
+      <div className="flex items-center justify-between gap-4 py-3 px-4 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
+        <div className="flex-1 mr-4">
+          <p className="text-sm font-semibold text-gray-200">Lieferung anbieten</p>
           <p className="text-xs text-gray-500 mt-0.5">
             Kunden können im Warenkorb &quot;Lieferung&quot; wählen.
           </p>
         </div>
-        <button
-          id="delivery-enabled-toggle"
-          type="button"
-          onClick={() => setEnabled((v) => !v)}
-          className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7A17A] ${
-            enabled
-              ? 'bg-[#C7A17A] border-[#B58E62]'
-              : 'bg-[#333333] border-[#444444]'
-          }`}
-          aria-pressed={enabled}
-          aria-label="Lieferung umschalten"
-        >
-          <span
-            className={`inline-block h-4 w-4 translate-y-0.5 transform rounded-full bg-white shadow transition-transform duration-200 ${
-              enabled ? 'translate-x-5' : 'translate-x-0.5'
-            }`}
-          />
-        </button>
+        <div className="flex items-center gap-3">
+          {isToggling && (
+            <Loader2 className="w-3.5 h-3.5 text-gray-500 animate-spin" />
+          )}
+          {toggleSaved && !isToggling && (
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+          )}
+          <button
+            id="delivery-enabled-toggle"
+            type="button"
+            onClick={handleToggle}
+            disabled={isToggling}
+            className="relative w-12 h-[26px] rounded-full border-none transition-colors duration-200"
+            style={{
+              background: enabled ? '#C7A17A' : 'rgba(255,255,255,0.1)',
+              cursor: isToggling ? 'not-allowed' : 'pointer',
+            }}
+            aria-pressed={enabled}
+            aria-label="Lieferung umschalten"
+          >
+            <span
+              className="absolute top-[3px] w-5 h-5 rounded-full bg-white transition-[left] duration-200"
+              style={{ left: enabled ? '25px' : '3px' }}
+            />
+          </button>
+        </div>
       </div>
 
       {/* Felder — nur aktiv wenn enabled */}
@@ -209,12 +241,12 @@ export default function DeliverySettingsBlock({
         </div>
       )}
 
-      {/* Save Button */}
+      {/* Save Button — für Gebühren/Schwellenwerte */}
       <button
         id="delivery-settings-save"
         type="button"
         onClick={handleSave}
-        disabled={isPending}
+        disabled={isPending || !enabled}
         className="flex items-center gap-2 bg-[#C7A17A] hover:bg-[#B58E62] disabled:opacity-50 text-white font-bold text-sm px-5 py-2.5 rounded-xl transition-colors"
       >
         {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
