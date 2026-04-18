@@ -64,7 +64,9 @@ export default async function ProjectSettingsPage({
           </p>
         </div>
 
-        {/* Betrieb umbenennen + Betriebs-ID */}
+        {/* ━━━━━━━━━━━━━━━━ IDENTITÄT ━━━━━━━━━━━━━━━━ */}
+
+        {/* 1. Allgemein (Name) */}
         <section className="bg-[#242424] border border-[#333333] rounded-xl p-6 space-y-4">
           <div className="flex items-center gap-2 border-b border-[#333333] pb-4 mb-4">
             <Settings className="w-4 h-4 text-[#C7A17A]" />
@@ -78,7 +80,7 @@ export default async function ProjectSettingsPage({
           />
         </section>
 
-        {/* M14: Restaurant-Profil */}
+        {/* 2. Restaurant-Profil */}
         <section className="bg-[#242424] border border-[#333333] rounded-xl p-6">
           <div className="flex items-center gap-2 border-b border-[#333333] pb-4 mb-5">
             <Store className="w-4 h-4 text-[#C7A17A]" />
@@ -103,38 +105,23 @@ export default async function ProjectSettingsPage({
           />
         </section>
 
-        {/* M16: Willkommensrabatt */}
+        {/* 3. Web-Adresse (Slug) */}
         <section className="bg-[#242424] border border-[#333333] rounded-xl p-6">
           <div className="flex items-center gap-2 border-b border-[#333333] pb-4 mb-5">
-            <Tag className="w-4 h-4 text-[#C7A17A]" />
+            <Globe className="w-4 h-4 text-[#C7A17A]" />
             <h2 className="text-sm font-semibold text-white uppercase tracking-wider">
-              Willkommensrabatt
+              Storefront Web-Adresse
             </h2>
           </div>
-          <p className="text-xs text-gray-500 mb-5">
-            Neue Kunden erhalten einen Rabatt auf ihre erste Bestellung — direkt im Warenkorb sichtbar.
-            Das ist dein stärkstes Werkzeug, um Gäste von Lieferando abzuwerben.
-          </p>
-          <WelcomeDiscountBlock
+          <SlugSettingsBlock
             projectId={project.id}
-            initialPct={project.welcome_discount_pct ?? 10}
+            initialSlug={project.slug ?? null}
           />
         </section>
 
-        {/* M23: Local-Hero Bonuskarte */}
-        <section className="bg-[#242424] border border-[#333333] rounded-xl p-6">
-          <div className="flex items-center gap-2 border-b border-[#333333] pb-4 mb-5">
-            <Star className="w-4 h-4 text-[#C7A17A]" />
-            <h2 className="text-sm font-semibold text-white uppercase tracking-wider">
-              Local-Hero Bonuskarte
-            </h2>
-          </div>
-          <LoyaltySettingsBlock
-            projectId={project.id}
-          />
-        </section>
+        {/* ━━━━━━━━━━━━━━━━ BESTELLUNGEN ━━━━━━━━━━━━━━━━ */}
 
-        {/* Bestellarten: Abholung, Lieferung, Vor Ort */}
+        {/* 4. Abholung, Lieferung, Vor Ort */}
         <section className="bg-[#242424] border border-[#333333] rounded-xl p-6">
           <div className="flex items-center gap-2 border-b border-[#333333] pb-4 mb-5">
             <Store className="w-4 h-4 text-[#C7A17A]" />
@@ -201,7 +188,7 @@ export default async function ProjectSettingsPage({
           </div>
         </section>
 
-        {/* M25: Online-Zahlung via Stripe */}
+        {/* 5. Online-Zahlung via Stripe */}
         <section className="bg-[#242424] border border-[#333333] rounded-xl p-6">
           <div className="flex items-center gap-2 border-b border-[#333333] pb-4 mb-5">
             <CreditCard className="w-4 h-4 text-[#C7A17A]" />
@@ -222,20 +209,7 @@ export default async function ProjectSettingsPage({
           />
         </section>
 
-        {/* M26: No-Show-Schutz */}
-        <section className="bg-[#242424] border border-[#333333] rounded-xl p-6">
-          <div className="flex items-center gap-2 border-b border-[#333333] pb-4 mb-5">
-            <ShieldAlert className="w-4 h-4 text-red-400" />
-            <h2 className="text-sm font-semibold text-white uppercase tracking-wider">
-              No-Show-Schutz
-            </h2>
-          </div>
-          <NoShowBlacklistBlock
-            entries={noShowEntries}
-          />
-        </section>
-
-        {/* M27: Drive-In (VIP-Abholung für Bizzn-Pass-Inhaber) */}
+        {/* 6. Drive-In (VIP-Abholung) */}
         <section className="bg-[#242424] border border-[#333333] rounded-xl p-6">
           <div className="flex items-center gap-2 border-b border-[#333333] pb-4 mb-5">
             <Car className="w-4 h-4 text-[#C7A17A]" />
@@ -249,7 +223,40 @@ export default async function ProjectSettingsPage({
           />
         </section>
 
-        {/* M17: Discovery-Opt-in */}
+        {/* ━━━━━━━━━━━━━━━━ MARKETING ━━━━━━━━━━━━━━━━ */}
+
+        {/* 7. Willkommensrabatt */}
+        <section className="bg-[#242424] border border-[#333333] rounded-xl p-6">
+          <div className="flex items-center gap-2 border-b border-[#333333] pb-4 mb-5">
+            <Tag className="w-4 h-4 text-[#C7A17A]" />
+            <h2 className="text-sm font-semibold text-white uppercase tracking-wider">
+              Willkommensrabatt
+            </h2>
+          </div>
+          <p className="text-xs text-gray-500 mb-5">
+            Neue Kunden erhalten einen Rabatt auf ihre erste Bestellung — direkt im Warenkorb sichtbar.
+            Das ist dein stärkstes Werkzeug, um Gäste von Lieferando abzuwerben.
+          </p>
+          <WelcomeDiscountBlock
+            projectId={project.id}
+            initialPct={project.welcome_discount_pct ?? 10}
+          />
+        </section>
+
+        {/* 8. Local-Hero Bonuskarte */}
+        <section className="bg-[#242424] border border-[#333333] rounded-xl p-6">
+          <div className="flex items-center gap-2 border-b border-[#333333] pb-4 mb-5">
+            <Star className="w-4 h-4 text-[#C7A17A]" />
+            <h2 className="text-sm font-semibold text-white uppercase tracking-wider">
+              Local-Hero Bonuskarte
+            </h2>
+          </div>
+          <LoyaltySettingsBlock
+            projectId={project.id}
+          />
+        </section>
+
+        {/* 9. Discovery-Opt-in */}
         <section className="bg-[#242424] border border-[#333333] rounded-xl p-6">
           <div className="flex items-center gap-2 border-b border-[#333333] pb-4 mb-5">
             <Search className="w-4 h-4 text-[#C7A17A]" />
@@ -272,21 +279,22 @@ export default async function ProjectSettingsPage({
           />
         </section>
 
-        {/* Web-Adresse (Slug) */}
+        {/* ━━━━━━━━━━━━━━━━ SCHUTZ & META ━━━━━━━━━━━━━━━━ */}
+
+        {/* 10. No-Show-Schutz */}
         <section className="bg-[#242424] border border-[#333333] rounded-xl p-6">
           <div className="flex items-center gap-2 border-b border-[#333333] pb-4 mb-5">
-            <Globe className="w-4 h-4 text-[#C7A17A]" />
+            <ShieldAlert className="w-4 h-4 text-red-400" />
             <h2 className="text-sm font-semibold text-white uppercase tracking-wider">
-              Storefront Web-Adresse
+              No-Show-Schutz
             </h2>
           </div>
-          <SlugSettingsBlock
-            projectId={project.id}
-            initialSlug={project.slug ?? null}
+          <NoShowBlacklistBlock
+            entries={noShowEntries}
           />
         </section>
 
-        {/* Betriebs-ID (read-only Info) */}
+        {/* 11. Technische Informationen */}
         <section className="bg-[#242424] border border-[#333333] rounded-xl p-6">
           <h2 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">
             Technische Informationen
@@ -311,7 +319,7 @@ export default async function ProjectSettingsPage({
           </div>
         </section>
 
-        {/* Gefahrenzone */}
+        {/* 12. Gefahrenzone */}
         <section className="bg-[#1A1A1A] border border-red-900/40 rounded-xl p-6">
           <div className="flex items-center gap-2 border-b border-red-900/30 pb-4 mb-5">
             <Trash2 className="w-4 h-4 text-red-500" />
