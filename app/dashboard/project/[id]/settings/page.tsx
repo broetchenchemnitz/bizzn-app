@@ -135,59 +135,71 @@ export default async function ProjectSettingsPage({
           />
         </section>
 
-        {/* M19: Liefereinstellungen */}
+        {/* Bestellarten: Abholung, Lieferung, Vor Ort */}
         <section className="bg-[#242424] border border-[#333333] rounded-xl p-6">
           <div className="flex items-center gap-2 border-b border-[#333333] pb-4 mb-5">
-            <Truck className="w-4 h-4 text-[#C7A17A]" />
+            <Store className="w-4 h-4 text-[#C7A17A]" />
             <h2 className="text-sm font-semibold text-white uppercase tracking-wider">
-              Lieferung
+              Abholung, Lieferung, Vor Ort
             </h2>
           </div>
-          <p className="text-xs text-gray-500 mb-5">
-            Lege die Liefergebühr und den Mindestbestellwert für Lieferbestellungen fest.
-            Die Gebühr wird automatisch im Warenkorb angezeigt.
+          <p className="text-xs text-gray-500 mb-6">
+            Lege fest, wie deine Gäste bestellen können — abholen, liefern lassen oder direkt am Tisch.
           </p>
-          <DeliverySettingsBlock
-            projectId={project.id}
-            initialEnabled={project.delivery_enabled ?? true}
-            initialFeeCents={project.delivery_fee_cents ?? 0}
-            initialMinOrderCents={project.min_order_cents ?? 0}
-            initialFreeAboveCents={project.free_delivery_above_cents ?? 0}
-          />
-        </section>
 
-        {/* M24: Tischbestellung */}
-        <section className="bg-[#242424] border border-[#333333] rounded-xl p-6">
-          <div className="flex items-center gap-2 border-b border-[#333333] pb-4 mb-5">
-            <Coffee className="w-4 h-4 text-[#C7A17A]" />
-            <h2 className="text-sm font-semibold text-white uppercase tracking-wider">
-              Tischbestellung (In-Store)
-            </h2>
-          </div>
-          <p className="text-xs text-gray-500 mb-5">
-            Ermögliche deinen Gästen, direkt am Tisch über die Web-Adresse zu bestellen.
-          </p>
-          <InStoreSettingsBlock
-            projectId={project.id}
-            initialEnabled={project.in_store_enabled ?? false}
-          />
-        </section>
+          <div className="space-y-8">
+            {/* Abholzeit-Auswahl */}
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <Timer className="w-3.5 h-3.5 text-[#C7A17A]" />
+                <h3 className="text-xs font-bold text-gray-300 uppercase tracking-wider">Abholung</h3>
+              </div>
+              <PickupSlotsBlock
+                projectId={project.id}
+                initialEnabled={project.pickup_slots_enabled ?? false}
+                initialPrepTime={project.prep_time_minutes ?? 20}
+                initialInterval={project.slot_interval_minutes ?? 15}
+                initialMaxPerSlot={project.max_orders_per_slot ?? null}
+              />
+            </div>
 
-        {/* M24: Abholzeit-Auswahl */}
-        <section className="bg-[#242424] border border-[#333333] rounded-xl p-6">
-          <div className="flex items-center gap-2 border-b border-[#333333] pb-4 mb-5">
-            <Timer className="w-4 h-4 text-[#C7A17A]" />
-            <h2 className="text-sm font-semibold text-white uppercase tracking-wider">
-              Abholzeit-Auswahl
-            </h2>
+            <div className="border-t border-[#333333]" />
+
+            {/* Lieferung */}
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <Truck className="w-3.5 h-3.5 text-[#C7A17A]" />
+                <h3 className="text-xs font-bold text-gray-300 uppercase tracking-wider">Lieferung</h3>
+              </div>
+              <p className="text-xs text-gray-500 mb-4">
+                Lege die Liefergebühr und den Mindestbestellwert für Lieferbestellungen fest.
+              </p>
+              <DeliverySettingsBlock
+                projectId={project.id}
+                initialEnabled={project.delivery_enabled ?? true}
+                initialFeeCents={project.delivery_fee_cents ?? 0}
+                initialMinOrderCents={project.min_order_cents ?? 0}
+                initialFreeAboveCents={project.free_delivery_above_cents ?? 0}
+              />
+            </div>
+
+            <div className="border-t border-[#333333]" />
+
+            {/* Tischbestellung (In-Store) */}
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <Coffee className="w-3.5 h-3.5 text-[#C7A17A]" />
+                <h3 className="text-xs font-bold text-gray-300 uppercase tracking-wider">Vor Ort (Tischbestellung)</h3>
+              </div>
+              <p className="text-xs text-gray-500 mb-4">
+                Ermögliche deinen Gästen, direkt am Tisch über die Web-Adresse zu bestellen.
+              </p>
+              <InStoreSettingsBlock
+                projectId={project.id}
+                initialEnabled={project.in_store_enabled ?? false}
+              />
+            </div>
           </div>
-          <PickupSlotsBlock
-            projectId={project.id}
-            initialEnabled={project.pickup_slots_enabled ?? false}
-            initialPrepTime={project.prep_time_minutes ?? 20}
-            initialInterval={project.slot_interval_minutes ?? 15}
-            initialMaxPerSlot={project.max_orders_per_slot ?? null}
-          />
         </section>
 
         {/* M25: Online-Zahlung via Stripe */}

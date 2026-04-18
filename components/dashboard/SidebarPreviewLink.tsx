@@ -181,16 +181,6 @@ export default function SidebarPreviewLink() {
           )}
         </span>
       </Link>
-
-      {/* Bestellkanäle */}
-      <Link
-        id="nav-project-channels"
-        href={`/dashboard/project/${projectId}/settings`}
-        className={linkCls(false)}
-      >
-        <Store className="w-4 h-4 flex-shrink-0" />
-        Bestellkanäle
-      </Link>
     </>
   )
 }
