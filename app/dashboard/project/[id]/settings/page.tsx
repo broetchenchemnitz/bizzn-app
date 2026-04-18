@@ -171,6 +171,7 @@ export default async function ProjectSettingsPage({
               <InStoreSettingsBlock
                 projectId={project.id}
                 initialEnabled={project.in_store_enabled ?? false}
+                slug={project.slug ?? null}
               />
             </div>
 

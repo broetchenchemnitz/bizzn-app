@@ -146,10 +146,10 @@ export default function SidebarPreviewLink() {
         Einstellungen
       </Link>
 
-      {/* QR-Codes */}
+      {/* QR-Codes — jetzt in Einstellungen → Vor Ort integriert */}
       <Link
         id="nav-project-qrcodes"
-        href={`/dashboard/project/${projectId}/qr-codes`}
+        href={`/dashboard/project/${projectId}/settings`}
         className={linkCls(isActive(`/dashboard/project/${projectId}/qr-codes`))}
       >
         <QrCode className="w-4 h-4 flex-shrink-0" />
