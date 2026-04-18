@@ -33,6 +33,11 @@ export async function middleware(request: NextRequest) {
       return response
     }
 
+    // API routes: do NOT rewrite — they live under /api/* directly
+    if (pathname.startsWith('/api/') || pathname.startsWith('/_next/')) {
+      return NextResponse.next()
+    }
+
     // Alle anderen Subdomains → Storefront-Rewrite
     const url = request.nextUrl.clone()
     const requestHeaders = new Headers(request.headers)
@@ -86,6 +91,11 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
     // Session bereits validiert (updateSession() oben), einfach durchlassen
+    return response
+  }
+
+  // API routes: do NOT rewrite — they live under /api/* directly
+  if (pathname.startsWith('/api/') || pathname.startsWith('/_next/')) {
     return response
   }
 
