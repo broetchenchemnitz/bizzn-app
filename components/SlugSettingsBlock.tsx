@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useTransition } from 'react'
-import { Globe, Loader2, Check, ExternalLink } from 'lucide-react'
+import { Globe, Loader2, Check, ExternalLink, Lock } from 'lucide-react'
 import { updateProjectSlug } from '@/app/actions/project'
 
 interface SlugSettingsBlockProps {
@@ -24,15 +24,18 @@ export default function SlugSettingsBlock({ projectId, initialSlug }: SlugSettin
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
+  const isLocked = !!savedSlug
   const isDirty = slug !== savedSlug
 
   const handleChange = (raw: string) => {
+    if (isLocked) return
     setError(null)
     setSuccess(false)
     setSlug(sanitize(raw))
   }
 
   const handleSave = () => {
+    if (isLocked) return
     setError(null)
     setSuccess(false)
     startTransition(async () => {
@@ -46,13 +49,14 @@ export default function SlugSettingsBlock({ projectId, initialSlug }: SlugSettin
     })
   }
 
-  return (
-    <div className="w-full space-y-3">
-      {/* Header */}
-      <div className="flex items-center gap-2 mb-1">
-        <Globe className="w-4 h-4 text-[#C7A17A]" />
-        <span className="text-sm font-semibold text-white">Storefront Web-Adresse</span>
-        {savedSlug && (
+  // ── Locked state: slug already set ──────────────────────────────────────────
+  if (isLocked) {
+    return (
+      <div className="w-full space-y-3">
+        {/* Header */}
+        <div className="flex items-center gap-2 mb-1">
+          <Globe className="w-4 h-4 text-[#C7A17A]" />
+          <span className="text-sm font-semibold text-white">Storefront Web-Adresse</span>
           <a
             href={`https://${savedSlug}.bizzn.de`}
             target="_blank"
@@ -62,7 +66,36 @@ export default function SlugSettingsBlock({ projectId, initialSlug }: SlugSettin
             {savedSlug}.bizzn.de
             <ExternalLink className="w-3 h-3" />
           </a>
-        )}
+        </div>
+
+        {/* Locked display */}
+        <div className="flex items-stretch h-11 rounded-xl border border-[#333333] bg-[#1A1A1A]">
+          <span className="flex items-center pl-3.5 pr-2 text-sm text-gray-600 bg-[#242424] border-r border-[#333333] shrink-0 select-none font-mono rounded-l-xl">
+            bizzn.de/
+          </span>
+          <span className="flex-1 flex items-center px-3 text-sm text-gray-400 font-mono">
+            {savedSlug}
+          </span>
+          <span className="flex items-center gap-1.5 px-3 text-[10px] font-semibold text-gray-500 shrink-0">
+            <Lock className="w-3 h-3" />
+            Festgelegt
+          </span>
+        </div>
+
+        <p className="text-[11px] text-gray-600">
+          Die Web-Adresse kann nach dem Speichern nicht mehr geändert werden. Bei Änderungswünschen kontaktiere den Bizzn-Support.
+        </p>
+      </div>
+    )
+  }
+
+  // ── Editable state: no slug set yet ─────────────────────────────────────────
+  return (
+    <div className="w-full space-y-3">
+      {/* Header */}
+      <div className="flex items-center gap-2 mb-1">
+        <Globe className="w-4 h-4 text-[#C7A17A]" />
+        <span className="text-sm font-semibold text-white">Storefront Web-Adresse</span>
       </div>
 
       {/* Single-line inline input group */}
@@ -107,7 +140,7 @@ export default function SlugSettingsBlock({ projectId, initialSlug }: SlugSettin
       )}
       {!error && (
         <p className="text-[11px] text-gray-700">
-          Nur Kleinbuchstaben, Zahlen und Bindestriche · min. 3 Zeichen
+          Nur Kleinbuchstaben, Zahlen und Bindestriche · min. 3 Zeichen · <strong className="text-amber-500/80">kann danach nicht mehr geändert werden</strong>
         </p>
       )}
     </div>
