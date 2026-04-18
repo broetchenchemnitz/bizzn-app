@@ -1,30 +1,8 @@
 'use client'
 
-import { useState, useTransition } from 'react'
-import { Car, Loader2, CheckCircle } from 'lucide-react'
-import { updateProjectSettings } from '@/app/actions/project'
+import { Car } from 'lucide-react'
 
-interface DriveInSettingsBlockProps {
-  projectId: string
-  initialEnabled: boolean
-}
-
-export function DriveInSettingsBlock({ projectId, initialEnabled }: DriveInSettingsBlockProps) {
-  const [enabled, setEnabled] = useState(initialEnabled)
-  const [saved, setSaved] = useState(false)
-  const [isPending, startTransition] = useTransition()
-
-  const toggle = () => {
-    const next = !enabled
-    setEnabled(next)
-    setSaved(false)
-    startTransition(async () => {
-      await updateProjectSettings(projectId, { drive_in_enabled: next })
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2500)
-    })
-  }
-
+export function DriveInSettingsBlock() {
   return (
     <div style={{
       background: 'rgba(255,255,255,0.03)',
@@ -56,48 +34,19 @@ export function DriveInSettingsBlock({ projectId, initialEnabled }: DriveInSetti
         du bringst das Essen direkt zum Auto. Der Kunde gibt Kennzeichen oder Stellplatz an.
       </p>
 
-      {/* Toggle */}
+      {/* Always active badge */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ color: enabled ? '#C7A17A' : '#6b7280', fontSize: '13px', fontWeight: 700 }}>
-          {enabled ? '✅ Drive-In aktiviert' : 'Drive-In deaktiviert'}
+        <span style={{ color: '#C7A17A', fontSize: '13px', fontWeight: 700 }}>
+          ✅ Drive-In aktiviert
         </span>
-        <button
-          id="drive-in-toggle"
-          onClick={toggle}
-          disabled={isPending}
-          style={{
-            width: '48px', height: '26px', borderRadius: '999px', border: 'none',
-            cursor: isPending ? 'not-allowed' : 'pointer',
-            background: enabled ? '#C7A17A' : 'rgba(255,255,255,0.1)',
-            position: 'relative', transition: 'background 0.2s',
-          }}
-        >
-          <span style={{
-            position: 'absolute', top: '3px',
-            left: enabled ? '25px' : '3px',
-            width: '20px', height: '20px', borderRadius: '50%',
-            background: '#fff', transition: 'left 0.2s',
-          }} />
-        </button>
+        <span style={{
+          fontSize: '10px', fontWeight: 600, color: '#4ade80',
+          background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.25)',
+          padding: '3px 10px', borderRadius: '999px',
+        }}>
+          ✓ Immer aktiv
+        </span>
       </div>
-
-      {/* Feedback */}
-      <div style={{ marginTop: '10px', minHeight: '24px' }}>
-        {isPending && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#6b7280', fontSize: '12px' }}>
-            <Loader2 style={{ width: '13px', height: '13px', animation: 'spin 0.8s linear infinite' }} />
-            Wird gespeichert…
-          </div>
-        )}
-        {saved && !isPending && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#4ade80', fontSize: '12px' }}>
-            <CheckCircle style={{ width: '13px', height: '13px' }} />
-            Gespeichert!
-          </div>
-        )}
-      </div>
-
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   )
 }

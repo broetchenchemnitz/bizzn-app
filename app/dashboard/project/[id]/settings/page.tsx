@@ -266,10 +266,7 @@ export default async function ProjectSettingsPage({
                 <Car className="w-3.5 h-3.5 text-[#C7A17A]" />
                 <h3 className="text-xs font-bold text-gray-300 uppercase tracking-wider">Drive-In (VIP-Abholung)</h3>
               </div>
-              <DriveInSettingsBlock
-                projectId={project.id}
-                initialEnabled={(project as unknown as { drive_in_enabled?: boolean }).drive_in_enabled ?? false}
-              />
+              <DriveInSettingsBlock />
             </div>
           </div>
         </section>
