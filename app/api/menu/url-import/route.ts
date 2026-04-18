@@ -44,7 +44,6 @@ interface ParsedMenu {
 
 // ── Platform detection ────────────────────────────────────────────────────────
 const KNOWN_PLATFORMS = [
-  { id: 'lieferando', pattern: /lieferando\.de/i, name: 'Lieferando' },
   { id: 'wolt', pattern: /wolt\.com/i, name: 'Wolt' },
   { id: 'ubereats', pattern: /ubereats\.com/i, name: 'Uber Eats' },
 ] as const
@@ -424,19 +423,8 @@ export async function POST(req: NextRequest) {
     // ── Step 1: Scrape & Parse ─────────────────────────────────────────────
     console.log(`[M29] Scraping URL: ${url} (platform: ${platform?.id ?? 'unknown'})`)
 
-    // ── Lieferando: Cloudflare blocks automated access → use paste-source flow ──
-    if (platform?.id === 'lieferando') {
-      console.log('[M29] Lieferando detected — redirecting to paste-source flow')
-      return NextResponse.json(
-        {
-          error: 'lieferando_paste_source',
-          platform: 'lieferando',
-          platformName: 'Lieferando',
-          sourceUrl: url,
-        },
-        { status: 422 }
-      )
-    }
+
+
 
     // ── Strategy 0: Native JSON parser for known platforms (no Gemini needed!) ──
     if (platform?.id === 'wolt') {

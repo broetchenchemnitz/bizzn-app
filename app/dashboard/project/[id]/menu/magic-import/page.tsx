@@ -125,10 +125,6 @@ export default function MagicImportPage() {
   const [urlPreview, setUrlPreview] = useState<UrlPreviewData | null>(null);
   const [urlImporting, setUrlImporting] = useState(false);
 
-  // Lieferando paste mode state
-  const [lieferandoPasteMode, setLieferandoPasteMode] = useState(false);
-  const [lieferandoPasteUrl, setLieferandoPasteUrl] = useState('');
-  const [lieferandoPasteText, setLieferandoPasteText] = useState('');
 
   // Shared state
   const [status, setStatus] = useState<ImportStatus>('idle');
@@ -253,13 +249,6 @@ export default function MagicImportPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        // Special handling for Lieferando paste-source flow
-        if (data.error === 'lieferando_paste_source') {
-          setUrlScanPhase('idle');
-          setLieferandoPasteMode(true);
-          setLieferandoPasteUrl(data.sourceUrl || urlInput.trim());
-          return;
-        }
 
         setUrlScanPhase('error');
         const errText = data.error || 'Scan fehlgeschlagen';
@@ -505,10 +494,6 @@ export default function MagicImportPage() {
               <div className="flex items-center gap-3 flex-wrap">
                 <span className="text-xs text-gray-500">Unterstützte Plattformen:</span>
                 <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 bg-[#FF8000]/10 text-[#FF8000] text-xs font-semibold px-2.5 py-1 rounded-lg border border-[#FF8000]/20">
-                    <LieferandoLogo className="w-4 h-4" />
-                    Lieferando
-                  </span>
                   <span className="inline-flex items-center gap-1.5 bg-[#009DE0]/10 text-[#009DE0] text-xs font-semibold px-2.5 py-1 rounded-lg border border-[#009DE0]/20">
                     <WoltLogo className="w-4 h-4" />
                     Wolt
@@ -604,127 +589,6 @@ export default function MagicImportPage() {
                 </div>
               ) : null}
 
-              {/* ── Lieferando Paste Mode ────────────────────────────── */}
-              {lieferandoPasteMode && !urlPreview && !result && (
-                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                  {/* Lieferando info banner */}
-                  <div className="rounded-2xl bg-[#FF8000]/10 border border-[#FF8000]/25 p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <LieferandoLogo className="w-5 h-5" />
-                      <span className="font-bold text-[#FF8000]">Lieferando Import</span>
-                    </div>
-                    <p className="text-sm text-gray-300">
-                      Lieferando blockiert automatisches Auslesen. Kein Problem — kopiere einfach den Seitentext und füge ihn hier ein.
-                    </p>
-                  </div>
-
-                  {/* Step-by-step guide */}
-                  <div className="rounded-2xl bg-white/5 border border-white/10 p-5 space-y-4">
-                    {/* Step 1 */}
-                    <div className="flex items-start gap-3">
-                      <div className="w-7 h-7 rounded-full bg-[#C7A17A] flex items-center justify-center shrink-0 text-black font-bold text-xs">1</div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-white">Öffne die Speisekarte in deinem Browser</p>
-                        <button
-                          type="button"
-                          onClick={() => window.open(lieferandoPasteUrl, '_blank')}
-                          className="mt-2 inline-flex items-center gap-2 bg-[#FF8000]/15 text-[#FF8000] text-xs font-semibold px-4 py-2 rounded-xl border border-[#FF8000]/25 hover:bg-[#FF8000]/25 transition-colors"
-                        >
-                          <Globe className="w-3.5 h-3.5" />
-                          Seite öffnen →
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Step 2 */}
-                    <div className="flex items-start gap-3">
-                      <div className="w-7 h-7 rounded-full bg-[#C7A17A] flex items-center justify-center shrink-0 text-black font-bold text-xs">2</div>
-                      <div>
-                        <p className="text-sm font-medium text-white">Wähle den gesamten Text aus und kopiere ihn</p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Drücke <kbd className="bg-white/10 text-gray-300 px-1.5 py-0.5 rounded text-[10px] font-mono">⌘A</kbd> (alles markieren) → <kbd className="bg-white/10 text-gray-300 px-1.5 py-0.5 rounded text-[10px] font-mono">⌘C</kbd> (kopieren)
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Step 3 */}
-                    <div className="flex items-start gap-3">
-                      <div className="w-7 h-7 rounded-full bg-[#C7A17A] flex items-center justify-center shrink-0 text-black font-bold text-xs">3</div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-white mb-2">Füge den Text hier ein</p>
-                        <textarea
-                          id="lieferando-paste-textarea"
-                          value={lieferandoPasteText}
-                          onChange={(e) => setLieferandoPasteText(e.target.value)}
-                          placeholder="Text hier einfügen (⌘V)…"
-                          rows={6}
-                          className="w-full bg-black/40 border border-white/10 text-white rounded-xl p-3 placeholder:text-gray-600 focus:border-[#FF8000] focus:ring-1 focus:ring-[#FF8000]/30 transition-colors text-sm resize-none"
-                        />
-                        {lieferandoPasteText.trim() && (
-                          <p className="text-[10px] text-gray-500 mt-1">
-                            {lieferandoPasteText.length.toLocaleString()} Zeichen eingefügt
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Import button */}
-                  <Button
-                    id="lieferando-paste-import"
-                    onClick={async () => {
-                      if (!lieferandoPasteText.trim()) return;
-                      setStatus('loading');
-                      setResult(null);
-                      try {
-                        const response = await fetch('/api/magic-import/text', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ rawText: lieferandoPasteText, projectId }),
-                        });
-                        const data = await response.json();
-                        if (!response.ok) throw new Error(data.error || 'Import fehlgeschlagen');
-                        setResult({ categoriesCreated: data.categoriesCreated, itemsCreated: data.itemsCreated });
-                        setStatus('success');
-                        setLieferandoPasteMode(false);
-                        setTimeout(() => {
-                          router.push(`/dashboard/project/${projectId}/menu`);
-                          router.refresh();
-                        }, 2500);
-                      } catch (err) {
-                        setStatus('error');
-                        setErrorMsg(err instanceof Error ? err.message : 'Fehler beim Import.');
-                      }
-                    }}
-                    disabled={!lieferandoPasteText.trim() || isLoading}
-                    className="w-full bg-[#FF8000] hover:bg-[#E67300] text-white font-extrabold py-6 text-base rounded-2xl transition-all hover:scale-[1.01] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-[0_0_20px_rgba(255,128,0,0.15)] hover:shadow-[0_0_30px_rgba(255,128,0,0.25)]"
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        KI analysiert Speisekarte…
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="mr-2 h-5 w-5" />
-                        Speisekarte importieren
-                      </>
-                    )}
-                  </Button>
-
-                  {/* Back button */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setLieferandoPasteMode(false);
-                      setLieferandoPasteText('');
-                    }}
-                    className="w-full text-center text-xs text-gray-500 hover:text-gray-300 transition-colors py-2"
-                  >
-                    ← Andere URL scannen
-                  </button>
-                </div>
-              )}
 
               {/* ── Preview Table (after scan) ──────────────────────── */}
               {urlScanPhase === 'done' && urlPreview && !result && (
