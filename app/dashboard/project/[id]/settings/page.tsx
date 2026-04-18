@@ -208,9 +208,26 @@ export default async function ProjectSettingsPage({
             onlinePaymentEnabled={project.online_payment_enabled}
           />
         </section>
+        {/* Willkommensrabatt — gilt für ALLE Neukunden */}
+        <section className="bg-[#242424] border border-[#333333] rounded-xl p-6">
+          <div className="flex items-center gap-2 border-b border-[#333333] pb-4 mb-5">
+            <Tag className="w-4 h-4 text-[#C7A17A]" />
+            <h2 className="text-sm font-semibold text-white uppercase tracking-wider">
+              Willkommensrabatt
+            </h2>
+          </div>
+          <p className="text-xs text-gray-500 mb-5">
+            Jeder Neukunde erhält automatisch einen Rabatt auf seine erste Bestellung — unabhängig vom Bizzn Pass.
+          </p>
+          <WelcomeDiscountBlock
+            projectId={project.id}
+            initialPct={project.welcome_discount_pct ?? 10}
+          />
+        </section>
+
         {/* ━━━━━━━━━━━━━━━━ BIZZN PASS ━━━━━━━━━━━━━━━━ */}
 
-        {/* Bizzn Pass — gebündelte Premium-Features */}
+        {/* Bizzn Pass — exklusive Vorteile für Pass-Inhaber */}
         <section className="bg-gradient-to-br from-[#2a2318] to-[#242424] border border-[#C7A17A]/25 rounded-xl p-6">
           <div className="flex items-center justify-between border-b border-[#C7A17A]/15 pb-4 mb-5">
             <div className="flex items-center gap-2">
@@ -228,27 +245,16 @@ export default async function ProjectSettingsPage({
           </p>
 
           <div className="space-y-6">
-            {/* Willkommensrabatt */}
-            <div className="bg-white/[0.03] rounded-xl p-4 border border-white/5">
-              <div className="flex items-center gap-2 mb-3">
-                <Tag className="w-3.5 h-3.5 text-[#C7A17A]" />
-                <h3 className="text-xs font-bold text-gray-300 uppercase tracking-wider">Willkommensrabatt</h3>
-              </div>
-              <p className="text-xs text-gray-500 mb-4">
-                Neue Kunden erhalten einen Rabatt auf ihre erste Bestellung — direkt im Warenkorb sichtbar.
-              </p>
-              <WelcomeDiscountBlock
-                projectId={project.id}
-                initialPct={project.welcome_discount_pct ?? 10}
-              />
-            </div>
-
             {/* Local-Hero Bonuskarte */}
             <div className="bg-white/[0.03] rounded-xl p-4 border border-white/5">
               <div className="flex items-center gap-2 mb-3">
                 <Star className="w-3.5 h-3.5 text-[#C7A17A]" />
                 <h3 className="text-xs font-bold text-gray-300 uppercase tracking-wider">Local-Hero Bonuskarte</h3>
               </div>
+              <p className="text-xs text-gray-500 mb-4">
+                Jeder Kunde sammelt <strong className="text-gray-300">5 %</strong> Guthaben pro Bestellung.
+                Kunden mit Bizzn Pass erhalten <strong className="text-[#C7A17A]">10 % statt 5 %</strong>.
+              </p>
               <LoyaltySettingsBlock
                 projectId={project.id}
               />
