@@ -131,7 +131,6 @@ export default async function ProjectSettingsPage({
           </div>
           <LoyaltySettingsBlock
             projectId={project.id}
-            initialEnabled={project.loyalty_enabled ?? true}
           />
         </section>
 

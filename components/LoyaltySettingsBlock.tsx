@@ -9,13 +9,9 @@ interface LoyaltyStats {
 
 interface LoyaltySettingsBlockProps {
   projectId: string
-  initialEnabled: boolean
 }
 
-export default function LoyaltySettingsBlock({ projectId, initialEnabled }: LoyaltySettingsBlockProps) {
-  const [enabled, setEnabled] = useState(initialEnabled)
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
+export default function LoyaltySettingsBlock({ projectId }: LoyaltySettingsBlockProps) {
   const [stats, setStats] = useState<LoyaltyStats | null>(null)
 
   useEffect(() => {
@@ -25,27 +21,6 @@ export default function LoyaltySettingsBlock({ projectId, initialEnabled }: Loya
       .then(d => d && setStats(d))
       .catch(() => {})
   }, [projectId])
-
-  async function handleToggle() {
-    const newVal = !enabled
-    setEnabled(newVal)
-    setSaving(true)
-    setSaved(false)
-
-    const res = await fetch('/api/dashboard/loyalty/settings', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ projectId, loyalty_enabled: newVal }),
-    })
-
-    setSaving(false)
-    if (res.ok) {
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2500)
-    } else {
-      setEnabled(!newVal) // Rollback
-    }
-  }
 
   const totalBalanceEur = ((stats?.total_balance_cents ?? 0) / 100).toFixed(2)
 
@@ -58,17 +33,7 @@ export default function LoyaltySettingsBlock({ projectId, initialEnabled }: Loya
           <p className="loyalty-subtitle">Automatische Kundenbindung — ohne App, ohne Aufwand</p>
         </div>
         <div className="loyalty-toggle-wrap">
-          <button
-            onClick={handleToggle}
-            disabled={saving}
-            className={`loyalty-toggle ${enabled ? 'loyalty-toggle--on' : 'loyalty-toggle--off'}`}
-            aria-label={enabled ? 'Deaktivieren' : 'Aktivieren'}
-          >
-            <span className="loyalty-toggle-knob" />
-          </button>
-          <span className="loyalty-toggle-label">{enabled ? 'Aktiv' : 'Inaktiv'}</span>
-          {saving && <span className="loyalty-saving">…</span>}
-          {saved && <span className="loyalty-saved">✓ Gespeichert</span>}
+          <span className="loyalty-badge-active">✓ Immer aktiv</span>
         </div>
       </div>
 
@@ -150,33 +115,15 @@ export default function LoyaltySettingsBlock({ projectId, initialEnabled }: Loya
           gap: 10px;
           flex-shrink: 0;
         }
-        .loyalty-toggle {
-          position: relative;
-          width: 52px;
-          height: 28px;
+        .loyalty-badge-active {
+          font-size: 0.8rem;
+          font-weight: 600;
+          color: #10b981;
+          background: rgba(16, 185, 129, 0.1);
+          border: 1px solid rgba(16, 185, 129, 0.25);
+          padding: 4px 12px;
           border-radius: 999px;
-          border: none;
-          cursor: pointer;
-          transition: background 0.3s;
-          padding: 0;
         }
-        .loyalty-toggle--on { background: #10b981; }
-        .loyalty-toggle--off { background: #475569; }
-        .loyalty-toggle-knob {
-          position: absolute;
-          top: 3px;
-          left: 3px;
-          width: 22px;
-          height: 22px;
-          border-radius: 50%;
-          background: white;
-          transition: transform 0.3s;
-          display: block;
-        }
-        .loyalty-toggle--on .loyalty-toggle-knob { transform: translateX(24px); }
-        .loyalty-toggle-label { font-size: 0.875rem; color: #94a3b8; }
-        .loyalty-saving { font-size: 0.8rem; color: #94a3b8; }
-        .loyalty-saved { font-size: 0.8rem; color: #10b981; font-weight: 600; }
         .loyalty-how-it-works h4 {
           font-size: 0.9rem;
           text-transform: uppercase;
