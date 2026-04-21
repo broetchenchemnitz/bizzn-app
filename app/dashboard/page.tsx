@@ -3,6 +3,7 @@ import { FolderGit2, Settings, PlusCircle, Wand2 } from 'lucide-react'
 import Link from 'next/link'
 import type { Database } from '@/types/supabase'
 import { ProjectStatusBanner } from '@/components/dashboard/ProjectStatusBanner'
+import { DeleteProjectButton } from '@/components/dashboard/DeleteProjectButton'
 
 type ProjectRow = Database['public']['Tables']['projects']['Row']
 
@@ -147,6 +148,11 @@ export default async function DashboardPage({
                         <Wand2 className="w-3.5 h-3.5" />
                         Wizard
                       </Link>
+                      <DeleteProjectButton
+                        projectId={p.id}
+                        projectName={p.name}
+                        status={p.status}
+                      />
                     </div>
                   </div>
                 )
