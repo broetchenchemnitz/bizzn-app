@@ -12,6 +12,7 @@ interface Project {
   custom_monthly_price_cents: number | null
   trial_ends_at: string | null
   live_since: string | null
+  superadmin_note?: string | null
 }
 
 export function ProjectStatusBanner({ project }: { project: Project }) {
@@ -168,7 +169,40 @@ export function ProjectStatusBanner({ project }: { project: Project }) {
     )
   }
 
-  // Draft: zurück zum Wizard
+  // Draft: zurück zum Wizard — mit optionalem Ablehnungshinweis
+  const note = project.superadmin_note
+
+  if (note) {
+    // Wurde abgelehnt mit Hinweis
+    return (
+      <div className="flex flex-col gap-4 p-5 bg-red-950/30 border border-red-800/40 rounded-2xl">
+        <div className="flex items-start gap-3">
+          <div className="w-8 h-8 rounded-full bg-red-500/15 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <span className="text-sm">↩</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-bold text-red-400 mb-1">Antrag abgelehnt — Bitte korrigieren</div>
+            <div className="text-xs text-red-300/70 mb-3">
+              Dein Antrag wurde mit folgendem Hinweis zurückgegeben:
+            </div>
+            <div className="bg-red-950/50 border border-red-800/30 rounded-xl px-4 py-3">
+              <p className="text-sm text-red-200 leading-relaxed">{note}</p>
+            </div>
+          </div>
+        </div>
+        <div className="flex justify-end">
+          <a
+            href={`/onboarding?project=${project.id}`}
+            className="flex items-center gap-2 bg-[#E8B86D] hover:bg-[#d4a55a] text-black font-bold px-5 py-2.5 rounded-xl text-sm transition-all"
+          >
+            Korrigieren & neu einreichen →
+          </a>
+        </div>
+      </div>
+    )
+  }
+
+  // Draft ohne Hinweis: normaler Wizard-Einstieg
   return (
     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 bg-white/3 border border-white/10 rounded-2xl">
       <div className="flex items-center gap-3">

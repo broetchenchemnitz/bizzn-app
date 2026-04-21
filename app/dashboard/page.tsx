@@ -130,6 +130,7 @@ export default async function DashboardPage({
                       custom_monthly_price_cents: (p as Record<string, unknown>).custom_monthly_price_cents as number | null ?? null,
                       trial_ends_at: (p as Record<string, unknown>).trial_ends_at as string | null ?? null,
                       live_since: (p as Record<string, unknown>).live_since as string | null ?? null,
+                      superadmin_note: (p as Record<string, unknown>).superadmin_note as string | null ?? null,
                     }} />
 
                     {/* Actions */}
