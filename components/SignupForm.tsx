@@ -3,7 +3,7 @@
 import { useFormState, useFormStatus } from 'react-dom'
 import { Lock, Mail, Loader2, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
-import { signIn, type AuthState } from '@/app/auth/actions'
+import { signUp, type AuthState } from '@/app/auth/actions'
 
 const initialState: AuthState = { error: null }
 
@@ -18,14 +18,14 @@ function SubmitButton() {
       {pending ? (
         <Loader2 className="w-4 h-4 animate-spin" />
       ) : (
-        <>Anmelden <ArrowRight className="w-4 h-4" /></>
+        <>Konto erstellen <ArrowRight className="w-4 h-4" /></>
       )}
     </button>
   )
 }
 
-export default function LoginForm() {
-  const [state, action] = useFormState(signIn, initialState)
+export default function SignupForm() {
+  const [state, action] = useFormState(signUp, initialState)
 
   return (
     <div className="bg-[#1A1A2E] border border-white/8 shadow-2xl rounded-2xl p-8 w-full">
@@ -35,9 +35,9 @@ export default function LoginForm() {
           <Lock className="text-[#E8B86D] w-5 h-5" />
         </div>
       </div>
-      <h2 className="text-2xl font-bold text-center mb-1 text-white">Willkommen zurück</h2>
+      <h2 className="text-2xl font-bold text-center mb-1 text-white">Konto erstellen</h2>
       <p className="text-center text-sm text-gray-500 mb-7">
-        Melde dich an, um dein Restaurant zu verwalten.
+        Starte deinen Bizzn-Auftritt in wenigen Minuten.
       </p>
 
       {state?.error && (
@@ -70,9 +70,10 @@ export default function LoginForm() {
           <div className="relative">
             <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
             <input
-              id="password" name="password" type="password" required autoComplete="current-password"
+              id="password" name="password" type="password" required autoComplete="new-password"
+              minLength={8}
               className="w-full pl-10 pr-4 py-3 bg-[#0E0E16] border border-white/10 rounded-xl text-white placeholder-gray-600 text-sm focus:outline-none focus:border-[#E8B86D]/40 focus:ring-1 focus:ring-[#E8B86D]/20 transition-all"
-              placeholder="••••••••"
+              placeholder="Mindestens 8 Zeichen"
             />
           </div>
         </div>
@@ -82,10 +83,10 @@ export default function LoginForm() {
 
       <div className="mt-6 text-center">
         <Link
-          href="/auth/signup"
+          href="/auth/login"
           className="text-sm text-gray-500 hover:text-[#E8B86D] transition-colors"
         >
-          Noch kein Konto? Jetzt registrieren →
+          Bereits registriert? Jetzt anmelden →
         </Link>
       </div>
     </div>
