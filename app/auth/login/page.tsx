@@ -4,13 +4,9 @@ export const dynamic = 'force-dynamic'
 
 export const metadata = {
   title: 'Login | Bizzn',
-  description: 'Authenticate to access your Bizzn account.',
+  description: 'Melde dich an, um dein Restaurant auf Bizzn zu verwalten.',
 }
 
 export default function LoginPage() {
-  return (
-    <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-      <LoginForm />
-    </div>
-  )
+  return <LoginForm />
 }

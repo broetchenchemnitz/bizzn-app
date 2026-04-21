@@ -2,7 +2,7 @@
 
 import { useFormState, useFormStatus } from 'react-dom'
 import { useState } from 'react'
-import { Lock, Mail, Loader2 } from 'lucide-react'
+import { Lock, Mail, Loader2, ArrowRight } from 'lucide-react'
 import { signIn, signUp, type AuthState } from '@/app/auth/actions'
 
 const initialState: AuthState = { error: null }
@@ -13,9 +13,16 @@ function SubmitButton({ label }: { label: string }) {
     <button
       type="submit"
       disabled={pending}
-      className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-gray-950 bg-[#C7A17A] hover:bg-[#B58E62] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-950 focus:ring-[#C7A17A] transition-colors duration-200 flex justify-center items-center disabled:opacity-70"
+      className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-bold text-black bg-[#E8B86D] hover:bg-[#d4a55a] focus:outline-none focus:ring-2 focus:ring-[#E8B86D]/50 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed shadow-lg shadow-[#E8B86D]/10"
     >
-      {pending ? <Loader2 className="w-5 h-5 animate-spin" /> : label}
+      {pending ? (
+        <Loader2 className="w-4 h-4 animate-spin" />
+      ) : (
+        <>
+          {label}
+          <ArrowRight className="w-4 h-4" />
+        </>
+      )}
     </button>
   )
 }
@@ -30,69 +37,89 @@ export default function LoginForm() {
   const state = isSignUp ? signUpState : signInState
 
   return (
-    <div className="bg-gray-900 border border-gray-800 shadow-2xl rounded-xl p-8 sm:px-10 w-full max-w-md">
-      <div className="flex justify-center mb-8">
-        <div className="w-12 h-12 bg-brand rounded-full flex items-center justify-center">
-          <Lock className="text-white w-6 h-6" />
+    <div className="bg-[#1A1A2E] border border-white/8 shadow-2xl rounded-2xl p-8 w-full">
+      {/* Header */}
+      <div className="flex justify-center mb-6">
+        <div className="w-12 h-12 bg-[#E8B86D]/10 border border-[#E8B86D]/20 rounded-2xl flex items-center justify-center">
+          <Lock className="text-[#E8B86D] w-5 h-5" />
         </div>
       </div>
-      <h2 className="text-2xl font-bold text-center mb-6 text-white">
+      <h2 className="text-2xl font-bold text-center mb-1 text-white">
         {isSignUp ? 'Konto erstellen' : 'Willkommen zurück'}
       </h2>
+      <p className="text-center text-sm text-gray-500 mb-7">
+        {isSignUp
+          ? 'Starte deinen Bizzn-Auftritt in wenigen Minuten.'
+          : 'Melde dich an, um dein Restaurant zu verwalten.'}
+      </p>
 
+      {/* Error */}
       {state?.error && (
-        <div className="mb-4 p-3 bg-red-950 text-red-400 text-sm rounded-lg text-center border border-red-800">
+        <div className="mb-5 p-3 bg-red-950/50 text-red-400 text-sm rounded-xl border border-red-800/50 text-center">
           {state.error}
         </div>
       )}
 
+      {/* Success */}
       {state?.success && (
-        <div className="mb-4 p-3 bg-green-950 text-green-400 text-sm rounded-lg text-center border border-green-800">
+        <div className="mb-5 p-3 bg-emerald-950/50 text-emerald-400 text-sm rounded-xl border border-emerald-800/50 text-center">
           ✅ {state.success}
         </div>
       )}
 
+      {/* Form */}
       <form action={action} className="space-y-4">
+        {/* Email */}
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-1">E-Mail</label>
+          <label htmlFor="email" className="block text-xs font-medium text-gray-400 mb-1.5">
+            E-Mail-Adresse
+          </label>
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
             <input
               id="email"
               name="email"
               type="email"
               required
-              className="w-full pl-10 pr-4 py-2 bg-gray-950 border border-gray-700 rounded-lg text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-[#C7A17A] focus:border-transparent transition-all duration-200"
-              placeholder="you@example.com"
+              autoComplete="email"
+              className="w-full pl-10 pr-4 py-3 bg-[#0E0E16] border border-white/10 rounded-xl text-white placeholder-gray-600 text-sm focus:outline-none focus:border-[#E8B86D]/40 focus:ring-1 focus:ring-[#E8B86D]/20 transition-all"
+              placeholder="du@restaurant.de"
             />
           </div>
         </div>
 
+        {/* Password */}
         <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-1">Passwort</label>
+          <label htmlFor="password" className="block text-xs font-medium text-gray-400 mb-1.5">
+            Passwort
+          </label>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
             <input
               id="password"
               name="password"
               type="password"
               required
-              className="w-full pl-10 pr-4 py-2 bg-gray-950 border border-gray-700 rounded-lg text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-[#C7A17A] focus:border-transparent transition-all duration-200"
+              autoComplete={isSignUp ? 'new-password' : 'current-password'}
+              className="w-full pl-10 pr-4 py-3 bg-[#0E0E16] border border-white/10 rounded-xl text-white placeholder-gray-600 text-sm focus:outline-none focus:border-[#E8B86D]/40 focus:ring-1 focus:ring-[#E8B86D]/20 transition-all"
               placeholder="••••••••"
             />
           </div>
         </div>
 
-        <SubmitButton label={isSignUp ? 'Registrieren' : 'Anmelden'} />
+        <SubmitButton label={isSignUp ? 'Konto erstellen' : 'Anmelden'} />
       </form>
 
+      {/* Toggle */}
       <div className="mt-6 text-center">
         <button
           type="button"
           onClick={() => setIsSignUp(!isSignUp)}
-          className="text-sm text-gray-500 hover:text-[#C7A17A] transition-colors"
+          className="text-sm text-gray-500 hover:text-[#E8B86D] transition-colors"
         >
-          {isSignUp ? 'Bereits registriert? Jetzt anmelden' : 'Noch kein Konto? Jetzt registrieren'}
+          {isSignUp
+            ? 'Bereits registriert? Jetzt anmelden →'
+            : 'Noch kein Konto? Jetzt registrieren →'}
         </button>
       </div>
     </div>
