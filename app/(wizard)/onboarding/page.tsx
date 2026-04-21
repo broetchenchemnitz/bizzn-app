@@ -508,14 +508,23 @@ function Step3Profile({
   setError: (e: string | null) => void
 }) {
   const [description, setDescription] = useState(project.description ?? '')
-  const [address, setAddress] = useState(project.address ?? '')
+  const [street, setStreet] = useState(project.address ?? '')
+  const [postalCode, setPostalCode] = useState(project.postal_code ?? '')
+  const [city, setCity] = useState(project.city ?? '')
   const [phone, setPhone] = useState(project.phone ?? '')
   const [cuisineType, setCuisineType] = useState(project.cuisine_type ?? '')
 
   const handleNext = () => {
     setError(null)
     startTransition(async () => {
-      const data = { description, address, phone, cuisine_type: cuisineType }
+      const data = {
+        description,
+        address: street,
+        postal_code: postalCode,
+        city,
+        phone,
+        cuisine_type: cuisineType,
+      }
       const result = await saveOnboardingProfile(project.id, data)
       if (result.error) { setError(result.error); return }
       onNext(data)
@@ -539,10 +548,45 @@ function Step3Profile({
             className={inputCls + ' resize-none'}
           />
         </div>
+
+        {/* Adresse: Straße, PLZ, Stadt getrennt */}
         <div>
-          <label className="block text-xs font-medium text-gray-400 mb-1.5">Adresse</label>
-          <input id="wizard-address" type="text" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Musterstraße 1, 09111 Chemnitz" className={inputCls} />
+          <label className="block text-xs font-medium text-gray-400 mb-1.5">Straße & Hausnummer</label>
+          <input
+            id="wizard-street"
+            type="text"
+            value={street}
+            onChange={(e) => setStreet(e.target.value)}
+            placeholder="Hainstraße 55"
+            className={inputCls}
+          />
         </div>
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-400 mb-1.5">PLZ</label>
+            <input
+              id="wizard-postal"
+              type="text"
+              value={postalCode}
+              onChange={(e) => setPostalCode(e.target.value)}
+              placeholder="09111"
+              maxLength={5}
+              className={inputCls}
+            />
+          </div>
+          <div className="col-span-2">
+            <label className="block text-xs font-medium text-gray-400 mb-1.5">Stadt</label>
+            <input
+              id="wizard-city"
+              type="text"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              placeholder="Chemnitz"
+              className={inputCls}
+            />
+          </div>
+        </div>
+
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-medium text-gray-400 mb-1.5">Telefon</label>
@@ -553,6 +597,7 @@ function Step3Profile({
             <input id="wizard-cuisine" type="text" value={cuisineType} onChange={(e) => setCuisineType(e.target.value)} placeholder="Sushi, Pizza, Burger..." className={inputCls} />
           </div>
         </div>
+
         {project.cover_image_url && (
           <div className="flex items-center gap-3 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-xs text-emerald-400">
             <ImageIcon className="w-4 h-4 flex-shrink-0" />
@@ -564,6 +609,7 @@ function Step3Profile({
     </>
   )
 }
+
 
 // ─── Step 4: Slug ─────────────────────────────────────────────────────────────
 

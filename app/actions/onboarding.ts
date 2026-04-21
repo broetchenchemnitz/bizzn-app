@@ -15,6 +15,8 @@ export interface OnboardingProfileData {
   cuisine_type?: string | null
   cover_image_url?: string | null
   opening_hours?: Record<string, string> | null
+  postal_code?: string | null
+  city?: string | null
 }
 
 export interface OnboardingChannelData {
