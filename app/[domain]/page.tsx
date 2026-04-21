@@ -19,12 +19,13 @@ function createAnonSupabase() {
 
 async function getProfileData(slug: string) {
   const supabase = createAnonSupabase()
-  const { data: project } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: project } = await (supabase as any)
     .from('projects')
     .select('*')
     .eq('slug', slug)
-    .single<ProjectRow>()
-  return project ?? null
+    .single()
+  return (project ?? null) as Record<string, unknown> | null
 }
 
 // ─── Kommt-Bald-Seite ───────────────────────────────────────────────────────────
@@ -82,14 +83,18 @@ function getOpenStatus(hours: Record<string, string>): { isOpen: boolean; todayL
 }
 
 // ─── Metadata ─────────────────────────────────────────────────────────────────
+type ProjectRecord = Record<string, unknown>
+
 export async function generateMetadata({ params }: { params: { domain: string } }): Promise<Metadata> {
   const project = await getProfileData(params.domain)
-  const name = project?.name ?? params.domain
-  const description = project?.description ?? `${name} – direkt bestellen ohne Provision auf bizzn.de`
+  const raw = project as Record<string, unknown> | null
+  const name = (raw?.name as string) ?? params.domain
+  const description = (raw?.description as string) ?? `${name} – direkt bestellen ohne Provision auf bizzn.de`
+  const coverImg = raw?.cover_image_url as string | null
   return {
     title: `${name} | bizzn`,
     description,
-    openGraph: { title: name, description, images: project?.cover_image_url ? [project.cover_image_url] : [] },
+    openGraph: { title: name, description, images: coverImg ? [coverImg] : [] },
   }
 }
 
@@ -115,22 +120,32 @@ export default async function RestaurantProfilePage({
   const project = await getProfileData(params.domain)
   if (!project) notFound()
 
-  // ── Zugriffssperre ───────────────────────────────────────────────────────────
-  const status = (project as { status?: string }).status ?? 'draft'
+  // Typisierter Accessor für alle DB-Felder
+  const p = project as ProjectRecord
+  const status = (p.status as string) ?? 'draft'
   const previewToken = searchParams?.preview ?? null
-  const validPreview = previewToken && (project as { preview_token?: string }).preview_token === previewToken
+  const validPreview = previewToken && (p.preview_token as string) === previewToken
 
-  if (status === 'pending_review') return <ComingSoonPage name={project.name} />
+  if (status === 'pending_review') return <ComingSoonPage name={p.name as string} />
   const isDraft = status === 'draft'
-  if (isDraft && !validPreview) return <ComingSoonPage name={project.name} />
+  if (isDraft && !validPreview) return <ComingSoonPage name={p.name as string} />
 
-  const hours = (project.opening_hours ?? {}) as Record<string, string>
-  const hasHours = Object.keys(hours).length > 0
+  const hours = (p.opening_hours ?? {}) as Record<string, string>
+  const hasHours = hours !== null && typeof hours === 'object' && Object.keys(hours).length > 0
   const { isOpen, todayHours } = hasHours ? getOpenStatus(hours) : { isOpen: false, todayHours: null }
 
+  // Typisierte Felder
+  const name = p.name as string
+  const address = p.address as string | null
+  const phone = p.phone as string | null
+  const description = p.description as string | null
+  const cuisineType = p.cuisine_type as string | null
+  const coverImageUrl = p.cover_image_url as string | null
+  const projectId = p.id as string
+
   // Google Maps Link aus Adresse
-  const mapsUrl = project.address
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(project.address)}`
+  const mapsUrl = address
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
     : null
 
   return (
@@ -145,11 +160,11 @@ export default async function RestaurantProfilePage({
 
       {/* ── Hero Cover ──────────────────────────────────────────────────────── */}
       <div className="relative h-64 sm:h-80 w-full overflow-hidden">
-        {project.cover_image_url ? (
+        {coverImageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={project.cover_image_url}
-            alt={`${project.name} Cover`}
+            src={coverImageUrl}
+            alt={`${name} Cover`}
             className="w-full h-full object-cover"
           />
         ) : (
@@ -171,12 +186,12 @@ export default async function RestaurantProfilePage({
             <div className="flex items-start justify-between gap-3 mb-3">
               <div className="flex-1 min-w-0">
                 <h1 className="text-2xl font-extrabold text-white tracking-tight leading-tight mb-1.5">
-                  {project.name}
+                  {name}
                 </h1>
                 <div className="flex flex-wrap items-center gap-2">
-                  {project.cuisine_type && (
+                  {cuisineType && (
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#C7A17A]/12 text-[#C7A17A] border border-[#C7A17A]/25">
-                      {project.cuisine_type}
+                      {cuisineType}
                     </span>
                   )}
                   {hasHours && (
@@ -198,22 +213,22 @@ export default async function RestaurantProfilePage({
             </div>
 
             {/* Customer Auth */}
-            <CustomerBar projectId={project.id} projectName={project.name} />
-            <PushSubscribeButton projectId={project.id} slug={params.domain} />
+            <CustomerBar projectId={projectId} projectName={name} />
+            <PushSubscribeButton projectId={projectId} slug={params.domain} />
 
             {/* Beschreibung */}
-            {project.description && (
+            {description && (
               <p className="mt-3 text-sm text-gray-400 leading-relaxed">
-                {project.description}
+                {description}
               </p>
             )}
           </div>
 
           {/* ── Kontakt-Leiste ─────────────────────────────────────────────── */}
-          {(project.address || project.phone) && (
+          {(address || phone) && (
             <div className="border-t border-white/5 px-6 py-4 flex flex-col sm:flex-row gap-3">
               {/* Adresse mit Maps-Link */}
-              {project.address && (
+              {address && (
                 <a
                   href={mapsUrl ?? '#'}
                   target="_blank"
@@ -229,7 +244,7 @@ export default async function RestaurantProfilePage({
                   </span>
                   <div>
                     <div className="font-medium text-xs text-gray-300 group-hover:text-[#C7A17A]">
-                      {project.address}
+                      {address}
                     </div>
                     {mapsUrl && (
                       <div className="text-[10px] text-gray-600 group-hover:text-[#C7A17A]/70">
@@ -241,9 +256,9 @@ export default async function RestaurantProfilePage({
               )}
 
               {/* Telefon */}
-              {project.phone && (
+              {phone && (
                 <a
-                  href={`tel:${project.phone}`}
+                  href={`tel:${phone}`}
                   className="flex items-center gap-2.5 text-sm text-gray-400 hover:text-[#C7A17A] transition-colors group"
                 >
                   <span className="w-8 h-8 rounded-lg bg-white/5 group-hover:bg-[#C7A17A]/10 flex items-center justify-center flex-shrink-0 transition-colors">
@@ -252,7 +267,7 @@ export default async function RestaurantProfilePage({
                     </svg>
                   </span>
                   <div>
-                    <div className="font-medium text-xs text-gray-300 group-hover:text-[#C7A17A]">{project.phone}</div>
+                    <div className="font-medium text-xs text-gray-300 group-hover:text-[#C7A17A]">{phone}</div>
                     <div className="text-[10px] text-gray-600">Anrufen</div>
                   </div>
                 </a>
@@ -300,9 +315,8 @@ export default async function RestaurantProfilePage({
             </div>
             <div className="px-6 py-4 space-y-1">
               {DAYS_DISPLAY.map(({ key, label }) => {
-                const value = hours[key]
-                if (!value) return null
-                const isClosed = value.toLowerCase() === 'geschlossen'
+                const value = hours[key] ?? null
+                const isClosed = !value || value.toLowerCase() === 'geschlossen'
                 const isToday = key === TODAY_KEY
                 return (
                   <div
@@ -321,7 +335,7 @@ export default async function RestaurantProfilePage({
                           ? 'text-[#C7A17A] font-semibold'
                           : 'text-gray-300 font-medium'
                     }>
-                      {value}
+                      {isClosed ? 'Geschlossen' : value}
                     </span>
                   </div>
                 )
