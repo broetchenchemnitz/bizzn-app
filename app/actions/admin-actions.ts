@@ -190,7 +190,7 @@ export async function getAdminCustomers(
 // ── Restaurants ──────────────────────────────────────────────────────────────
 
 export async function getAdminRestaurants(
-  filter: 'all' | 'active' | 'suspended' | 'overdue' = 'all',
+  filter: 'all' | 'active' | 'suspended' | 'overdue' | 'pending' = 'all',
   search = ''
 ): Promise<AdminRestaurant[]> {
   const admin = createAdminClient()
