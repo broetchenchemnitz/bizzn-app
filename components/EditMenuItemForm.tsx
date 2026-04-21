@@ -6,7 +6,9 @@ import { Save, X, Loader2, Trash2, ImagePlus, ImageOff, Settings2, Plus, Copy } 
 import { updateMenuItem, deleteMenuItem, getOptionGroups, createOptionGroup, type OptionGroupWithOptions } from '@/app/actions/menu'
 import MenuOptionGroupEditor from '@/components/MenuOptionGroupEditor'
 import CopyOptionsModal from '@/components/CopyOptionsModal'
+import MenuItemDetailsEditor from '@/components/MenuItemDetailsEditor'
 import type { Database } from '@/types/supabase'
+import type { NutritionalInfo } from '@/lib/menu-constants'
 
 type MenuItem = Database['public']['Tables']['menu_items']['Row']
 
@@ -38,6 +40,14 @@ export default function EditMenuItemForm({ item, projectId, onClose }: EditMenuI
   const [addingGroup, setAddingGroup] = useState(false)
   const [newGroupName, setNewGroupName] = useState('')
 
+  // Allergene, Zusatzstoffe, Labels, Nährwerte
+  const [allergens, setAllergens] = useState<string[]>(item.allergens ?? [])
+  const [additives, setAdditives] = useState<string[]>(item.additives ?? [])
+  const [itemLabels, setItemLabels] = useState<string[]>(item.labels ?? [])
+  const [nutritionalInfo, setNutritionalInfo] = useState<NutritionalInfo | null>(
+    (item.nutritional_info as NutritionalInfo | null) ?? null
+  )
+
   const loadOptionGroups = useCallback(async () => {
     const result = await getOptionGroups(item.id)
     if (result.data) setOptionGroups(result.data)
@@ -58,6 +68,10 @@ export default function EditMenuItemForm({ item, projectId, onClose }: EditMenuI
         description: description.trim(),
         price: priceCents,
         is_active: isActive,
+        allergens,
+        additives,
+        labels: itemLabels,
+        nutritional_info: nutritionalInfo,
       })
       if (result.error) {
         setError(result.error)
@@ -240,6 +254,23 @@ export default function EditMenuItemForm({ item, projectId, onClose }: EditMenuI
           rows={2}
           className="w-full bg-[#242424] border border-gray-700 focus:border-[#C7A17A]/60 focus:ring-1 focus:ring-[#C7A17A]/30 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-600 outline-none transition-all resize-none"
           placeholder="Kurze Beschreibung (optional)"
+        />
+      </div>
+
+      {/* Allergene, Zusatzstoffe, Labels, Nährwerte */}
+      <div className="border-t border-gray-800 pt-2">
+        <MenuItemDetailsEditor
+          allergens={allergens}
+          additives={additives}
+          labels={itemLabels}
+          nutritionalInfo={nutritionalInfo}
+          disabled={isAnyLoading}
+          onChange={(data) => {
+            setAllergens(data.allergens)
+            setAdditives(data.additives)
+            setItemLabels(data.labels)
+            setNutritionalInfo(data.nutritionalInfo)
+          }}
         />
       </div>
 

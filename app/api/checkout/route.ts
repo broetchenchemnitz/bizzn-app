@@ -4,8 +4,6 @@ import { getStripe } from '@/lib/stripe'
 
 export async function POST(request: NextRequest) {
   try {
-    // Read cookies directly from the request object — more reliable in Route Handlers
-    // than cookies() from next/headers when called from a client-side fetch()
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -23,7 +21,6 @@ export async function POST(request: NextRequest) {
     )
 
     const { data: { user }, error: userError } = await supabase.auth.getUser()
-
     if (userError || !user) {
       return NextResponse.json(
         { error: 'Unauthorized — session cookie not found. Please log in again.' },
@@ -31,10 +28,36 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Derive absolute base URL from the request itself — avoids NEXT_PUBLIC_SITE_URL misconfiguration
-    const origin = request.headers.get('origin') ?? process.env.NEXT_PUBLIC_SITE_URL ?? ''
+    // Optionaler projectId-Body-Parameter (vom Wizard)
+    let projectId: string | null = null
+    let customPriceCents: number | null = null
+    try {
+      const body = await request.json().catch(() => ({}))
+      projectId = body.projectId ?? null
+    } catch { /* no body = legacy call */ }
 
+    // Custom Preis aus dem Projekt laden (Superadmin-Override)
+    if (projectId) {
+      const { data: proj } = await supabase
+        .from('projects')
+        .select('custom_monthly_price_cents')
+        .eq('id', projectId)
+        .eq('user_id', user.id)
+        .single()
+      customPriceCents = proj?.custom_monthly_price_cents ?? null
+    }
+
+    const unitAmount = customPriceCents ?? 9900 // Standard: 99 €
+    const origin = request.headers.get('origin') ?? process.env.NEXT_PUBLIC_SITE_URL ?? ''
     const idempotencyKey = request.headers.get('Idempotency-Key') || crypto.randomUUID()
+
+    const successUrl = projectId
+      ? `${origin}/dashboard?wizard_success=true&project=${projectId}`
+      : `${origin}/dashboard?success=true`
+
+    const cancelUrl = projectId
+      ? `${origin}/onboarding?project=${projectId}&step=9`
+      : `${origin}/dashboard?canceled=true`
 
     const stripe = getStripe()
     const session = await stripe.checkout.sessions.create({
@@ -44,22 +67,23 @@ export async function POST(request: NextRequest) {
           price_data: {
             currency: 'eur',
             product_data: {
-              name: 'Bizzn Premium Build',
-              description: 'AI-assisted enterprise development service.',
+              name: 'Bizzn — Restaurant Live schalten',
+              description: 'Einmalig auf bizzn.de veröffentlichen — 0% Provision.',
             },
-            unit_amount: 9900, // 99.00 EUR
+            unit_amount: unitAmount,
           },
           quantity: 1,
         },
       ],
       mode: 'payment',
       customer_creation: 'always',
-      success_url: `${origin}/dashboard?success=true`,
-      cancel_url: `${origin}/dashboard?canceled=true`,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
       customer_email: user.email,
       client_reference_id: user.id,
       metadata: {
         userId: user.id,
+        ...(projectId ? { projectId, action: 'go_live' } : {}),
       },
     }, { idempotencyKey })
 
@@ -74,3 +98,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }
+

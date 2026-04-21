@@ -16,6 +16,9 @@ interface ParsedItem {
   name: string
   description?: string
   price: number // decimal euros e.g. 8.50
+  allergens?: string[]
+  additives?: string[]
+  labels?: string[]
 }
 interface ParsedCategory {
   name: string
@@ -63,7 +66,10 @@ Format:
         {
           "name": "Gerichtname",
           "description": "Kurze Beschreibung (optional, max 100 Zeichen)",
-          "price": 8.50
+          "price": 8.50,
+          "allergens": ["gluten", "milk"],
+          "additives": ["preservatives"],
+          "labels": ["vegetarian"]
         }
       ]
     }
@@ -74,7 +80,17 @@ Regeln:
 - Preise als Dezimalzahl in Euro (z.B. 8.50, nicht "8,50 €")
 - Wenn kein Preis erkennbar, setze 0
 - Beschreibung leer lassen falls nicht vorhanden
-- Kategorienamen auf Deutsch normalisieren (z.B. "Starters" → "Vorspeisen")`
+- Kategorienamen auf Deutsch normalisieren (z.B. "Starters" → "Vorspeisen")
+
+Allergen-Regeln:
+- allergens: Array der EU-Allergen-Codes. Gültige Codes: gluten, crustaceans, eggs, fish, peanuts, soy, milk, nuts, celery, mustard, sesame, sulfites, lupins, mollusks
+- Erkenne Allergene aus Symbolen (A, B, C..., 1-14), Fußnoten, Icons oder Texthinweisen
+- Wenn Allergene nicht erkennbar: allergens = []
+- additives: Gültige Codes: colorants, preservatives, antioxidants, flavor_enhancers, sweeteners, phosphate, caffeine, quinine, waxed, blackened
+- Wenn Zusatzstoffe nicht erkennbar: additives = []
+- labels: Gültige Codes: vegan, vegetarian, spicy, halal, organic, gluten_free, lactose_free, new, popular, homemade
+- Erkenne Labels aus Symbolen, Icons (🌱, 🌶️), Tags oder Texthinweisen
+- Wenn Labels nicht erkennbar: labels = []`
 
     const result = await model.generateContent([
       prompt,
@@ -131,14 +147,19 @@ Regeln:
       const validItems = (cat.items ?? []).filter((i) => i.name?.trim())
       if (validItems.length === 0) continue
 
-      const itemsToInsert = validItems.map((item) => ({
-        category_id: categoryRow.id,
-        name: item.name.trim(),
-        description: item.description?.trim() ?? '',
-        // Store price in cents (integer) as per existing schema note
-        price: Math.round((item.price ?? 0) * 100),
-        is_active: true,
-      }))
+      const itemsToInsert = validItems.map((item) => {
+        const row: Record<string, unknown> = {
+          category_id: categoryRow.id,
+          name: item.name.trim(),
+          description: item.description?.trim() ?? '',
+          price: Math.round((item.price ?? 0) * 100),
+          is_active: true,
+        }
+        if (item.allergens?.length) row.allergens = item.allergens
+        if (item.additives?.length) row.additives = item.additives
+        if (item.labels?.length) row.labels = item.labels
+        return row
+      })
 
       const { error: itemsError } = await supabaseAdmin
         .from('menu_items')

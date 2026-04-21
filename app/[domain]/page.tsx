@@ -27,6 +27,34 @@ async function getProfileData(slug: string) {
   return project ?? null
 }
 
+// ─── Kommt-Bald-Seite für Draft-Projekte ─────────────────────────────────────
+function ComingSoonPage({ name }: { name: string }) {
+  return (
+    <div className="min-h-screen bg-[#0E0E16] flex flex-col items-center justify-center px-4 text-center font-sans">
+      <div className="space-y-6 max-w-md">
+        <div className="text-6xl animate-pulse">🚀</div>
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">{name}</h1>
+          <p className="text-gray-400 text-sm leading-relaxed">
+            Dieses Restaurant bereitet seinen Online-Auftritt vor.<br />
+            Bald kannst du hier direkt bestellen — ohne Provision.
+          </p>
+        </div>
+        <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#E8B86D]/10 border border-[#E8B86D]/20 rounded-full text-xs text-[#E8B86D] font-medium">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#E8B86D] animate-pulse" />
+          Kommt bald auf bizzn.de
+        </div>
+        <Link
+          href="https://bizzn.de"
+          className="block text-xs text-gray-600 hover:text-gray-400 transition-colors"
+        >
+          Andere Restaurants entdecken →
+        </Link>
+      </div>
+    </div>
+  )
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -55,8 +83,10 @@ const DAYS: { key: string; label: string }[] = [
 
 export default async function RestaurantProfilePage({
   params,
+  searchParams,
 }: {
   params: { domain: string }
+  searchParams: { preview?: string }
 }) {
   const project = await getProfileData(params.domain)
 
@@ -64,11 +94,25 @@ export default async function RestaurantProfilePage({
     notFound()
   }
 
+  // ── Draft-Sperrung: Entwurf ohne gültigen Preview-Token → Kommt-Bald-Seite ──
+  const isDraft = (project as { status?: string }).status === 'draft'
+  const previewToken = searchParams?.preview ?? null
+  const validPreview = previewToken && (project as { preview_token?: string }).preview_token === previewToken
+  if (isDraft && !validPreview) {
+    return <ComingSoonPage name={project.name} />
+  }
+
   const hours = (project.opening_hours ?? {}) as Record<string, string>
   const hasHours = Object.keys(hours).length > 0
 
   return (
     <div className="min-h-screen bg-[#111111] font-sans">
+      {/* ── Preview-Banner (nur im Draft-Vorschau-Modus) ─────────────────── */}
+      {isDraft && validPreview && (
+        <div className="sticky top-0 z-50 bg-[#E8B86D] text-black text-xs font-semibold text-center py-2 px-4 flex items-center justify-center gap-2">
+          <span>👁️ Vorschau-Modus — so sehen deine Gäste dein Restaurant nach dem Go-Live</span>
+        </div>
+      )}
       {/* ── Hero / Cover ─────────────────────────────────────────────────────── */}
       <div className="relative h-56 sm:h-72 w-full overflow-hidden bg-gradient-to-br from-[#2a2118] to-[#1a1a1a]">
         {project.cover_image_url ? (

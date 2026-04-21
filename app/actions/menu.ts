@@ -23,6 +23,11 @@ interface CreateMenuItemData {
   description: string
   price: number   // in cents
   is_active: boolean
+  // Allergene, Zusatzstoffe, Labels, Nährwerte
+  allergens?: string[]
+  additives?: string[]
+  labels?: string[]
+  nutritional_info?: Record<string, number> | null
 }
 
 interface UpdateMenuItemData {
@@ -30,6 +35,11 @@ interface UpdateMenuItemData {
   description?: string
   price?: number  // in cents
   is_active?: boolean
+  // Allergene, Zusatzstoffe, Labels, Nährwerte
+  allergens?: string[]
+  additives?: string[]
+  labels?: string[]
+  nutritional_info?: Record<string, number> | null
 }
 
 export async function getMenuCategories(projectId: string): Promise<{ data: MenuCategory[] | null; error: string | null }> {
@@ -229,15 +239,21 @@ export async function createMenuItem(categoryId: string, itemData: CreateMenuIte
 
   if (!project) return { error: 'Kein Zugriff auf diese Kategorie.' }
 
+  const insertPayload: Record<string, unknown> = {
+    category_id: categoryId,
+    name: itemData.name.trim(),
+    description: itemData.description.trim(),
+    price: itemData.price,
+    is_active: itemData.is_active,
+  }
+  if (itemData.allergens) insertPayload.allergens = itemData.allergens
+  if (itemData.additives) insertPayload.additives = itemData.additives
+  if (itemData.labels) insertPayload.labels = itemData.labels
+  if (itemData.nutritional_info !== undefined) insertPayload.nutritional_info = itemData.nutritional_info
+
   const { error } = await supabase
     .from('menu_items')
-    .insert({
-      category_id: categoryId,
-      name: itemData.name.trim(),
-      description: itemData.description.trim(),
-      price: itemData.price,
-      is_active: itemData.is_active,
-    })
+    .insert(insertPayload)
 
   if (error) {
     console.error('Failed to create menu item:', error)
@@ -285,11 +301,15 @@ export async function updateMenuItem(itemId: string, itemData: UpdateMenuItemDat
 
   if (!project) return { error: 'Kein Zugriff auf diese Speise.' }
 
-  const updatePayload: UpdateMenuItemData = {}
+  const updatePayload: Record<string, unknown> = {}
   if (itemData.name !== undefined) updatePayload.name = itemData.name.trim()
   if (itemData.description !== undefined) updatePayload.description = itemData.description.trim()
   if (itemData.price !== undefined) updatePayload.price = itemData.price
   if (itemData.is_active !== undefined) updatePayload.is_active = itemData.is_active
+  if (itemData.allergens !== undefined) updatePayload.allergens = itemData.allergens
+  if (itemData.additives !== undefined) updatePayload.additives = itemData.additives
+  if (itemData.labels !== undefined) updatePayload.labels = itemData.labels
+  if (itemData.nutritional_info !== undefined) updatePayload.nutritional_info = itemData.nutritional_info
 
   const { error } = await supabase
     .from('menu_items')

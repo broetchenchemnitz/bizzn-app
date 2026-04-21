@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { ProjectPricingRow } from './ProjectPricingRow'
 
 interface Project {
   id: string
@@ -9,6 +10,8 @@ interface Project {
   status: string
   created_at: string
   slug: string
+  custom_monthly_price_cents?: number | null
+  trial_ends_at?: string | null
 }
 
 interface AdminUser {
@@ -103,21 +106,27 @@ export function UserTableRow({ user }: UserRowProps) {
         >
           {user.email}
         </a>
-        <div className="mt-1 flex flex-wrap gap-1">
+        <div className="mt-1 flex flex-col gap-2">
           {user.projects.length === 0 ? (
             <span className="text-xs text-gray-600">Keine Betriebe</span>
           ) : (
             user.projects.map(p => (
-              <span
-                key={p.id}
-                className={`text-xs px-2 py-0.5 rounded-full border ${
-                  p.status === 'suspended'
-                    ? 'bg-red-950 border-red-800 text-red-400'
-                    : 'bg-[#1f1f1f] border-[#333] text-gray-400'
-                }`}
-              >
-                {p.name}
-              </span>
+              <div key={p.id}>
+                <span
+                  className={`text-xs px-2 py-0.5 rounded-full border ${
+                    p.status === 'suspended'
+                      ? 'bg-red-950 border-red-800 text-red-400'
+                      : p.status === 'draft'
+                      ? 'bg-amber-950/50 border-amber-800/50 text-amber-500'
+                      : 'bg-[#1f1f1f] border-[#333] text-gray-400'
+                  }`}
+                >
+                  {p.name}
+                  <span className="ml-1 opacity-60">({p.status})</span>
+                </span>
+                {/* M31: Inline Pricing-Editor */}
+                <ProjectPricingRow project={p} />
+              </div>
             ))
           )}
         </div>

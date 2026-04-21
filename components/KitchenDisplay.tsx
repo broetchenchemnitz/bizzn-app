@@ -12,11 +12,20 @@ type OrderStatus = OrderRow['status']
 type ConnectionStatus = 'CONNECTING' | 'ONLINE' | 'OFFLINE'
 
 // Order mit eingebetteten Items + Artikel-Namen
+interface OrderItemOption {
+  id: string
+  option_name: string
+  option_group_name: string
+  price_cents: number
+}
+
 interface OrderItem {
   id: string
   quantity: number
   price_at_time: number
   item_name: string | null
+  customer_note: string | null
+  order_item_options?: OrderItemOption[]
 }
 
 interface OrderWithItems extends OrderRow {
@@ -128,17 +137,36 @@ function OrderCard({ order, projectId, onUpdate, onNoShow }: { order: OrderWithI
       {/* Bestellpositionen */}
       {items.length > 0 && (
         <div className="bg-black/30 rounded-lg border border-white/5 divide-y divide-white/5">
-          {items.map((item) => (
-            <div key={item.id} className="flex justify-between items-center px-3 py-2 text-sm">
-              <div className="flex items-baseline gap-2">
-                <span className="text-[#C7A17A] font-bold text-base leading-none">{item.quantity}×</span>
-                <span className="text-white/85">{item.item_name ?? '—'}</span>
+          {items.map((item) => {
+            const opts = Array.isArray(item.order_item_options) ? item.order_item_options : []
+            return (
+              <div key={item.id} className="border-b border-white/5 last:border-none px-3 py-2 text-sm">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-[#C7A17A] font-bold text-base leading-none">{item.quantity}×</span>
+                    <span className="text-white/85">{item.item_name ?? '—'}</span>
+                  </div>
+                  <span className="text-white/40 text-xs shrink-0 ml-2">
+                    {((item.price_at_time ?? 0) / 100).toFixed(2)} €
+                  </span>
+                </div>
+                {/* Gewählte Extras */}
+                {opts.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1 ml-6">
+                    {opts.map(o => (
+                      <span key={o.id} className="text-xs font-semibold px-2 py-0.5 rounded-md" style={{ background: 'rgba(199,161,122,0.12)', color: '#C7A17A', border: '1px solid rgba(199,161,122,0.25)' }}>
+                        {o.option_name}{o.price_cents > 0 ? ` +${(o.price_cents / 100).toFixed(2)}€` : ''}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {/* Kundennotiz */}
+                {item.customer_note && (
+                  <p className="mt-1 ml-6 text-amber-300/80 text-xs italic">💬 {item.customer_note}</p>
+                )}
               </div>
-              <span className="text-white/40 text-xs shrink-0 ml-2">
-                {((item.price_at_time ?? 0) / 100).toFixed(2)} €
-              </span>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
 
@@ -194,7 +222,7 @@ export default function KitchenDisplay({ projectId }: { projectId: string }) {
 
     const { data } = await supabase
       .from('orders')
-      .select('*, order_items(id, quantity, price_at_time, item_name)')
+      .select('*, order_items(id, quantity, price_at_time, item_name, customer_note, order_item_options(id, option_name, option_group_name, price_cents))')
       .eq('project_id', projectId)
       .gte('created_at', todayStart.toISOString())
       // null/unpaid = Barzahlung, paid = Karte; 'pending' = Karte noch offen → blockieren

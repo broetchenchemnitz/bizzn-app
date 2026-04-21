@@ -22,6 +22,13 @@ import {
   Package,
   Check,
   Minus,
+  Store,
+  MapPin,
+  Phone,
+  Clock,
+  ChefHat,
+  Image as ImageLucide,
+  AlertTriangle,
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -34,6 +41,10 @@ interface ImportResult {
   optionGroupsCreated?: number;
   optionsCreated?: number;
   imagesDownloaded?: number;
+  // M30
+  profileSaved?: boolean;
+  slugGenerated?: string | null;
+  coverImageSaved?: boolean;
 }
 
 interface PreviewOption {
@@ -70,6 +81,21 @@ interface UrlPreviewData {
   sourceUrl: string;
   categories: PreviewCategory[];
   stats: { categories: number; items: number; options: number; images: number };
+  // M30: Profile
+  profile: ProfilePreview | null;
+}
+
+// M30: Profile preview data
+interface ProfilePreview {
+  restaurantName: string;
+  description: string;
+  address: string;
+  phone: string;
+  cuisineType: string;
+  openingHours: Record<string, string>;
+  coverImageUrl: string;
+  // UI state
+  enabled: boolean; // master toggle for profile import
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -124,6 +150,8 @@ export default function MagicImportPage() {
   const [urlScanPhase, setUrlScanPhase] = useState<UrlScanPhase>('idle');
   const [urlPreview, setUrlPreview] = useState<UrlPreviewData | null>(null);
   const [urlImporting, setUrlImporting] = useState(false);
+  // M30: Profile preview expanded state
+  const [profileExpanded, setProfileExpanded] = useState(true);
 
 
   // Shared state
@@ -274,12 +302,32 @@ export default function MagicImportPage() {
         })
       );
 
+      // M30: Build profile preview from API response
+      const rawProfile = data.profile;
+      let profilePreview: ProfilePreview | null = null;
+      if (rawProfile && typeof rawProfile === 'object') {
+        const hasAnyData = rawProfile.restaurantName || rawProfile.description || rawProfile.address || rawProfile.phone || rawProfile.cuisineType || rawProfile.coverImageUrl || (rawProfile.openingHours && Object.keys(rawProfile.openingHours).length > 0);
+        if (hasAnyData) {
+          profilePreview = {
+            restaurantName: rawProfile.restaurantName ?? '',
+            description: rawProfile.description ?? '',
+            address: rawProfile.address ?? '',
+            phone: rawProfile.phone ?? '',
+            cuisineType: rawProfile.cuisineType ?? '',
+            openingHours: rawProfile.openingHours ?? {},
+            coverImageUrl: rawProfile.coverImageUrl ?? '',
+            enabled: true,
+          };
+        }
+      }
+
       setUrlPreview({
         platform: data.platform,
         platformName: data.platformName,
         sourceUrl: data.sourceUrl,
         categories: previewCategories,
         stats: data.stats,
+        profile: profilePreview,
       });
       setUrlScanPhase('done');
     } catch (err) {
@@ -298,6 +346,17 @@ export default function MagicImportPage() {
     setErrorMsg('');
 
     try {
+      // M30: Build profile payload if enabled
+      const profilePayload = urlPreview.profile?.enabled ? {
+        restaurantName: urlPreview.profile.restaurantName || undefined,
+        description: urlPreview.profile.description || undefined,
+        address: urlPreview.profile.address || undefined,
+        phone: urlPreview.profile.phone || undefined,
+        cuisineType: urlPreview.profile.cuisineType || undefined,
+        openingHours: Object.keys(urlPreview.profile.openingHours).length > 0 ? urlPreview.profile.openingHours : undefined,
+        coverImageUrl: urlPreview.profile.coverImageUrl || undefined,
+      } : undefined;
+
       const response = await fetch('/api/menu/url-import/confirm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -305,6 +364,7 @@ export default function MagicImportPage() {
           projectId,
           categories: urlPreview.categories,
           sourceUrl: urlPreview.sourceUrl,
+          profile: profilePayload,
         }),
       });
 
@@ -317,6 +377,9 @@ export default function MagicImportPage() {
         optionGroupsCreated: data.optionGroupsCreated,
         optionsCreated: data.optionsCreated,
         imagesDownloaded: data.imagesDownloaded,
+        profileSaved: data.profileSaved,
+        slugGenerated: data.slugGenerated,
+        coverImageSaved: data.coverImageSaved,
       });
       setStatus('success');
 
@@ -618,6 +681,202 @@ export default function MagicImportPage() {
                       )}
                     </div>
                   </div>
+
+                  {/* M30: Profile Preview Section */}
+                  {urlPreview.profile && (
+                    <div className="rounded-2xl border border-[#C7A17A]/20 bg-[#C7A17A]/5 overflow-hidden">
+                      {/* Profile header */}
+                      <button
+                        type="button"
+                        onClick={() => setProfileExpanded(!profileExpanded)}
+                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#C7A17A]/10 transition-colors"
+                      >
+                        {/* Toggle checkbox */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setUrlPreview({
+                              ...urlPreview,
+                              profile: { ...urlPreview.profile!, enabled: !urlPreview.profile!.enabled },
+                            });
+                          }}
+                          className={`
+                            w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all
+                            ${urlPreview.profile.enabled
+                              ? 'bg-[#C7A17A] border-[#C7A17A]'
+                              : 'border-gray-600 hover:border-gray-400'
+                            }
+                          `}
+                          aria-label="Profildaten importieren"
+                        >
+                          {urlPreview.profile.enabled && <Check className="w-3 h-3 text-black" />}
+                        </button>
+
+                        <Store className="w-4 h-4 text-[#C7A17A] shrink-0" />
+                        <span className="font-semibold text-[#C7A17A] text-sm">Restaurant-Profil</span>
+                        <span className="text-xs text-gray-500 ml-auto mr-2">
+                          {urlPreview.profile.enabled ? 'wird importiert' : 'deaktiviert'}
+                        </span>
+                        {profileExpanded ? (
+                          <ChevronDown className="w-4 h-4 text-gray-500 shrink-0" />
+                        ) : (
+                          <ChevronRight className="w-4 h-4 text-gray-500 shrink-0" />
+                        )}
+                      </button>
+
+                      {/* Profile fields (expanded) */}
+                      {profileExpanded && urlPreview.profile.enabled && (
+                        <div className="border-t border-[#C7A17A]/10 px-4 py-4 space-y-3">
+                          {/* Restaurant Name */}
+                          {urlPreview.profile.restaurantName && (
+                            <div className="space-y-1">
+                              <label className="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
+                                <Store className="w-3 h-3" /> Restaurantname
+                              </label>
+                              <input
+                                type="text"
+                                value={urlPreview.profile.restaurantName}
+                                onChange={(e) => setUrlPreview({
+                                  ...urlPreview,
+                                  profile: { ...urlPreview.profile!, restaurantName: e.target.value },
+                                })}
+                                className="w-full px-3 py-2 bg-black/30 border border-white/10 text-white text-sm rounded-xl focus:border-[#C7A17A] focus:ring-1 focus:ring-[#C7A17A]/30 transition-colors"
+                              />
+                            </div>
+                          )}
+
+                          {/* Description */}
+                          {urlPreview.profile.description && (
+                            <div className="space-y-1">
+                              <label className="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
+                                <FileText className="w-3 h-3" /> Beschreibung
+                              </label>
+                              <textarea
+                                value={urlPreview.profile.description}
+                                onChange={(e) => setUrlPreview({
+                                  ...urlPreview,
+                                  profile: { ...urlPreview.profile!, description: e.target.value },
+                                })}
+                                rows={2}
+                                className="w-full px-3 py-2 bg-black/30 border border-white/10 text-white text-sm rounded-xl focus:border-[#C7A17A] focus:ring-1 focus:ring-[#C7A17A]/30 transition-colors resize-none"
+                              />
+                            </div>
+                          )}
+
+                          {/* Address */}
+                          {urlPreview.profile.address && (
+                            <div className="space-y-1">
+                              <label className="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
+                                <MapPin className="w-3 h-3" /> Adresse
+                              </label>
+                              <input
+                                type="text"
+                                value={urlPreview.profile.address}
+                                onChange={(e) => setUrlPreview({
+                                  ...urlPreview,
+                                  profile: { ...urlPreview.profile!, address: e.target.value },
+                                })}
+                                className="w-full px-3 py-2 bg-black/30 border border-white/10 text-white text-sm rounded-xl focus:border-[#C7A17A] focus:ring-1 focus:ring-[#C7A17A]/30 transition-colors"
+                              />
+                            </div>
+                          )}
+
+                          {/* Phone + Cuisine in a row */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {urlPreview.profile.phone && (
+                              <div className="space-y-1">
+                                <label className="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
+                                  <Phone className="w-3 h-3" /> Telefon
+                                </label>
+                                <input
+                                  type="tel"
+                                  value={urlPreview.profile.phone}
+                                  onChange={(e) => setUrlPreview({
+                                    ...urlPreview,
+                                    profile: { ...urlPreview.profile!, phone: e.target.value },
+                                  })}
+                                  className="w-full px-3 py-2 bg-black/30 border border-white/10 text-white text-sm rounded-xl focus:border-[#C7A17A] focus:ring-1 focus:ring-[#C7A17A]/30 transition-colors"
+                                />
+                              </div>
+                            )}
+                            {urlPreview.profile.cuisineType && (
+                              <div className="space-y-1">
+                                <label className="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
+                                  <ChefHat className="w-3 h-3" /> Küchen-Typ
+                                </label>
+                                <input
+                                  type="text"
+                                  value={urlPreview.profile.cuisineType}
+                                  onChange={(e) => setUrlPreview({
+                                    ...urlPreview,
+                                    profile: { ...urlPreview.profile!, cuisineType: e.target.value },
+                                  })}
+                                  className="w-full px-3 py-2 bg-black/30 border border-white/10 text-white text-sm rounded-xl focus:border-[#C7A17A] focus:ring-1 focus:ring-[#C7A17A]/30 transition-colors"
+                                />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Opening Hours */}
+                          {Object.keys(urlPreview.profile.openingHours).length > 0 && (
+                            <div className="space-y-1">
+                              <label className="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
+                                <Clock className="w-3 h-3" /> Öffnungszeiten
+                              </label>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                                {Object.entries(urlPreview.profile.openingHours).map(([day, time]) => (
+                                  <div key={day} className="flex items-center gap-2 text-xs">
+                                    <span className="text-gray-400 w-24 shrink-0">{day}</span>
+                                    <span className="text-white">{time}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Cover Image Preview */}
+                          {urlPreview.profile.coverImageUrl && (
+                            <div className="space-y-1">
+                              <label className="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
+                                <ImageLucide className="w-3 h-3" /> Cover-Bild
+                              </label>
+                              <div className="relative w-full h-24 rounded-xl overflow-hidden border border-white/10 bg-black/30">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                  src={urlPreview.profile.coverImageUrl}
+                                  alt="Cover-Vorschau"
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).style.display = 'none';
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Missing fields hint */}
+                          {(() => {
+                            const missing: string[] = [];
+                            if (!urlPreview.profile!.restaurantName) missing.push('Name');
+                            if (!urlPreview.profile!.phone) missing.push('Telefon');
+                            if (!urlPreview.profile!.address) missing.push('Adresse');
+                            if (Object.keys(urlPreview.profile!.openingHours).length === 0) missing.push('Öffnungszeiten');
+                            if (missing.length === 0) return null;
+                            return (
+                              <div className="flex items-start gap-2 text-xs text-amber-400/80 bg-amber-500/5 border border-amber-500/10 rounded-xl px-3 py-2">
+                                <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                                <span>
+                                  Nicht erkannt: {missing.join(', ')} — bitte in den{' '}
+                                  <span className="underline">Einstellungen</span> nachtragen.
+                                </span>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Select all toggle */}
                   <div className="flex items-center justify-between px-1">
@@ -965,8 +1224,16 @@ export default function MagicImportPage() {
                     <> &amp; {result.imagesDownloaded} Bild{result.imagesDownloaded !== 1 ? 'er' : ''}</>
                   )}
                   {' '}in dein Menü geladen.
-                  Du wirst weitergeleitet…
                 </p>
+                {result.profileSaved && (
+                  <p className="text-sm opacity-80 mt-1">
+                    🏨 Restaurant-Profil aktualisiert
+                    {result.slugGenerated && (
+                      <> — <span className="font-mono text-[#C7A17A]">{result.slugGenerated}.bizzn.de</span></>
+                    )}
+                  </p>
+                )}
+                <p className="text-xs opacity-60 mt-1">Du wirst weitergeleitet…</p>
               </div>
             </div>
           )}

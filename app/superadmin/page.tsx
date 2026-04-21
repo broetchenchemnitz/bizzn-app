@@ -11,6 +11,8 @@ interface Project {
   created_at: string
   slug: string
   user_id: string
+  custom_monthly_price_cents?: number | null
+  trial_ends_at?: string | null
 }
 
 interface RawUser {
@@ -33,7 +35,7 @@ export default async function SuperadminPage() {
   // ── Alle Projekte laden ───────────────────────────────────────────────────
   const { data: projectsRaw } = await admin
     .from('projects')
-    .select('id, name, status, created_at, slug, user_id')
+    .select('id, name, status, created_at, slug, user_id, custom_monthly_price_cents, trial_ends_at')
     .order('created_at', { ascending: false })
 
   const projects = (projectsRaw ?? []) as Project[]

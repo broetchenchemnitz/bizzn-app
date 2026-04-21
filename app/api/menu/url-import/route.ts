@@ -31,6 +31,10 @@ interface ParsedItem {
   price: number
   imageUrl?: string
   optionGroups: ParsedOptionGroup[]
+  // Allergene, Zusatzstoffe, Labels
+  allergens?: string[]
+  additives?: string[]
+  labels?: string[]
 }
 
 interface ParsedCategory {
@@ -38,8 +42,20 @@ interface ParsedCategory {
   items: ParsedItem[]
 }
 
+// M30: Extrahierte Profildaten
+interface ParsedProfile {
+  restaurantName?: string
+  description?: string
+  address?: string
+  phone?: string
+  openingHours?: Record<string, string>  // { "Montag": "11:00–22:00", ... }
+  cuisineType?: string
+  coverImageUrl?: string
+}
+
 interface ParsedMenu {
   categories: ParsedCategory[]
+  profile?: ParsedProfile
 }
 
 // ── Platform detection ────────────────────────────────────────────────────────
@@ -235,6 +251,12 @@ interface WoltJsonItem {
   price: number // cents
   images?: { url: string }[]
   is_cutlery?: boolean
+  // Allergens can be string[] or object[] e.g. {name:"wheat"} depending on Wolt API version
+  allergens?: unknown[]
+  dietary_flags?: unknown[]
+  dietary_labels?: unknown[]
+  tags?: unknown[]
+  allergen_info?: string // plain text fallback e.g. "Contains gluten, sesame"
   options?: {
     id: string
     option_id: string
@@ -256,6 +278,21 @@ interface WoltMenuData {
   categories: WoltJsonCategory[]
   items: WoltJsonItem[]
   options: WoltJsonOption[]
+}
+
+// M30: Wolt venue data for profile extraction
+interface WoltVenueData {
+  name?: string
+  short_description?: string
+  description?: string
+  address?: string | { street_address?: string; city?: string; post_code?: string; formatted_address?: string }
+  phone?: string
+  opening_times?: { opening_day: string; opening_time: string; closing_time: string }[]
+  tags?: string[]
+  mainimage?: { url: string }
+  hero_image?: { url: string }
+  profile_image?: { url: string }
+  images?: { url: string }[]
 }
 
 async function tryWoltNativeParse(url: string): Promise<ParsedMenu | null> {
@@ -287,9 +324,11 @@ async function tryWoltNativeParse(url: string): Promise<ParsedMenu | null> {
 
     // Find the large block containing menu data (queries with categories+items)
     let menuData: WoltMenuData | null = null
+    // M30: Also extract venue/profile data
+    let venueData: WoltVenueData | null = null
+
     for (const block of jsonBlocks) {
       const jsonContent = block.replace(/<script[^>]*>/, '').replace(/<\/script>/, '')
-      if (jsonContent.length < 10000) continue // Skip small config blocks
 
       try {
         const parsed = JSON.parse(jsonContent)
@@ -297,19 +336,32 @@ async function tryWoltNativeParse(url: string): Promise<ParsedMenu | null> {
 
         for (const query of parsed.queries) {
           const data = query?.state?.data
+          if (!data || typeof data !== 'object') continue
+
+          // Menu data (categories + items)
           if (
-            data &&
-            typeof data === 'object' &&
+            !menuData &&
             Array.isArray(data.categories) &&
             Array.isArray(data.items) &&
             data.categories.length > 0 &&
             data.items.length > 0
           ) {
             menuData = data as WoltMenuData
-            break
+          }
+
+          // M30: Venue/profile data — look for venue object with name + address
+          if (!venueData) {
+            const venue = data.venue ?? data
+            if (venue && typeof venue === 'object' && venue.name && typeof venue.name === 'string') {
+              // Must have at least name to be valid venue data
+              if (venue.address || venue.short_description || venue.opening_times) {
+                venueData = venue as WoltVenueData
+                console.log(`[M30] Wolt native: Found venue data for "${venue.name}"`)
+              }
+            }
           }
         }
-        if (menuData) break
+        if (menuData && venueData) break
       } catch {
         continue
       }
@@ -369,12 +421,78 @@ async function tryWoltNativeParse(url: string): Promise<ParsedMenu | null> {
         // Get the best image URL
         const imageUrl = woltItem.images?.[0]?.url ?? undefined
 
+        // Extract allergens & labels from Wolt data
+        const itemAllergens: string[] = []
+        const itemLabels: string[] = []
+        const woltAllergenMap: Record<string, string> = {
+          'gluten': 'gluten', 'wheat': 'gluten', 'barley': 'gluten', 'rye': 'gluten', 'oats': 'gluten',
+          'crustacean': 'crustaceans', 'shrimp': 'crustaceans', 'crab': 'crustaceans', 'lobster': 'crustaceans',
+          'egg': 'eggs', 'eggs': 'eggs',
+          'fish': 'fish',
+          'peanut': 'peanuts', 'peanuts': 'peanuts',
+          'soy': 'soy', 'soya': 'soy', 'soybeans': 'soy',
+          'milk': 'milk', 'dairy': 'milk', 'lactose': 'milk',
+          'nut': 'nuts', 'nuts': 'nuts', 'tree_nuts': 'nuts', 'almond': 'nuts', 'hazelnut': 'nuts', 'walnut': 'nuts', 'cashew': 'nuts', 'pistachio': 'nuts',
+          'celery': 'celery',
+          'mustard': 'mustard',
+          'sesame': 'sesame',
+          'sulphite': 'sulfites', 'sulfite': 'sulfites', 'sulphur': 'sulfites', 'so2': 'sulfites',
+          'lupin': 'lupins', 'lupine': 'lupins',
+          'mollusc': 'mollusks', 'mollusk': 'mollusks', 'squid': 'mollusks', 'octopus': 'mollusks', 'mussel': 'mollusks', 'oyster': 'mollusks', 'snail': 'mollusks',
+        }
+        const woltLabelMap: Record<string, string> = {
+          'vegan': 'vegan', 'vegetarian': 'vegetarian', 'spicy': 'spicy', 'hot': 'spicy',
+          'halal': 'halal', 'organic': 'organic', 'bio': 'organic',
+          'gluten_free': 'gluten_free', 'gluten-free': 'gluten_free',
+          'lactose_free': 'lactose_free', 'lactose-free': 'lactose_free', 'dairy_free': 'lactose_free',
+          'popular': 'popular', 'new': 'new', 'homemade': 'homemade',
+        }
+
+        // Parse Wolt allergen fields
+        // Wolt kann Allergene als string[] ODER als Objekte mit {name: string} senden
+        const extractAllergenKey = (raw: unknown): string => {
+          if (typeof raw === 'string') return raw.toLowerCase().trim()
+          if (raw && typeof raw === 'object') {
+            const obj = raw as Record<string, unknown>
+            // Wolt sendet z.B. { name: "wheat" } oder { sku: "gluten" } oder { type: "sesame" }
+            const val = obj.name ?? obj.sku ?? obj.type ?? obj.code ?? obj.key ?? ''
+            return String(val).toLowerCase().trim()
+          }
+          return ''
+        }
+
+        for (const src of [woltItem.allergens, woltItem.dietary_flags, woltItem.dietary_labels, woltItem.tags]) {
+          if (!Array.isArray(src)) continue
+          for (const raw of src) {
+            const key = extractAllergenKey(raw)
+            if (!key) continue
+            if (woltAllergenMap[key] && !itemAllergens.includes(woltAllergenMap[key])) {
+              itemAllergens.push(woltAllergenMap[key])
+            }
+            if (woltLabelMap[key] && !itemLabels.includes(woltLabelMap[key])) {
+              itemLabels.push(woltLabelMap[key])
+            }
+          }
+        }
+
+        // Fallback: Allergen-Info als String (z.B. "Contains gluten, sesame")
+        if (woltItem.allergen_info && typeof woltItem.allergen_info === 'string') {
+          const words = woltItem.allergen_info.toLowerCase().split(/[\s,;.]+/)
+          for (const word of words) {
+            if (woltAllergenMap[word] && !itemAllergens.includes(woltAllergenMap[word])) {
+              itemAllergens.push(woltAllergenMap[word])
+            }
+          }
+        }
+
         items.push({
           name: woltItem.name,
           description: woltItem.description || undefined,
-          price: woltItem.price / 100, // Convert cents to euros
+          price: woltItem.price / 100,
           imageUrl,
           optionGroups,
+          allergens: itemAllergens.length > 0 ? itemAllergens : undefined,
+          labels: itemLabels.length > 0 ? itemLabels : undefined,
         })
       }
 
@@ -388,12 +506,94 @@ async function tryWoltNativeParse(url: string): Promise<ParsedMenu | null> {
 
     if (categories.length === 0) return null
 
+    // M30: Build profile from venue data
+    let profile: ParsedProfile | undefined = undefined
+    if (venueData) {
+      profile = extractWoltProfile(venueData)
+      console.log(`[M30] Wolt native: ✅ Profile extracted — name: "${profile.restaurantName}", address: "${profile.address ?? 'n/a'}", cuisine: "${profile.cuisineType ?? 'n/a'}"`)
+    }
+
     console.log(`[M29] Wolt native: ✅ Converted ${categories.length} categories with ${categories.reduce((s, c) => s + c.items.length, 0)} items`)
-    return { categories }
+    return { categories, profile }
   } catch (err) {
     console.error('[M29] Wolt native parse error:', err)
     return null
   }
+}
+
+// M30: Extract profile from Wolt venue JSON data
+function extractWoltProfile(venue: WoltVenueData): ParsedProfile {
+  const profile: ParsedProfile = {}
+
+  // Name
+  if (venue.name) {
+    profile.restaurantName = venue.name.trim()
+  }
+
+  // Description
+  if (venue.short_description) {
+    profile.description = venue.short_description.trim()
+  } else if (venue.description) {
+    profile.description = venue.description.trim().substring(0, 200)
+  }
+
+  // Address
+  if (venue.address) {
+    if (typeof venue.address === 'string') {
+      profile.address = venue.address.trim()
+    } else if (typeof venue.address === 'object') {
+      const a = venue.address
+      if (a.formatted_address) {
+        profile.address = a.formatted_address.trim()
+      } else {
+        const parts = [a.street_address, a.post_code, a.city].filter(Boolean)
+        if (parts.length > 0) profile.address = parts.join(', ')
+      }
+    }
+  }
+
+  // Phone
+  if (venue.phone) {
+    profile.phone = venue.phone.trim()
+  }
+
+  // Opening hours
+  if (venue.opening_times && Array.isArray(venue.opening_times) && venue.opening_times.length > 0) {
+    const DAYS_DE: Record<string, string> = {
+      'monday': 'Montag', 'tuesday': 'Dienstag', 'wednesday': 'Mittwoch',
+      'thursday': 'Donnerstag', 'friday': 'Freitag', 'saturday': 'Samstag', 'sunday': 'Sonntag',
+    }
+    const hours: Record<string, string> = {}
+    for (const slot of venue.opening_times) {
+      const dayKey = slot.opening_day?.toLowerCase()
+      const dayName = DAYS_DE[dayKey] ?? slot.opening_day
+      if (dayName && slot.opening_time && slot.closing_time) {
+        const timeStr = `${slot.opening_time}–${slot.closing_time}`
+        // Append if day already has hours (multiple slots per day)
+        hours[dayName] = hours[dayName] ? `${hours[dayName]}, ${timeStr}` : timeStr
+      }
+    }
+    if (Object.keys(hours).length > 0) {
+      profile.openingHours = hours
+    }
+  }
+
+  // Cuisine type from tags
+  if (venue.tags && Array.isArray(venue.tags) && venue.tags.length > 0) {
+    // Take first meaningful tag as cuisine type
+    const cuisineTags = venue.tags.filter(t => typeof t === 'string' && t.length > 1)
+    if (cuisineTags.length > 0) {
+      profile.cuisineType = cuisineTags.slice(0, 3).join(', ')
+    }
+  }
+
+  // Cover image
+  const coverUrl = venue.mainimage?.url ?? venue.hero_image?.url ?? venue.profile_image?.url ?? venue.images?.[0]?.url
+  if (coverUrl) {
+    profile.coverImageUrl = coverUrl
+  }
+
+  return profile
 }
 
 // ── POST /api/menu/url-import ─────────────────────────────────────────────────
@@ -452,6 +652,8 @@ export async function POST(req: NextRequest) {
           sourceUrl: url,
           scrapedAt: new Date().toISOString(),
           categories: nativeMenu.categories,
+          // M30: Profile data
+          profile: nativeMenu.profile ?? null,
           stats: {
             categories: nativeMenu.categories.length,
             items: totalItems,
@@ -517,11 +719,24 @@ Du erhältst den Inhalt einer Online-Speisekarte (Markdown-Text, evtl. aus mehre
 ${platformHint}
 
 Extrahiere ALLE Gerichte mit Kategorien, Preisen, Beschreibungen und Optionen / Extras.
+Extrahiere außerdem das Restaurant-Profil (sofern erkennbar).
 
 WICHTIG: Antworte NUR mit validem JSON ohne Markdown-Codeblöcke oder Erklärungen.
 
 JSON-Format:
 {
+  "profile": {
+    "restaurantName": "Name des Restaurants (wenn erkennbar)",
+    "description": "Kurze Beschreibung / Über uns-Text (max 200 Zeichen, wenn vorhanden)",
+    "address": "Vollständige Adresse mit Straße, PLZ und Stadt (wenn vorhanden)",
+    "phone": "Telefonnummer (wenn vorhanden)",
+    "openingHours": {
+      "Montag": "11:00–22:00",
+      "Dienstag": "11:00–22:00"
+    },
+    "cuisineType": "Küchen-Typ, z.B. Syrisch, Italienisch, Pizza & Burger (wenn erkennbar)",
+    "coverImageUrl": "URL des Restaurant-/Headerbildes (nur vollständige URL, wenn erkennbar)"
+  },
   "categories": [
     {
       "name": "Kategoriename",
@@ -531,6 +746,9 @@ JSON-Format:
           "description": "Beschreibung (max 150 Zeichen, leer wenn nicht vorhanden)",
           "price": 8.50,
           "imageUrl": "https://... (nur wenn vollständige Bild-URL im Text erkennbar, sonst weglassen)",
+          "allergens": ["gluten", "milk"],
+          "additives": ["colorants"],
+          "labels": ["vegan", "popular"],
           "optionGroups": [
             {
               "name": "Gruppenname (z.B. Größe, Extras, Beilagen, Soße)",
@@ -547,7 +765,13 @@ JSON-Format:
   ]
 }
 
-Regeln:
+Profil-Regeln:
+- Felder die nicht erkennbar sind → weglassen (nicht null oder leere Strings)
+- openingHours: Wochentage auf Deutsch (Montag-Sonntag), Format "HH:MM–HH:MM". Wenn "geschlossen" dann "geschlossen"
+- coverImageUrl: Nur vollständige URLs, keine relativen Pfade
+- cuisineType: Auf Deutsch normalisieren
+
+Speisekarten-Regeln:
 - Preise als Dezimalzahl in Euro (z.B. 8.50, nicht "8,50 €")
 - Wenn kein Preis erkennbar: setze 0
 - Optionspreis in Cent (Aufpreis, z.B. +1,50€ → 150). Basis-Option = 0
@@ -643,6 +867,8 @@ ${combinedMarkdown.substring(0, 80000)}
       sourceUrl: url,
       scrapedAt: new Date().toISOString(),
       categories: menu.categories,
+      // M30: Profile data from Gemini extraction
+      profile: menu.profile ?? null,
       stats: {
         categories: menu.categories.length,
         items: totalItems,

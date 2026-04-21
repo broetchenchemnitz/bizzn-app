@@ -212,7 +212,7 @@ Abwerbung von Lieferando-Kunden durch radikale Vereinfachung und Kosteneffizienz
 
 ---
 
-### PHASE 4: ERWEITERTE FEATURES (M28–M29)
+### PHASE 4: ERWEITERTE FEATURES (M28–M30)
 
 ---
 
@@ -291,43 +291,62 @@ Abwerbung von Lieferando-Kunden durch radikale Vereinfachung und Kosteneffizienz
 
 ---
 
-#### 🔲 M30 — Auto-Profil aus URL-Import — geplant
+#### ✅ M30 — Auto-Profil aus URL-Import — abgeschlossen 2026-04-18
 
 **Ziel:** Beim URL-Import (M29) nicht nur die Speisekarte, sondern auch das gesamte Restaurant-Profil automatisch ausfüllen — One-URL Onboarding.
 
-**Konzept:**
-Wenn ein neuer Gastronom seine Wolt/Lieferando-URL im Magic Import eingibt, extrahiert die KI zusätzlich zur Speisekarte:
+**Implementiert:**
 
-**A) Extrahierte Profildaten:**
-- Restaurantname → Projektname überschreiben
-- Kurzbeschreibung
-- Adresse
-- Telefonnummer (falls verfügbar)
-- Öffnungszeiten (pro Wochentag, Format: „11:00–22:00" oder „geschlossen")
-- Küchen-Typ (z.B. „Syrisch", „Italienisch")
-- Cover-Bild → automatisch nach Supabase Storage hochladen
-- Web-Adresse (Slug) → aus Restaurantname ableiten (z.B. „Syriana Bistro" → `syriana-bistro`)
+**A) Profildaten-Extraktion (dual-path):**
+- **Wolt Native Parser:** Venue-Daten (Name, Beschreibung, Adresse, Telefon, Öffnungszeiten, Tags/Cuisine, Cover-Bild) direkt aus den JSON-Blöcken im HTML
+- **Gemini AI Prompt:** Für alle anderen URLs — erweiterter Prompt extrahiert `profile`-Objekt neben der Speisekarte
+- Extrahierte Felder: `restaurantName`, `description`, `address`, `phone`, `openingHours`, `cuisineType`, `coverImageUrl`
 
-**B) UI-Vorschau:**
-- Profildaten werden in der Import-Vorschau angezeigt (vor Speisekarte)
-- Gastronom kann Felder vor Bestätigung korrigieren
-- Hinweis auf fehlende Felder: „Telefonnummer war nicht verfügbar — bitte manuell nachtragen"
+**B) UI-Vorschau im Magic Import:**
+- Profil-Sektion mit Gold-Rahmen über der Speisekarten-Vorschau
+- Editierbare Felder: Name, Beschreibung, Adresse, Telefon, Küchen-Typ
+- Öffnungszeiten-Anzeige (Wochentags-Grid)
+- Cover-Bild-Vorschau (wenn verfügbar)
+- Master-Toggle: Profil-Import an/abschaltbar
+- Warnung für fehlende Felder: „⚠️ Nicht erkannt: Telefon — bitte in den Einstellungen nachtragen"
 
 **C) Import-Logik:**
-- Nur **leere Felder** werden befüllt (keine Überschreibung bestehender Daten)
-- Cover-Bild wird in Supabase Storage geladen (`profile/{projectId}/cover.webp`)
-- Slug wird generiert und auf Einzigartigkeit geprüft
-- Eine URL pro Import (kein Multi-URL-Merging)
+- Nur **leere Felder** befüllt (keine Überschreibung bestehender Profildaten)
+- Slug generiert via `generateSlug()` (Umlaut-sicher: ä→ae, ö→oe, ü→ue, ß→ss), Einzigartigkeit per DB-Query
+- Cover-Bild → Supabase Storage (`profile/{projectId}/cover-{ts}.{ext}`)
+- Stadt + PLZ aus Adresse geparst (`parseAddressComponents`) für Discovery-Filterung
+- Erfolgs-Meldung zeigt generierten Slug: `slug.bizzn.de`
 
-**D) Betrifft:**
-- `POST /api/menu/url-import` → Gemini-Prompt erweitern um Profildaten-Extraktion
-- `POST /api/menu/url-import/confirm` → Profildaten + Slug + Cover-Bild speichern
-- `magic-import/page.tsx` → Vorschau-Sektion für Profildaten
-- `projects`-Tabelle → Name, Description, Address, Phone, Opening Hours, Cuisine, Cover, Slug
+**D) Keine DB-Migration nötig** — alle Felder existierten bereits auf `projects`
+
+**E) Neue/Geänderte Dateien:**
+- `utils/slugify.ts` [NEU] — `generateSlug()`, `parseAddressComponents()`
+- `POST /api/menu/url-import` — Gemini-Prompt + Wolt-Parser + Response um `profile` erweitert
+- `POST /api/menu/url-import/confirm` — Profildaten in `projects` speichern + Slug + Cover + City/PLZ
+- `magic-import/page.tsx` — Profil-Vorschau-Sektion mit editierbaren Feldern + Toggle
 
 ---
 
-#### 🔲 M31 — Onboarding-Wizard (Gastronomen) — geplant
+#### ✅ M31 — Onboarding-Wizard (Gastronomen) — abgeschlossen 2026-04-21
+
+**Ziel:** Neue Gastronomen werden nach der Registrierung durch einen geführten Setup-Wizard geleitet. Bestehende Gastronomen können den Wizard jederzeit manuell neu starten.
+
+**Implementiert:**
+
+**A) DB-Migration `20260421_m31_onboarding.sql`:** `projects.onboarding_step`, `projects.custom_monthly_price_cents`, `projects.trial_ends_at`, `projects.live_since`, `projects.preview_token`, Status-Default auf `draft`
+
+**B) Wizard (`/onboarding`, 9 Schritte):**
+- `app/(wizard)/layout.tsx` — Fullscreen ohne Sidebar, Auth-Guard
+- `app/(wizard)/onboarding/page.tsx` — Schritt 1 Name→Draft, 2 URL-Import, 3 Profil, 4 Slug, 5 Kanäle, 6 Discovery, 7 Rabatt, 8 Vorschau-iframe, 9 Go-Live (Stripe/Gratis/Trial)
+- `app/actions/onboarding.ts` — Server Actions pro Schritt
+
+**C) Draft/Live-System:** Draft-Storefront → „Kommt bald"-Seite. Preview via `?preview=<token>`. Middleware auto-redirect neue User zu `/onboarding`.
+
+**D) Dashboard:** Draft/Live-Badges, Wizard-Neustart-Button pro Projekt, CheckoutButton entfernt.
+
+**E) Superadmin Pricing:** `POST /api/superadmin/set-project-pricing`, `ProjectPricingRow` (custom Preis + Trial-Datum inline).
+
+
 
 **Ziel:** Neue Gastronomen werden nach der Registrierung durch einen geführten Setup-Wizard geleitet, der ihr Restaurant in wenigen Minuten komplett einrichtet — inklusive Speisekarten-Import, Profil und Live-Schaltung.
 

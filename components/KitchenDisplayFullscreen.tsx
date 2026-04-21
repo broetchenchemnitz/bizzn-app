@@ -628,7 +628,7 @@ export default function KitchenDisplayFullscreen({ projectId, projectName, inSto
           const fetchAndPrint = async (bonType: 'drive-in' | 'ready') => {
             const { data: fullOrder } = await supabase
               .from('orders')
-              .select('*, order_items(id, quantity, price_at_time, item_name)')
+              .select('*, order_items(id, quantity, price_at_time, item_name, customer_note, order_item_options(id, option_name, option_group_name, price_cents))')
               .eq('id', newRow.id)
               .single()
             if (fullOrder) autoPrintBon(fullOrder as OrderWithItems, bonType)

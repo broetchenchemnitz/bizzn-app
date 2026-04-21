@@ -349,6 +349,11 @@ export interface Database {
           price: number
           is_active: boolean
           image_url: string | null
+          // Allergene, Zusatzstoffe, Labels, Nährwerte
+          allergens: string[]
+          additives: string[]
+          labels: string[]
+          nutritional_info: Record<string, number> | null
           created_at: string
         }
         Insert: {
@@ -359,6 +364,11 @@ export interface Database {
           price: number
           is_active?: boolean
           image_url?: string | null
+          // Allergene, Zusatzstoffe, Labels, Nährwerte
+          allergens?: string[]
+          additives?: string[]
+          labels?: string[]
+          nutritional_info?: Record<string, number> | null
           created_at?: string
         }
         Update: {
@@ -369,6 +379,11 @@ export interface Database {
           price?: number
           is_active?: boolean
           image_url?: string | null
+          // Allergene, Zusatzstoffe, Labels, Nährwerte
+          allergens?: string[]
+          additives?: string[]
+          labels?: string[]
+          nutritional_info?: Record<string, number> | null
           created_at?: string
         }
         Relationships: [

@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { updateSession } from '@/utils/supabase/middleware'
+import { createServerClient } from '@supabase/ssr'
 
 const MAIN_DOMAINS = new Set([
   'localhost:3000',
@@ -14,10 +15,6 @@ export async function middleware(request: NextRequest) {
   const hostname = request.headers.get('host') ?? ''
   const { pathname } = request.nextUrl
 
-  // ── Superadmin: Kein spezieller Middleware-Guard nötig.
-  //    Auth-Schutz erfolgt über das Layout (app/superadmin/layout.tsx).
-  //    Middleware leitet nur die Session-Refresh durch updateSession() weiter.
-
   // 0. Subdomain-Localhost-Check FIRST (before auth): sushitaxi.localhost:3000
   const localhostSubdomainMatch = hostname?.match(/^([a-zA-Z0-9-]+)\.localhost(:[0-9]+)?$/)
   if (localhostSubdomainMatch) {
@@ -26,9 +23,13 @@ export async function middleware(request: NextRequest) {
     // M13: app.localhost:3000 → Dashboard (mit Session-Validierung)
     if (APP_SUBDOMAINS.has(subdomain)) {
       const response = await updateSession(request)
-      // Wenn Pfad root ist, zu /dashboard redirecten für saubere UX
       if (pathname === '/') {
         return NextResponse.redirect(new URL('/dashboard', request.url))
+      }
+      // M31: Neuer User ohne Projekt → Wizard
+      if (pathname === '/dashboard') {
+        const wizardRedirect = await checkNewUserWizardRedirect(request)
+        if (wizardRedirect) return wizardRedirect
       }
       return response
     }
@@ -90,7 +91,11 @@ export async function middleware(request: NextRequest) {
     if (pathname === '/') {
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
-    // Session bereits validiert (updateSession() oben), einfach durchlassen
+    // M31: Neuer User ohne Projekt → Wizard
+    if (pathname === '/dashboard') {
+      const wizardRedirect = await checkNewUserWizardRedirect(request)
+      if (wizardRedirect) return wizardRedirect
+    }
     return response
   }
 
@@ -111,6 +116,44 @@ export async function middleware(request: NextRequest) {
       headers: requestHeaders,
     },
   })
+}
+
+// ─── M31: Neuer User ohne Projekt → Wizard ───────────────────────────────────
+// Nur wenn der User genau /dashboard besucht und noch kein Projekt hat.
+// Bestehende Gastronomen bleiben unberührt.
+async function checkNewUserWizardRedirect(request: NextRequest): Promise<NextResponse | null> {
+  try {
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) { return request.cookies.get(name)?.value },
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          set() {},
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          remove() {},
+        },
+      }
+    )
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return null // Unauthenticated → dashboard layout handles login redirect
+
+    const { count } = await supabase
+      .from('projects')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+
+    // Kein Projekt → Wizard starten
+    if ((count ?? 0) === 0) {
+      return NextResponse.redirect(new URL('/onboarding', request.url))
+    }
+
+    return null // Hat Projekte → normales Dashboard
+  } catch {
+    return null // Fehler → normal weitermachen
+  }
 }
 
 export const config = {

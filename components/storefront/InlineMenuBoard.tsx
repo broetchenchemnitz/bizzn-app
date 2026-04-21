@@ -42,6 +42,11 @@ interface MenuItem {
   is_active: boolean
   image_url: string | null
   menu_option_groups?: MenuOptionGroup[]
+  // Allergene, Zusatzstoffe, Labels, Nährwerte
+  allergens?: string[]
+  additives?: string[]
+  labels?: string[]
+  nutritional_info?: Record<string, number> | null
 }
 
 interface Category {
@@ -304,6 +309,57 @@ export default function InlineMenuBoard({ projectId, slug, categories, discountI
   const [drawerQty, setDrawerQty] = useState(1)
   const [drawerNote, setDrawerNote] = useState('')
 
+  // Detail-Modal (Produktinfo: Bild, Beschreibung, Allergene)
+  const [detailItem, setDetailItem] = useState<MenuItem | null>(null)
+
+  // Allergen-Ausschlussfilter + Label-Einschlussfilter
+  const [excludedAllergens, setExcludedAllergens] = useState<Set<string>>(new Set())
+  const [requiredLabel, setRequiredLabel] = useState<string | null>(null)
+  const [showFilterBar, setShowFilterBar] = useState(false)
+
+  // Allergen/Label Kataloge (inline, da wir keine Node-Importe im Client nutzen können ohne barrel)
+  const ALLERGEN_DEFS: { code: string; label: string; emoji: string }[] = [
+    { code: 'gluten', label: 'Gluten', emoji: '🌾' },
+    { code: 'crustaceans', label: 'Krebstiere', emoji: '🦐' },
+    { code: 'eggs', label: 'Eier', emoji: '🥚' },
+    { code: 'fish', label: 'Fisch', emoji: '🐟' },
+    { code: 'peanuts', label: 'Erdnüsse', emoji: '🥜' },
+    { code: 'soy', label: 'Soja', emoji: '🫝' },
+    { code: 'milk', label: 'Milch', emoji: '🥛' },
+    { code: 'nuts', label: 'Schalenfr.', emoji: '🌰' },
+    { code: 'celery', label: 'Sellerie', emoji: '🥬' },
+    { code: 'mustard', label: 'Senf', emoji: '🟡' },
+    { code: 'sesame', label: 'Sesam', emoji: '⚪' },
+    { code: 'sulfites', label: 'Sulfite', emoji: '🍷' },
+    { code: 'lupins', label: 'Lupinen', emoji: '🌿' },
+    { code: 'mollusks', label: 'Weichtiere', emoji: '🦪' },
+  ]
+  const LABEL_DEFS: { code: string; label: string; emoji: string; color: string }[] = [
+    { code: 'vegan', label: 'Vegan', emoji: '🌱', color: '#16a34a' },
+    { code: 'vegetarian', label: 'Vegetarisch', emoji: '🥬', color: '#22c55e' },
+    { code: 'spicy', label: 'Scharf', emoji: '🌶️', color: '#ef4444' },
+    { code: 'halal', label: 'Halal', emoji: '☪️', color: '#3b82f6' },
+    { code: 'organic', label: 'Bio', emoji: '🌿', color: '#65a30d' },
+    { code: 'gluten_free', label: 'Glutenfrei', emoji: '🚫', color: '#d97706' },
+    { code: 'lactose_free', label: 'Laktosefrei', emoji: '🚫', color: '#0891b2' },
+    { code: 'new', label: 'Neu', emoji: '✨', color: '#a855f7' },
+    { code: 'popular', label: 'Beliebt', emoji: '⭐', color: '#f59e0b' },
+    { code: 'homemade', label: 'Hausgemacht', emoji: '👨‍🍳', color: '#C7A17A' },
+  ]
+
+  // Filter-Logik: Item sichtbar wenn keines der ausgeschlossenen Allergene enthalten UND (kein Label-Filter ODER Label vorhanden)
+  const isItemVisible = (item: MenuItem): boolean => {
+    if (excludedAllergens.size > 0 && item.allergens?.length) {
+      for (const a of item.allergens) {
+        if (excludedAllergens.has(a)) return false
+      }
+    }
+    if (requiredLabel && !(item.labels ?? []).includes(requiredLabel)) return false
+    return true
+  }
+
+  const hasAnyAllergenData = categories.some(c => c.menu_items.some(i => (i.allergens?.length ?? 0) > 0 || (i.labels?.length ?? 0) > 0))
+
   // ── M27b: Drive-In Status laden ───────────────────────────────────────────
   useEffect(() => {
     if (!orderId) return
@@ -458,18 +514,8 @@ export default function InlineMenuBoard({ projectId, slug, categories, discountI
   const addToCart = (item: MenuItem) => {
     const groups = (item.menu_option_groups ?? []).filter(g => g.menu_options?.length > 0)
     if (groups.length > 0) {
-      // Has options → open drawer
-      setDrawerItem(item)
-      setDrawerQty(1)
-      setDrawerNote('')
-      // Pre-select defaults
-      const defaults = new Map<string, Set<string>>()
-      groups.forEach(g => {
-        const defaultOpts = g.menu_options.filter(o => o.is_default)
-        if (defaultOpts.length > 0) defaults.set(g.id, new Set(defaultOpts.map(o => o.id)))
-        else defaults.set(g.id, new Set())
-      })
-      setDrawerSelections(defaults)
+      // Has options → open detail modal (with inline options)
+      openItemDetail(item)
       return
     }
     // No options → add directly
@@ -478,6 +524,18 @@ export default function InlineMenuBoard({ projectId, slug, categories, discountI
       if (ex) return prev.map(c => c.cartEntryId === ex.cartEntryId ? { ...c, quantity: c.quantity + 1 } : c)
       return [...prev, { cartEntryId: crypto.randomUUID(), menuItemId: item.id, name: item.name, priceInCents: item.price, quantity: 1, selectedOptions: [], optionsSurcharge: 0 }]
     })
+  }
+
+  // Öffnet Detail-Modal (Produktinfo + Optionen + Warenkorb)
+  const openItemDetail = (item: MenuItem) => {
+    const groups = (item.menu_option_groups ?? []).filter(g => g.menu_options?.length > 0)
+    setDetailItem(item)
+    setDrawerQty(1)
+    setDrawerNote('')
+    // Keine Vorauswahl — Kunde wählt explizit
+    const empty = new Map<string, Set<string>>()
+    groups.forEach(g => empty.set(g.id, new Set()))
+    setDrawerSelections(empty)
   }
 
   const addToCartWithOptions = () => {
@@ -818,6 +876,94 @@ export default function InlineMenuBoard({ projectId, slug, categories, discountI
       </button>
       {/* Category List */}
       <div style={{ padding: '16px', paddingBottom: '120px' }}>
+
+        {/* Allergen-Filter-Leiste */}
+        {hasAnyAllergenData && (
+          <div style={{ marginBottom: '16px' }}>
+            <button
+              onClick={() => setShowFilterBar(v => !v)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '6px', width: '100%',
+                padding: '10px 14px', borderRadius: '12px', cursor: 'pointer',
+                background: (excludedAllergens.size > 0 || requiredLabel) ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.03)',
+                border: `1px solid ${(excludedAllergens.size > 0 || requiredLabel) ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.07)'}`,
+                color: (excludedAllergens.size > 0 || requiredLabel) ? '#f87171' : '#6b7280',
+                fontSize: '12px', fontWeight: 700, transition: 'all 0.15s',
+              }}
+            >
+              <span>🛡️</span>
+              <span>{excludedAllergens.size > 0 || requiredLabel ? `Filter aktiv (${excludedAllergens.size + (requiredLabel ? 1 : 0)})` : 'Allergene & Filter'}</span>
+              <ChevronDown style={{ width: '14px', height: '14px', marginLeft: 'auto', transform: showFilterBar ? 'rotate(0)' : 'rotate(-90deg)', transition: 'transform 0.2s' }} />
+            </button>
+
+            {showFilterBar && (
+              <div style={{ marginTop: '8px', padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                {/* Label-Filter */}
+                <p style={{ fontSize: '10px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 6px' }}>Nur anzeigen</p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '12px' }}>
+                  {LABEL_DEFS.filter(l => categories.some(c => c.menu_items.some(i => (i.labels ?? []).includes(l.code)))).map(l => {
+                    const active = requiredLabel === l.code
+                    return (
+                      <button
+                        key={l.code}
+                        onClick={() => setRequiredLabel(active ? null : l.code)}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '4px',
+                          padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 700,
+                          border: `1px solid ${active ? l.color + '66' : 'rgba(255,255,255,0.08)'}`,
+                          background: active ? l.color + '22' : 'transparent',
+                          color: active ? l.color : '#6b7280',
+                          cursor: 'pointer', transition: 'all 0.15s',
+                        }}
+                      >
+                        <span>{l.emoji}</span><span>{l.label}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {/* Allergen-Ausschluss */}
+                <p style={{ fontSize: '10px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 6px' }}>Allergene ausschließen</p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                  {ALLERGEN_DEFS.map(a => {
+                    const active = excludedAllergens.has(a.code)
+                    return (
+                      <button
+                        key={a.code}
+                        onClick={() => setExcludedAllergens(prev => {
+                          const next = new Set(prev)
+                          if (next.has(a.code)) next.delete(a.code); else next.add(a.code)
+                          return next
+                        })}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '3px',
+                          padding: '4px 8px', borderRadius: '8px', fontSize: '11px', fontWeight: 600,
+                          border: `1px solid ${active ? 'rgba(239,68,68,0.4)' : 'rgba(255,255,255,0.08)'}`,
+                          background: active ? 'rgba(239,68,68,0.12)' : 'transparent',
+                          color: active ? '#f87171' : '#6b7280',
+                          cursor: 'pointer', transition: 'all 0.15s',
+                          textDecoration: active ? 'line-through' : 'none',
+                        }}
+                      >
+                        <span>{a.emoji}</span><span>{a.label}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {(excludedAllergens.size > 0 || requiredLabel) && (
+                  <button
+                    onClick={() => { setExcludedAllergens(new Set()); setRequiredLabel(null) }}
+                    style={{ marginTop: '8px', fontSize: '11px', color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+                  >
+                    Alle Filter zurücksetzen
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {categories.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 20px', color: '#6b7280' }}>
             <div style={{ fontSize: '48px', marginBottom: '12px' }}>📋</div>
@@ -825,7 +971,7 @@ export default function InlineMenuBoard({ projectId, slug, categories, discountI
           </div>
         ) : categories.map(cat => {
           const isCollapsed = collapsedCats.has(cat.id)
-          const activeItems = cat.menu_items.filter(i => i.is_active)
+          const activeItems = cat.menu_items.filter(i => i.is_active).filter(isItemVisible)
           if (activeItems.length === 0) return null
           return (
             <section key={cat.id} style={{ marginBottom: '24px' }}>
@@ -845,16 +991,34 @@ export default function InlineMenuBoard({ projectId, slug, categories, discountI
                     return (
                       <div key={item.id} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.07)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px' }}>
-                          <div style={{ flex: 1, minWidth: 0 }}>
+                          {/* Klickbarer Info-Bereich → öffnet immer den Detail-Drawer */}
+                          <button
+                            onClick={() => openItemDetail(item)}
+                            style={{ flex: 1, minWidth: 0, background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}
+                          >
                             <p style={{ color: '#f0f0f0', fontWeight: 700, fontSize: '14px', margin: '0 0 2px' }}>{item.name}</p>
                             {item.description && <p style={{ color: '#6b7280', fontSize: '12px', margin: '0 0 4px', lineHeight: '1.4', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{item.description}</p>}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                               <p style={{ color: '#C7A17A', fontWeight: 800, fontSize: '14px', margin: 0 }}>{eur(item.price)}</p>
                               {(item.menu_option_groups ?? []).some(g => g.menu_options?.length > 0) && (
                                 <span style={{ fontSize: '10px', color: '#9ca3af', background: 'rgba(255,255,255,0.06)', padding: '2px 6px', borderRadius: '6px' }}>⚙️ Optionen</span>
                               )}
+                              {/* Allergen-Hinweis-Icon wenn Allergene vorhanden */}
+                              {(item.allergens ?? []).length > 0 && (
+                                <span style={{ fontSize: '10px', color: '#f59e0b', background: 'rgba(245,158,11,0.1)', padding: '2px 6px', borderRadius: '6px' }}>⚠️ Allergene</span>
+                              )}
+                              {/* Label-Badges */}
+                              {(item.labels ?? []).slice(0, 3).map(code => {
+                                const def = LABEL_DEFS.find(l => l.code === code)
+                                if (!def) return null
+                                return (
+                                  <span key={code} style={{ fontSize: '10px', fontWeight: 700, padding: '1px 5px', borderRadius: '6px', background: def.color + '18', color: def.color, border: `1px solid ${def.color}33` }}>
+                                    {def.emoji} {def.label}
+                                  </span>
+                                )
+                              })}
                             </div>
-                          </div>
+                          </button>
 
                           {item.image_url && (
                             <button onClick={() => setLightbox({ src: item.image_url!, alt: item.name })} style={{ border: 'none', background: 'none', padding: 0, cursor: 'zoom-in', flexShrink: 0 }}>
@@ -893,6 +1057,7 @@ export default function InlineMenuBoard({ projectId, slug, categories, discountI
           )
         })}
       </div>
+
 
       {/* Sticky Cart Button */}
       {totalItems > 0 && (
@@ -976,14 +1141,52 @@ export default function InlineMenuBoard({ projectId, slug, categories, discountI
                     <p style={{ color: '#f0f0f0', fontWeight: 900, fontSize: '18px', margin: '0 0 4px' }}>{drawerItem.name}</p>
                     {drawerItem.description && <p style={{ color: '#6b7280', fontSize: '12px', margin: '0 0 6px', lineHeight: '1.4' }}>{drawerItem.description}</p>}
                     <p style={{ color: '#C7A17A', fontWeight: 800, fontSize: '15px', margin: 0 }}>ab {eur(drawerItem.price)}</p>
+                    {/* Labels im Drawer */}
+                    {(drawerItem.labels ?? []).length > 0 && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '6px' }}>
+                        {(drawerItem.labels ?? []).map(code => {
+                          const def = LABEL_DEFS.find(l => l.code === code)
+                          if (!def) return null
+                          return <span key={code} style={{ fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '6px', background: def.color + '18', color: def.color }}>{def.emoji} {def.label}</span>
+                        })}
+                      </div>
+                    )}
+                    {/* Allergene im Drawer */}
+                    {(drawerItem.allergens ?? []).length > 0 && (
+                      <div style={{ marginTop: '8px', padding: '8px 10px', background: 'rgba(245,158,11,0.06)', borderRadius: '10px', border: '1px solid rgba(245,158,11,0.15)' }}>
+                        <p style={{ fontSize: '10px', fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.04em', margin: '0 0 4px' }}>⚠️ Enthält</p>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                          {(drawerItem.allergens ?? []).map(code => {
+                            const def = ALLERGEN_DEFS.find(a => a.code === code)
+                            if (!def) return null
+                            return <span key={code} style={{ fontSize: '10px', fontWeight: 600, padding: '2px 6px', borderRadius: '6px', background: 'rgba(245,158,11,0.1)', color: '#fbbf24' }}>{def.emoji} {def.label}</span>
+                          })}
+                        </div>
+                      </div>
+                    )}
+                    {/* Zusatzstoffe im Drawer */}
+                    {(drawerItem.additives ?? []).length > 0 && (
+                      <p style={{ fontSize: '10px', color: '#6b7280', marginTop: '4px' }}>
+                        Zusatzstoffe: {(drawerItem.additives ?? []).join(', ')}
+                      </p>
+                    )}
+                    {/* Nährwerte im Drawer */}
+                    {drawerItem.nutritional_info && Object.keys(drawerItem.nutritional_info).length > 0 && (
+                      <div style={{ marginTop: '6px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        {drawerItem.nutritional_info.calories != null && <span style={{ fontSize: '10px', color: '#9ca3af', background: 'rgba(255,255,255,0.04)', padding: '2px 6px', borderRadius: '6px' }}>{drawerItem.nutritional_info.calories} kcal</span>}
+                        {drawerItem.nutritional_info.protein != null && <span style={{ fontSize: '10px', color: '#9ca3af', background: 'rgba(255,255,255,0.04)', padding: '2px 6px', borderRadius: '6px' }}>{drawerItem.nutritional_info.protein}g Protein</span>}
+                        {drawerItem.nutritional_info.carbs != null && <span style={{ fontSize: '10px', color: '#9ca3af', background: 'rgba(255,255,255,0.04)', padding: '2px 6px', borderRadius: '6px' }}>{drawerItem.nutritional_info.carbs}g Kohlenhydrate</span>}
+                        {drawerItem.nutritional_info.fat != null && <span style={{ fontSize: '10px', color: '#9ca3af', background: 'rgba(255,255,255,0.04)', padding: '2px 6px', borderRadius: '6px' }}>{drawerItem.nutritional_info.fat}g Fett</span>}
+                      </div>
+                    )}
                   </div>
                   <button onClick={() => setDrawerItem(null)} style={{ background: 'rgba(255,255,255,0.08)', border: 'none', borderRadius: '10px', width: '32px', height: '32px', cursor: 'pointer', color: '#9ca3af', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0 }}>✕</button>
                 </div>
               </div>
 
-              {/* Scrollable Options */}
+              {/* Scrollable content: Options + Allergen-Info */}
               <div style={{ flex: 1, overflow: 'auto', padding: '12px 20px' }}>
-                {groups.map(g => {
+                {groups.length > 0 && groups.map(g => {
                   const selected = drawerSelections.get(g.id) ?? new Set()
                   const isRadio = g.max_select === 1
                   const selectLabel = g.is_required
@@ -1048,28 +1251,32 @@ export default function InlineMenuBoard({ projectId, slug, categories, discountI
                   )
                 })}
 
-                {/* Artikelnotiz */}
-                <div style={{ marginBottom: '12px' }}>
-                  <p style={{ color: '#6b7280', fontWeight: 700, fontSize: '11px', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>📝 Anmerkung (optional)</p>
-                  <textarea
-                    value={drawerNote}
-                    onChange={e => setDrawerNote(e.target.value)}
-                    placeholder="z.B. ohne Zwiebeln, extra scharf…"
-                    rows={2}
-                    style={{
-                      width: '100%', padding: '10px 12px', borderRadius: '10px',
-                      background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-                      color: '#f0f0f0', fontSize: '13px', outline: 'none', resize: 'none',
-                      boxSizing: 'border-box',
-                    }}
-                    onFocus={e => (e.currentTarget.style.borderColor = 'rgba(199,161,122,0.5)')}
-                    onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)')}
-                  />
-                </div>
+                {/* Anmerkung nur für Artikel mit Optionen */}
+                {groups.length > 0 && (
+                  <div style={{ marginBottom: '12px' }}>
+                    <p style={{ color: '#6b7280', fontWeight: 700, fontSize: '11px', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>📝 Anmerkung (optional)</p>
+                    <textarea
+                      value={drawerNote}
+                      onChange={e => setDrawerNote(e.target.value)}
+                      placeholder="z.B. ohne Zwiebeln, extra scharf…"
+                      rows={2}
+                      style={{
+                        width: '100%', padding: '10px 12px', borderRadius: '10px',
+                        background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                        color: '#f0f0f0', fontSize: '13px', outline: 'none', resize: 'none',
+                        boxSizing: 'border-box',
+                      }}
+                      onFocus={e => (e.currentTarget.style.borderColor = 'rgba(199,161,122,0.5)')}
+                      onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)')}
+                    />
+                  </div>
+                )}
               </div>
 
-              {/* Footer: Quantity + Add Button */}
+
+              {/* Footer: Menge + Hinzufügen */}
               <div style={{ padding: '12px 20px 20px', borderTop: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
+
                 {/* Quantity controls */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', marginBottom: '12px' }}>
                   <button onClick={() => setDrawerQty(q => Math.max(1, q - 1))} style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(255,255,255,0.1)', border: 'none', cursor: 'pointer', color: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>−</button>
@@ -1084,7 +1291,7 @@ export default function InlineMenuBoard({ projectId, slug, categories, discountI
                   </p>
                 )}
 
-                {/* Add to cart button */}
+                {/* Add to cart */}
                 <button
                   onClick={addToCartWithOptions}
                   disabled={!canAdd}
@@ -1108,7 +1315,354 @@ export default function InlineMenuBoard({ projectId, slug, categories, discountI
         )
       })()}
 
+
+      {/* ══ Produkt-Detail-Modal ════════════════════════════════════════════════ */}
+      {detailItem && (() => {
+        const hasOptions = (detailItem.menu_option_groups ?? []).some(g => g.menu_options?.length > 0)
+        return (
+          <div
+            onClick={() => setDetailItem(null)}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 201,
+              background: 'rgba(0,0,0,0.75)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              backdropFilter: 'blur(4px)',
+              padding: '20px',
+            }}
+          >
+            <div
+              onClick={e => e.stopPropagation()}
+              style={{
+                background: '#141414', borderRadius: '20px',
+                width: '100%', maxWidth: '460px',
+                maxHeight: '85vh', display: 'flex', flexDirection: 'column',
+                boxShadow: '0 24px 80px rgba(0,0,0,0.7)',
+                animation: 'slideUpDrawer 0.2s ease-out',
+                overflow: 'hidden',
+              }}
+            >
+              {/* Hero-Bild */}
+              {detailItem.image_url ? (
+                <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9', flexShrink: 0, overflow: 'hidden' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={detailItem.image_url}
+                    alt={detailItem.name}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                  {/* Gradient overlay */}
+                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '60%', background: 'linear-gradient(to top, #141414, transparent)' }} />
+                  {/* Close button */}
+                  <button
+                    onClick={() => setDetailItem(null)}
+                    style={{ position: 'absolute', top: '12px', right: '12px', width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(0,0,0,0.5)', border: 'none', cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', backdropFilter: 'blur(4px)' }}
+                  >✕</button>
+                </div>
+              ) : (
+                /* Kein Bild: Gradient-Placeholder + Close */
+                <div style={{ position: 'relative', width: '100%', height: '80px', background: 'linear-gradient(135deg, rgba(199,161,122,0.15), rgba(199,161,122,0.05))', flexShrink: 0 }}>
+                  <button
+                    onClick={() => setDetailItem(null)}
+                    style={{ position: 'absolute', top: '12px', right: '12px', width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(0,0,0,0.3)', border: 'none', cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px' }}
+                  >✕</button>
+                </div>
+              )}
+
+              {/* Scrollbare Inhalte */}
+              <div style={{ flex: 1, overflowY: 'auto', padding: '20px 20px 0' }}>
+
+                {/* Name + Preis */}
+                <div style={{ marginBottom: '12px' }}>
+                  <h2 style={{ color: '#f0f0f0', fontWeight: 900, fontSize: '22px', margin: '0 0 4px', lineHeight: 1.2 }}>{detailItem.name}</h2>
+                  <p style={{ color: '#C7A17A', fontWeight: 800, fontSize: '18px', margin: '0 0 6px' }}>{eur(detailItem.price)}</p>
+
+                  {/* Labels */}
+                  {(detailItem.labels ?? []).length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '6px' }}>
+                      {(detailItem.labels ?? []).map(code => {
+                        const def = LABEL_DEFS.find(l => l.code === code)
+                        if (!def) return null
+                        return (
+                          <span key={code} style={{ fontSize: '11px', fontWeight: 700, padding: '3px 8px', borderRadius: '20px', background: def.color + '22', color: def.color, border: `1px solid ${def.color}44` }}>
+                            {def.emoji} {def.label}
+                          </span>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Beschreibung */}
+                {detailItem.description && (
+                  <p style={{ color: '#9ca3af', fontSize: '14px', lineHeight: '1.6', margin: '0 0 16px' }}>
+                    {detailItem.description}
+                  </p>
+                )}
+
+                {/* Optionen-Hinweis */}
+                {hasOptions && (
+                  <div style={{ padding: '8px 12px', background: 'rgba(199,161,122,0.06)', borderRadius: '10px', border: '1px solid rgba(199,161,122,0.15)', marginBottom: '14px' }}>
+                    <p style={{ color: '#C7A17A', fontSize: '12px', fontWeight: 700, margin: 0 }}>⚙️ Dieses Gericht hat anpassbare Optionen (z.B. Beilagen, Soßen)</p>
+                  </div>
+                )}
+
+                {/* Allergene */}
+                {(detailItem.allergens ?? []).length > 0 && (
+                  <div style={{ marginBottom: '14px', padding: '12px 14px', background: 'rgba(245,158,11,0.05)', borderRadius: '14px', border: '1px solid rgba(245,158,11,0.15)' }}>
+                    <p style={{ fontSize: '11px', fontWeight: 800, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 8px' }}>⚠️ Enthaltene Allergene</p>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      {(detailItem.allergens ?? []).map(code => {
+                        const def = ALLERGEN_DEFS.find(a => a.code === code)
+                        if (!def) return null
+                        return (
+                          <span key={code} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 600, padding: '4px 10px', borderRadius: '8px', background: 'rgba(245,158,11,0.1)', color: '#fcd34d', border: '1px solid rgba(245,158,11,0.2)' }}>
+                            <span style={{ fontSize: '14px' }}>{def.emoji}</span>
+                            {def.label}
+                          </span>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Zusatzstoffe */}
+                {(detailItem.additives ?? []).length > 0 && (
+                  <div style={{ marginBottom: '14px', padding: '10px 14px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <p style={{ fontSize: '11px', fontWeight: 800, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 4px' }}>Zusatzstoffe</p>
+                    <p style={{ color: '#6b7280', fontSize: '12px', margin: 0 }}>
+                      {(detailItem.additives ?? []).map(code => {
+                        const labels: Record<string, string> = { colorants: 'Farbstoff', preservatives: 'Konservierungsstoff', antioxidants: 'Antioxidationsmittel', flavor_enhancers: 'Geschmacksverstärker', sweeteners: 'Süßungsmittel', phosphate: 'Phosphat', caffeine: 'Koffein', quinine: 'Chinin', waxed: 'Gewachst', blackened: 'Geschwärzt' }
+                        return labels[code] ?? code
+                      }).join(', ')}
+                    </p>
+                  </div>
+                )}
+
+                {/* Nährwerte */}
+                {detailItem.nutritional_info && Object.keys(detailItem.nutritional_info).length > 0 && (
+                  <div style={{ marginBottom: '14px', padding: '10px 14px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <p style={{ fontSize: '11px', fontWeight: 800, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 8px' }}>Nährwerte pro Portion</p>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      {([
+                        { key: 'calories', label: 'kcal' },
+                        { key: 'protein', label: 'Protein' },
+                        { key: 'carbs', label: 'Kohlenhydrate' },
+                        { key: 'fat', label: 'Fett' },
+                        { key: 'fiber', label: 'Ballaststoffe' },
+                      ] as const).map(f => {
+                        const val = detailItem.nutritional_info?.[f.key]
+                        if (val == null) return null
+                        return (
+                          <div key={f.key} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '8px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: '10px', minWidth: '60px' }}>
+                            <span style={{ color: '#f0f0f0', fontWeight: 800, fontSize: '15px' }}>{val}</span>
+                            <span style={{ color: '#6b7280', fontSize: '10px', marginTop: '2px' }}>{f.label}</span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ height: '8px' }} />
+              </div>
+
+              {/* ── Optionen (inline im Modal) ──────────────────────────────── */}
+              {(() => {
+                const detailGroups = (detailItem.menu_option_groups ?? [])
+                  .filter(g => g.menu_options?.length > 0)
+                  .sort((a, b) => a.sort_order - b.sort_order)
+
+                const detailMissingRequired = detailGroups.filter(g => {
+                  if (!g.is_required) return false
+                  const sel = drawerSelections.get(g.id) ?? new Set()
+                  return sel.size < g.min_select || sel.size === 0
+                })
+                const detailCanAdd = detailMissingRequired.length === 0
+
+                // Live-Preis berechnen
+                let detailSurcharge = 0
+                for (const g of detailGroups) {
+                  const sel = drawerSelections.get(g.id) ?? new Set()
+                  for (const optId of sel) {
+                    const opt = g.menu_options.find(o => o.id === optId)
+                    if (opt) detailSurcharge += opt.price_cents
+                  }
+                }
+                const detailTotal = (detailItem.price + detailSurcharge) * drawerQty
+
+                return (
+                  <>
+                    {detailGroups.length > 0 && (
+                      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '0 20px' }}>
+                        {detailGroups.map(g => {
+                          const selected = drawerSelections.get(g.id) ?? new Set()
+                          const isRadio = g.max_select === 1
+                          const selectLabel = g.is_required
+                            ? (g.min_select === g.max_select ? `genau ${g.min_select}` : `${g.min_select}–${g.max_select}`)
+                            : (g.max_select > 1 ? `bis zu ${g.max_select}` : 'optional')
+                          const isMissing = detailMissingRequired.includes(g)
+
+                          return (
+                            <div key={g.id} style={{ paddingTop: '14px', paddingBottom: '4px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
+                                <p style={{ color: '#f0f0f0', fontWeight: 800, fontSize: '13px', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{g.name}</p>
+                                <span style={{
+                                  fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '6px',
+                                  background: g.is_required ? (isMissing ? 'rgba(239,68,68,0.15)' : 'rgba(199,161,122,0.12)') : 'rgba(255,255,255,0.06)',
+                                  color: g.is_required ? (isMissing ? '#f87171' : '#C7A17A') : '#6b7280',
+                                  border: `1px solid ${g.is_required ? (isMissing ? 'rgba(239,68,68,0.3)' : 'rgba(199,161,122,0.25)') : 'rgba(255,255,255,0.08)'}`,
+                                }}>
+                                  {g.is_required ? 'Pflicht' : 'Optional'} · {selectLabel}
+                                </span>
+                              </div>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                {g.menu_options.sort((a, b) => a.sort_order - b.sort_order).map(opt => {
+                                  const isSelected = selected.has(opt.id)
+                                  return (
+                                    <button
+                                      key={opt.id}
+                                      onClick={() => {
+                                        setDrawerSelections(prev => {
+                                          const next = new Map(prev)
+                                          const cur = new Set(next.get(g.id) ?? [])
+                                          if (cur.has(opt.id)) {
+                                            cur.delete(opt.id)
+                                          } else {
+                                            if (isRadio) { cur.clear(); cur.add(opt.id) }
+                                            else if (cur.size < g.max_select) cur.add(opt.id)
+                                          }
+                                          next.set(g.id, cur)
+                                          return next
+                                        })
+                                      }}
+                                      style={{
+                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                        padding: '10px 12px', borderRadius: '10px',
+                                        background: isSelected ? 'rgba(199,161,122,0.12)' : 'rgba(255,255,255,0.03)',
+                                        border: `1px solid ${isSelected ? 'rgba(199,161,122,0.4)' : 'rgba(255,255,255,0.07)'}`,
+                                        cursor: 'pointer', transition: 'all 0.15s', textAlign: 'left',
+                                      }}
+                                    >
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <div style={{
+                                          width: '18px', height: '18px', borderRadius: isRadio ? '50%' : '5px', flexShrink: 0,
+                                          border: `2px solid ${isSelected ? '#C7A17A' : 'rgba(255,255,255,0.2)'}`,
+                                          background: isSelected ? '#C7A17A' : 'transparent',
+                                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        }}>
+                                          {isSelected && <span style={{ color: '#111', fontSize: '10px', fontWeight: 900 }}>✓</span>}
+                                        </div>
+                                        <span style={{ color: isSelected ? '#f0f0f0' : '#9ca3af', fontSize: '14px', fontWeight: isSelected ? 700 : 400 }}>{opt.name}</span>
+                                      </div>
+                                      {opt.price_cents > 0 && (
+                                        <span style={{ color: '#C7A17A', fontSize: '13px', fontWeight: 700, flexShrink: 0 }}>+{eur(opt.price_cents)}</span>
+                                      )}
+                                    </button>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          )
+                        })}
+
+                        {/* Anmerkung */}
+                        <div style={{ paddingTop: '12px', paddingBottom: '4px' }}>
+                          <p style={{ color: '#6b7280', fontWeight: 700, fontSize: '11px', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>📝 Anmerkung (optional)</p>
+                          <textarea
+                            value={drawerNote}
+                            onChange={e => setDrawerNote(e.target.value)}
+                            placeholder="z.B. ohne Zwiebeln, extra scharf…"
+                            rows={2}
+                            style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#f0f0f0', fontSize: '13px', outline: 'none', resize: 'none', boxSizing: 'border-box' }}
+                            onFocus={e => (e.currentTarget.style.borderColor = 'rgba(199,161,122,0.5)')}
+                            onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)')}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Sticky Footer: Menge + In den Warenkorb */}
+                    <div style={{ padding: '14px 20px 24px', borderTop: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
+                      {/* Mengenwahl (nur bei Optionen) */}
+                      {detailGroups.length > 0 && (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', marginBottom: '12px' }}>
+                          <button onClick={() => setDrawerQty(q => Math.max(1, q - 1))} style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(255,255,255,0.1)', border: 'none', cursor: 'pointer', color: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>−</button>
+                          <span style={{ color: '#f0f0f0', fontWeight: 900, fontSize: '18px', minWidth: '24px', textAlign: 'center' }}>{drawerQty}</span>
+                          <button onClick={() => setDrawerQty(q => q + 1)} style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#C7A17A', border: 'none', cursor: 'pointer', color: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 900 }}>+</button>
+                        </div>
+                      )}
+
+                      {/* Validation */}
+                      {!detailCanAdd && detailMissingRequired.length > 0 && (
+                        <p style={{ color: '#f87171', fontSize: '12px', textAlign: 'center', margin: '0 0 8px' }}>
+                          Bitte wähle: {detailMissingRequired.map(g => g.name).join(', ')}
+                        </p>
+                      )}
+
+                      {/* CTA */}
+                      <button
+                        disabled={!detailCanAdd}
+                        onClick={() => {
+                          if (detailGroups.length > 0) {
+                            // Direkt in den Warenkorb — korrektes SelectedOption-Format
+                            const selectedOptions: SelectedOption[] = []
+                            let surcharge = 0
+                            for (const g of detailGroups) {
+                              const sel = drawerSelections.get(g.id) ?? new Set()
+                              for (const optId of sel) {
+                                const opt = g.menu_options.find(o => o.id === optId)
+                                if (opt) {
+                                  selectedOptions.push({
+                                    optionName: opt.name,
+                                    groupName: g.name,
+                                    priceCents: opt.price_cents,
+                                  })
+                                  surcharge += opt.price_cents
+                                }
+                              }
+                            }
+                            setCart(prev => [...prev, {
+                              cartEntryId: crypto.randomUUID(),
+                              menuItemId: detailItem.id,
+                              name: detailItem.name,
+                              priceInCents: detailItem.price,
+                              quantity: drawerQty,
+                              selectedOptions,
+                              optionsSurcharge: surcharge,
+                              customerNote: drawerNote.trim() || undefined,
+                            }])
+                            setDetailItem(null)
+                          } else {
+                            addToCart(detailItem)
+                            setDetailItem(null)
+                          }
+                        }}
+                        style={{
+                          width: '100%', padding: '17px', borderRadius: '16px',
+                          background: detailCanAdd ? 'linear-gradient(135deg, #c7a17a, #d4a870)' : 'rgba(255,255,255,0.08)',
+                          border: 'none', cursor: detailCanAdd ? 'pointer' : 'not-allowed',
+                          color: detailCanAdd ? '#111' : '#4b5563', fontWeight: 900, fontSize: '16px',
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                          boxShadow: detailCanAdd ? '0 6px 24px rgba(199,161,122,0.35)' : 'none',
+                          opacity: detailCanAdd ? 1 : 0.6, transition: 'all 0.2s',
+                        }}
+                      >
+                        <ShoppingCart style={{ width: '19px', height: '19px' }} />
+                        <span>In den Warenkorb</span>
+                        <span>{eur(detailGroups.length > 0 ? detailTotal : detailItem.price)}</span>
+                      </button>
+                    </div>
+                  </>
+                )
+              })()}
+
+            </div>
+          </div>
+        )
+      })()}
+
       {/* Lightbox */}
+
       {lightbox && (
         <div onClick={() => setLightbox(null)} style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}

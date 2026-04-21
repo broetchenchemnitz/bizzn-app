@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, Loader2, Euro, ToggleLeft, ToggleRight } from 'lucide-react'
 import { createMenuItem } from '@/app/actions/menu'
+import MenuItemDetailsEditor from '@/components/MenuItemDetailsEditor'
+import type { NutritionalInfo } from '@/lib/menu-constants'
 
 interface AddMenuItemFormProps {
   categoryId: string
@@ -17,6 +19,12 @@ export default function AddMenuItemForm({ categoryId }: AddMenuItemFormProps) {
   const [isActive, setIsActive] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Allergene, Zusatzstoffe, Labels, Nährwerte
+  const [allergens, setAllergens] = useState<string[]>([])
+  const [additives, setAdditives] = useState<string[]>([])
+  const [itemLabels, setItemLabels] = useState<string[]>([])
+  const [nutritionalInfo, setNutritionalInfo] = useState<NutritionalInfo | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -38,6 +46,10 @@ export default function AddMenuItemForm({ categoryId }: AddMenuItemFormProps) {
       description,
       price: priceCents,
       is_active: isActive,
+      allergens,
+      additives,
+      labels: itemLabels,
+      nutritional_info: nutritionalInfo,
     })
 
     setIsLoading(false)
@@ -48,6 +60,10 @@ export default function AddMenuItemForm({ categoryId }: AddMenuItemFormProps) {
       setDescription('')
       setPriceEur('')
       setIsActive(true)
+      setAllergens([])
+      setAdditives([])
+      setItemLabels([])
+      setNutritionalInfo(null)
       router.refresh()
     }
   }
@@ -103,6 +119,23 @@ export default function AddMenuItemForm({ categoryId }: AddMenuItemFormProps) {
           rows={2}
           className="w-full px-4 py-2.5 text-sm bg-[#1a1a1a] border border-gray-700 text-white placeholder-gray-600 rounded-xl outline-none focus:border-[#C7A17A] focus:ring-2 focus:ring-[#C7A17A]/20 transition-all resize-none"
           disabled={isLoading}
+        />
+      </div>
+
+      {/* Allergene, Zusatzstoffe, Labels, Nährwerte */}
+      <div className="border-t border-gray-800 pt-3">
+        <MenuItemDetailsEditor
+          allergens={allergens}
+          additives={additives}
+          labels={itemLabels}
+          nutritionalInfo={nutritionalInfo}
+          disabled={isLoading}
+          onChange={(data) => {
+            setAllergens(data.allergens)
+            setAdditives(data.additives)
+            setItemLabels(data.labels)
+            setNutritionalInfo(data.nutritionalInfo)
+          }}
         />
       </div>
 
