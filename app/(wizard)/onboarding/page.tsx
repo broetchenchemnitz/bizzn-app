@@ -151,7 +151,7 @@ export default function OnboardingPage() {
         {currentStep === 2 && project && (
           <Step2Import
             project={project}
-            onNext={() => handleNext()}
+            onNext={(p) => handleNext(p)}
             onBack={handleBack}
           />
         )}
@@ -380,7 +380,24 @@ function Step1Name({
   )
 }
 
+
 // ─── Step 2: URL Import ───────────────────────────────────────────────────────
+
+interface ScanProfile {
+  restaurantName?: string
+  description?: string
+  address?: string
+  phone?: string
+  openingHours?: Record<string, string>
+  cuisineType?: string
+  coverImageUrl?: string
+}
+
+interface ScanResult {
+  categories: unknown[]
+  profile?: ScanProfile
+  stats?: { categories: number; items: number; images: number }
+}
 
 function Step2Import({
   project,
@@ -388,11 +405,13 @@ function Step2Import({
   onBack,
 }: {
   project: WizardProject
-  onNext: () => void
+  onNext: (p?: Partial<WizardProject>) => void
   onBack: () => void
 }) {
   const [url, setUrl] = useState('')
   const [scanning, setScanning] = useState(false)
+  const [confirming, setConfirming] = useState(false)
+  const [scanResult, setScanResult] = useState<ScanResult | null>(null)
   const [scanDone, setScanDone] = useState(false)
   const [scanError, setScanError] = useState<string | null>(null)
 
@@ -400,41 +419,78 @@ function Step2Import({
     if (!url.trim()) return
     setScanning(true)
     setScanError(null)
+    setScanResult(null)
 
     try {
+      // Phase 1: Scan → get categories + profile preview
       const res = await fetch('/api/menu/url-import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: url.trim(), projectId: project.id, confirmImport: true }),
+        body: JSON.stringify({ url: url.trim(), projectId: project.id }),
       })
+      const data = await res.json()
+
       if (!res.ok) {
-        const d = await res.json().catch(() => ({}))
-        setScanError(d.error ?? 'Import fehlgeschlagen')
-      } else {
-        setScanDone(true)
+        setScanError(data.error ?? 'Import fehlgeschlagen')
+        return
       }
+
+      setScanResult(data)
+
+      // Phase 2: Confirm → write to DB (menu + profile)
+      setConfirming(true)
+      const confirmRes = await fetch('/api/menu/url-import/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId: project.id,
+          categories: data.categories,
+          sourceUrl: url.trim(),
+          profile: data.profile ?? null,
+        }),
+      })
+
+      if (!confirmRes.ok) {
+        const cd = await confirmRes.json().catch(() => ({}))
+        setScanError(cd.error ?? 'Fehler beim Speichern')
+        return
+      }
+
+      setScanDone(true)
     } catch {
       setScanError('Netzwerkfehler. Bitte versuche den manuellen Import.')
     } finally {
       setScanning(false)
+      setConfirming(false)
     }
   }
+
+  const profile = scanResult?.profile
+  const stats = scanResult?.stats
+  const detectedFields = profile ? [
+    profile.description       && '📝 Beschreibung',
+    profile.address           && '📍 Adresse',
+    profile.phone             && '📞 Telefon',
+    profile.cuisineType       && '🍽️ Küchen-Typ',
+    profile.coverImageUrl     && '🖼️ Cover-Bild',
+    profile.openingHours && Object.keys(profile.openingHours).length > 0 && '🕐 Öffnungszeiten',
+  ].filter(Boolean) as string[] : []
 
   return (
     <>
       <StepHeader
         icon="✨"
         title="Speisekarte importieren"
-        subtitle="Gib deine Lieferando- oder Wolt-URL ein — KI übernimmt den Rest."
+        subtitle="KI liest deine Speisekarte, Öffnungszeiten & Adresse automatisch ein."
       />
       <div className="px-8 py-6 space-y-4">
-        {/* Platform logos */}
-        <div className="flex gap-2 mb-4">
+        {/* Platform badges */}
+        <div className="flex gap-2 flex-wrap">
           {[
             { name: 'Lieferando', color: 'bg-orange-500/10 border-orange-500/20 text-orange-400' },
             { name: 'Wolt', color: 'bg-blue-500/10 border-blue-500/20 text-blue-400' },
             { name: 'Uber Eats', color: 'bg-green-500/10 border-green-500/20 text-green-400' },
-            { name: 'Andere', color: 'bg-white/5 border-white/10 text-gray-400' },
+            { name: 'Andere Website', color: 'bg-white/5 border-white/10 text-gray-400' },
           ].map((p) => (
             <span key={p.name} className={`text-xs font-medium px-2.5 py-1 rounded-full border ${p.color}`}>
               {p.name}
@@ -442,10 +498,42 @@ function Step2Import({
           ))}
         </div>
 
+        {/* Success state */}
         {scanDone ? (
-          <div className="flex items-center gap-3 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-sm">
-            <Check className="w-5 h-5 flex-shrink-0" />
-            Speisekarte erfolgreich importiert! Du kannst sie nach dem Wizard verfeinern.
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-sm">
+              <Check className="w-5 h-5 flex-shrink-0" />
+              <div>
+                <div className="font-semibold">Import erfolgreich!</div>
+                {stats && (
+                  <div className="text-xs text-emerald-300/70 mt-0.5">
+                    {stats.categories} Kategorien · {stats.items} Gerichte{stats.images > 0 ? ` · ${stats.images} Bilder` : ''}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Auto-filled profile fields */}
+            {detectedFields.length > 0 && (
+              <div className="p-4 bg-[#E8B86D]/5 border border-[#E8B86D]/15 rounded-xl space-y-2">
+                <p className="text-xs font-semibold text-[#E8B86D] uppercase tracking-wide">
+                  🪄 Automatisch erkannt & vorausgefüllt
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {detectedFields.map((field) => (
+                    <span
+                      key={field}
+                      className="text-xs bg-[#E8B86D]/10 border border-[#E8B86D]/20 text-[#E8B86D]/80 px-2 py-0.5 rounded-full"
+                    >
+                      {field}
+                    </span>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-600 mt-1">
+                  Diese Felder sind im nächsten Schritt bereits vorausgefüllt — du kannst sie jederzeit anpassen.
+                </p>
+              </div>
+            )}
           </div>
         ) : (
           <>
@@ -455,40 +543,55 @@ function Step2Import({
                 type="url"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleScan()}
                 placeholder="https://www.lieferando.de/speisekarte/dein-restaurant"
                 className="flex-1 bg-[#0E0E16] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#E8B86D]/50 transition-all"
               />
               <button
                 id="wizard-import-scan"
                 onClick={handleScan}
-                disabled={scanning || !url.trim()}
-                className="flex items-center gap-2 bg-[#E8B86D] hover:bg-[#d4a55a] text-black font-semibold px-4 py-3 rounded-xl text-sm transition-all disabled:opacity-50"
+                disabled={scanning || confirming || !url.trim()}
+                className="flex items-center gap-2 bg-[#E8B86D] hover:bg-[#d4a55a] text-black font-semibold px-4 py-3 rounded-xl text-sm transition-all disabled:opacity-50 whitespace-nowrap"
               >
-                {scanning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-                {scanning ? 'Scanne...' : 'Scannen'}
+                {scanning || confirming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+                {scanning ? 'Scanne…' : confirming ? 'Speichere…' : 'Importieren'}
               </button>
             </div>
+
             {scanError && (
               <div className="flex items-start gap-2 text-sm text-red-400 bg-red-950/30 border border-red-800/30 rounded-xl p-3">
                 <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
                 {scanError}
               </div>
             )}
+
             <p className="text-xs text-gray-600">
-              💡 Kein Lieferando? Du kannst die Speisekarte nach dem Wizard manuell anlegen.
+              💡 Wir lesen automatisch: Speisekarte, Adresse, Öffnungszeiten & Beschreibung. Du kannst alles im nächsten Schritt anpassen.
             </p>
           </>
         )}
       </div>
       <StepFooter
         onBack={onBack}
-        onNext={onNext}
-        onNextLabel={scanDone ? 'Weiter' : undefined}
-        onSkip={!scanDone ? onNext : undefined}
+        onNext={scanDone ? () => {
+          // Pass auto-detected profile data to wizard state
+          const profileUpdate: Partial<WizardProject> = {}
+          if (profile?.description)   profileUpdate.description  = profile.description
+          if (profile?.address)        profileUpdate.address      = profile.address
+          if (profile?.phone)          profileUpdate.phone        = profile.phone
+          if (profile?.cuisineType)    profileUpdate.cuisine_type = profile.cuisineType
+          if (profile?.openingHours)   profileUpdate.opening_hours = profile.openingHours
+          if (profile?.coverImageUrl)  profileUpdate.cover_image_url = profile.coverImageUrl
+          onNext(Object.keys(profileUpdate).length > 0 ? profileUpdate : undefined)
+        } : undefined}
+        onNextLabel="Weiter"
+        onSkip={!scanDone ? () => onNext() : undefined}
       />
     </>
   )
 }
+
+
 
 // ─── Step 3: Profil ───────────────────────────────────────────────────────────
 
