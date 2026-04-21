@@ -52,10 +52,9 @@ const STEPS = [
   { id: 3, label: 'Profil', icon: '📝' },
   { id: 4, label: 'Web-Adresse', icon: '🔗' },
   { id: 5, label: 'Kanäle', icon: '📦' },
-  { id: 6, label: 'Standort', icon: '📍' },
-  { id: 7, label: 'Rabatt', icon: '🎁' },
-  { id: 8, label: 'Vorschau', icon: '👁️' },
-  { id: 9, label: 'Live!', icon: '🚀' },
+  { id: 6, label: 'Rabatt', icon: '🎁' },
+  { id: 7, label: 'Vorschau', icon: '👁️' },
+  { id: 8, label: 'Live!', icon: '🚀' },
 ]
 
 // ─── Main Wizard Component ────────────────────────────────────────────────────
@@ -186,16 +185,6 @@ export default function OnboardingPage() {
           />
         )}
         {currentStep === 6 && project && (
-          <Step6Discovery
-            project={project}
-            onNext={(p) => handleNext(p)}
-            onBack={handleBack}
-            isPending={isPending}
-            startTransition={startTransition}
-            setError={setError}
-          />
-        )}
-        {currentStep === 7 && project && (
           <Step7Discount
             project={project}
             onNext={(p) => handleNext(p)}
@@ -205,14 +194,14 @@ export default function OnboardingPage() {
             setError={setError}
           />
         )}
-        {currentStep === 8 && project && (
+        {currentStep === 7 && project && (
           <Step8Preview
             project={project}
             onNext={() => handleNext()}
             onBack={handleBack}
           />
         )}
-        {currentStep === 9 && project && (
+        {currentStep === 8 && project && (
           <Step9Live
             project={project}
             onBack={handleBack}
@@ -969,7 +958,7 @@ function Step6Discovery({
   )
 }
 
-// ─── Step 7: Willkommensrabatt ────────────────────────────────────────────────
+// ─── Step 6 (Rabatt / formerly 7): Willkommensrabatt ────────────────────────
 
 function Step7Discount({
   project,
@@ -986,61 +975,60 @@ function Step7Discount({
   startTransition: (fn: () => void) => void
   setError: (e: string | null) => void
 }) {
-  const [enabled, setEnabled] = useState(project.welcome_discount_enabled ?? true)
-  const [pct, setPct] = useState(project.welcome_discount_pct ?? 10)
+  // Willkommensrabatt ist IMMER aktiv — Standard 10 %, nur erhöhbar (min 10 %)
+  const [pct, setPct] = useState(Math.max(10, project.welcome_discount_pct ?? 10))
 
   const handleNext = () => {
     setError(null)
     startTransition(async () => {
-      const result = await saveOnboardingDiscount(project.id, enabled, pct)
+      const result = await saveOnboardingDiscount(project.id, true, pct)
       if (result.error) { setError(result.error); return }
-      onNext({ welcome_discount_enabled: enabled, welcome_discount_pct: pct })
+      onNext({ welcome_discount_enabled: true, welcome_discount_pct: pct })
     })
   }
 
   return (
     <>
-      <StepHeader icon="🎁" title="Willkommensrabatt" subtitle="Dein stärkstes Werkzeug um Gäste von Lieferando abzuwerben." />
+      <StepHeader icon="🎁" title="Willkommensrabatt" subtitle="Dein stärkstes Werkzeug um Neukunden zu gewinnen." />
       <div className="px-8 py-6 space-y-5">
-        <div className="flex items-center justify-between p-4 bg-white/3 rounded-xl border border-white/5">
-          <div className="flex items-center gap-3">
-            <Tag className="w-4 h-4 text-[#E8B86D]" />
-            <div>
-              <div className="text-sm font-medium text-white">Erstbestellungs-Rabatt aktivieren</div>
-              <div className="text-xs text-gray-500">Automatisch für jeden Neukunden</div>
-            </div>
+
+        {/* Info-Banner: immer aktiv */}
+        <div className="flex items-start gap-3 p-4 bg-[#E8B86D]/8 border border-[#E8B86D]/20 rounded-xl">
+          <Tag className="w-4 h-4 text-[#E8B86D] mt-0.5 flex-shrink-0" />
+          <div>
+            <div className="text-sm font-semibold text-white">Erstbestellungs-Rabatt aktiv</div>
+            <div className="text-xs text-gray-400 mt-0.5">Jeder Neukunde bekommt automatisch {pct} % auf seine erste Bestellung.</div>
           </div>
-          <button
-            onClick={() => setEnabled(!enabled)}
-            className={`relative w-11 h-6 rounded-full transition-all ${enabled ? 'bg-[#E8B86D]' : 'bg-white/10'}`}
-          >
-            <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all ${enabled ? 'left-6' : 'left-1'}`} />
-          </button>
         </div>
 
-        {enabled && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-white">Rabatt: <span className="text-[#E8B86D]">{pct} %</span></label>
-            </div>
-            <input
-              id="wizard-discount-slider"
-              type="range"
-              min={5}
-              max={30}
-              step={5}
-              value={pct}
-              onChange={(e) => setPct(parseInt(e.target.value))}
-              className="w-full accent-[#E8B86D]"
-            />
-            <div className="flex justify-between text-xs text-gray-600">
-              <span>5 %</span><span>10 %</span><span>15 %</span><span>20 %</span><span>25 %</span><span>30 %</span>
-            </div>
-            <div className="p-3 bg-[#E8B86D]/5 border border-[#E8B86D]/15 rounded-xl text-xs text-gray-400">
-              💡 Empfehlung: <span className="text-[#E8B86D]">10 %</span> — stark genug um abzuwerben, niedrig genug um profitabel zu bleiben.
-            </div>
+        {/* Slider: nur erhöhen */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium text-white">Rabatt wählen</label>
+            <span className="text-2xl font-bold text-[#E8B86D]">{pct} %</span>
           </div>
-        )}
+          <input
+            id="wizard-discount-slider"
+            type="range"
+            min={10}
+            max={30}
+            step={5}
+            value={pct}
+            onChange={(e) => setPct(parseInt(e.target.value))}
+            className="w-full accent-[#E8B86D]"
+          />
+          <div className="flex justify-between text-xs text-gray-600">
+            <span>10 % (Standard)</span>
+            <span>15 %</span>
+            <span>20 %</span>
+            <span>25 %</span>
+            <span>30 %</span>
+          </div>
+        </div>
+
+        <div className="p-3 bg-white/3 border border-white/5 rounded-xl text-xs text-gray-500">
+          💡 <strong className="text-gray-300">10 %</strong> ist der Standard — stark genug um Gäste von Lieferando abzuwerben, niedrig genug um profitabel zu bleiben. Du kannst jederzeit erhöhen.
+        </div>
       </div>
       <StepFooter onBack={onBack} onNext={handleNext} isPending={isPending} />
     </>

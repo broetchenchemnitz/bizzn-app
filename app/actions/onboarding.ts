@@ -137,7 +137,7 @@ export async function saveOnboardingDiscount(
   enabled: boolean,
   pct: number
 ): Promise<{ error?: string }> {
-  return saveOnboardingStep(projectId, 7, {
+  return saveOnboardingStep(projectId, 6, {
     welcome_discount_enabled: enabled,
     welcome_discount_pct: pct,
   })
@@ -164,7 +164,7 @@ export async function goLive(projectId: string): Promise<{ url?: string; error?:
   if (project.trial_ends_at && new Date(project.trial_ends_at) > new Date()) {
     const { error } = await supabase
       .from('projects')
-      .update({ status: 'active', live_since: new Date().toISOString(), onboarding_step: 9 })
+      .update({ status: 'active', is_public: true, live_since: new Date().toISOString(), onboarding_step: 8 })
       .eq('id', projectId)
       .eq('user_id', user.id)
 
@@ -177,7 +177,7 @@ export async function goLive(projectId: string): Promise<{ url?: string; error?:
   if (project.custom_monthly_price_cents === 0) {
     const { error } = await supabase
       .from('projects')
-      .update({ status: 'active', live_since: new Date().toISOString(), onboarding_step: 9 })
+      .update({ status: 'active', is_public: true, live_since: new Date().toISOString(), onboarding_step: 8 })
       .eq('id', projectId)
       .eq('user_id', user.id)
 
