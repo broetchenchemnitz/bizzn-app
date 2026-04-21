@@ -37,11 +37,13 @@ export type AdminRestaurant = {
   name: string
   slug: string | null
   ownerEmail: string | null
+  projectStatus: string  // draft | pending_review | approved | active | inactive
   planType: string | null
   subscriptionStatus: string | null
   subscriptionPaidUntil: string | null
   isSuspended: boolean
   suspensionReason: string | null
+  customPriceCents: number | null
   totalOrders: number
   totalRevenue: number
   totalCustomers: number
@@ -195,7 +197,7 @@ export async function getAdminRestaurants(
 
   const { data: projects } = await admin
     .from('projects')
-    .select('id, name, slug, user_id, status, is_suspended, suspension_reason, created_at, stripe_charges_enabled, subscription_paid_until')
+    .select('id, name, slug, user_id, status, is_suspended, suspension_reason, created_at, stripe_charges_enabled, subscription_paid_until, custom_monthly_price_cents')
 
   if (!projects) return []
 
@@ -221,11 +223,13 @@ export async function getAdminRestaurants(
       name: p.name ?? 'Unnamed',
       slug: p.slug ?? null,
       ownerEmail: userMap.get(p.user_id) ?? null,
+      projectStatus: p.status ?? 'draft',
       planType: p.status ?? 'active',
       subscriptionStatus: p.stripe_charges_enabled ? 'active' : 'pending',
       subscriptionPaidUntil: p.subscription_paid_until ?? null,
       isSuspended: p.is_suspended ?? false,
       suspensionReason: p.suspension_reason ?? null,
+      customPriceCents: (p as Record<string, unknown>).custom_monthly_price_cents as number | null ?? null,
       totalOrders: projOrders.length,
       totalRevenue: projOrders.reduce((s, o) => s + (o.total_amount ?? 0), 0),
       totalCustomers: projCustomers.length,
@@ -234,8 +238,9 @@ export async function getAdminRestaurants(
   })
 
   let result = restaurants
-  if (filter === 'active') result = result.filter(r => !r.isSuspended)
+  if (filter === 'active') result = result.filter(r => !r.isSuspended && r.projectStatus === 'active')
   if (filter === 'suspended') result = result.filter(r => r.isSuspended)
+  if (filter === 'pending') result = result.filter(r => r.projectStatus === 'pending_review')
   if (filter === 'overdue') result = result.filter(r => !r.subscriptionPaidUntil || r.subscriptionPaidUntil < today)
 
   if (search.trim()) {
@@ -352,6 +357,61 @@ export async function adminUpdateSlug(
   if (existing) return { success: false, error: `Slug "${slug}" ist bereits vergeben.` }
 
   const { error } = await admin.from('projects').update({ slug }).eq('id', projectId)
+  if (error) return { success: false, error: error.message }
+  return { success: true }
+}
+
+// ── Projekt freigeben ─────────────────────────────────────────────────────────
+
+export async function adminApproveProject(
+  projectId: string,
+  customPriceCents: number | null,
+  note?: string
+): Promise<{ success: boolean; error?: string }> {
+  const admin = createAdminClient()
+
+  const { error } = await admin
+    .from('projects')
+    .update({
+      status: customPriceCents === 0 ? 'active' : 'approved',
+      approved_at: new Date().toISOString(),
+      superadmin_note: note ?? null,
+      custom_monthly_price_cents: customPriceCents,
+      // 0 Euro → sofort online (is_public bleibt beim Gastronomen)
+    })
+    .eq('id', projectId)
+
+  if (error) return { success: false, error: error.message }
+  return { success: true }
+}
+
+export async function adminRejectProject(
+  projectId: string,
+  reason: string
+): Promise<{ success: boolean; error?: string }> {
+  const admin = createAdminClient()
+
+  const { error } = await admin
+    .from('projects')
+    .update({
+      status: 'draft',
+      superadmin_note: reason,
+    })
+    .eq('id', projectId)
+
+  if (error) return { success: false, error: error.message }
+  return { success: true }
+}
+
+export async function adminSetCustomPrice(
+  projectId: string,
+  priceCents: number | null
+): Promise<{ success: boolean; error?: string }> {
+  const admin = createAdminClient()
+  const { error } = await admin
+    .from('projects')
+    .update({ custom_monthly_price_cents: priceCents })
+    .eq('id', projectId)
   if (error) return { success: false, error: error.message }
   return { success: true }
 }
