@@ -28,7 +28,7 @@ export function DeleteProjectButton({ projectId, projectName, status }: Props) {
         return
       }
       setOpen(false)
-      router.refresh()
+      window.location.reload()
     })
   }
 
