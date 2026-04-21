@@ -5,16 +5,14 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { Check, ChevronRight, ChevronLeft, Loader2, AlertCircle, Eye, Zap, Globe, ShoppingBag, Truck, Coffee, Tag, Image as ImageIcon } from 'lucide-react'
 import {
   createDraftProject,
-  saveOnboardingStep,
   saveOnboardingProfile,
   saveOnboardingSlug,
   saveOnboardingChannels,
-  saveOnboardingDiscovery,
   saveOnboardingDiscount,
-  goLive,
   loadWizardProject,
   checkSlugAvailability,
 } from '@/app/actions/onboarding'
+import { submitForReview } from '@/app/actions/review'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -202,7 +200,7 @@ export default function OnboardingPage() {
           />
         )}
         {currentStep === 8 && project && (
-          <Step9Live
+          <Step8Submit
             project={project}
             onBack={handleBack}
             isPending={isPending}
@@ -890,74 +888,6 @@ function Step5Channels({
 }
 
 // ─── Step 6: Discovery ────────────────────────────────────────────────────────
-
-function Step6Discovery({
-  project,
-  onNext,
-  onBack,
-  isPending,
-  startTransition,
-  setError,
-}: {
-  project: WizardProject
-  onNext: (p: Partial<WizardProject>) => void
-  onBack: () => void
-  isPending: boolean
-  startTransition: (fn: () => void) => void
-  setError: (e: string | null) => void
-}) {
-  const [city, setCity] = useState(project.city ?? '')
-  const [postalCode, setPostalCode] = useState(project.postal_code ?? '')
-  const [isPublic, setIsPublic] = useState(project.is_public ?? true)
-
-  const handleNext = () => {
-    setError(null)
-    startTransition(async () => {
-      const data = { city, postal_code: postalCode, is_public: isPublic }
-      const result = await saveOnboardingDiscovery(project.id, data)
-      if (result.error) { setError(result.error); return }
-      onNext(data)
-    })
-  }
-
-  const inputCls = 'w-full bg-[#0E0E16] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#E8B86D]/50 transition-all'
-
-  return (
-    <>
-      <StepHeader icon="📍" title="Standort & Discovery" subtitle="Damit Neukunden dich auf bizzn.de finden können." />
-      <div className="px-8 py-6 space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1.5">Stadt</label>
-            <input id="wizard-city" type="text" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Chemnitz" className={inputCls} />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1.5">PLZ</label>
-            <input id="wizard-postal" type="text" value={postalCode} onChange={(e) => setPostalCode(e.target.value)} placeholder="09111" className={inputCls} />
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between p-4 bg-white/3 rounded-xl border border-white/5">
-          <div className="flex items-center gap-3">
-            <Globe className="w-4 h-4 text-[#E8B86D]" />
-            <div>
-              <div className="text-sm font-medium text-white">Auf bizzn.de entdeckt werden</div>
-              <div className="text-xs text-gray-500">0 % Provision — du entscheidest wann du sichtbar wirst</div>
-            </div>
-          </div>
-          <button
-            onClick={() => setIsPublic(!isPublic)}
-            className={`relative w-11 h-6 rounded-full transition-all ${isPublic ? 'bg-[#E8B86D]' : 'bg-white/10'}`}
-          >
-            <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all ${isPublic ? 'left-6' : 'left-1'}`} />
-          </button>
-        </div>
-      </div>
-      <StepFooter onBack={onBack} onNext={handleNext} onSkip={() => onNext({})} isPending={isPending} />
-    </>
-  )
-}
-
 // ─── Step 6 (Rabatt / formerly 7): Willkommensrabatt ────────────────────────
 
 function Step7Discount({
@@ -1035,7 +965,135 @@ function Step7Discount({
   )
 }
 
-// ─── Step 8: Vorschau ─────────────────────────────────────────────────────────
+// ─── Step 8: Antrag einreichen ───────────────────────────────────────────────
+
+function Step8Submit({
+  project,
+  onBack,
+  isPending,
+  startTransition,
+  setError,
+}: {
+  project: WizardProject
+  onBack: () => void
+  isPending: boolean
+  startTransition: (fn: () => void) => void
+  setError: (e: string | null) => void
+}) {
+  const router = useRouter()
+  const [submitted, setSubmitted] = useState(
+    project.status === 'pending_review' || project.status === 'approved' || project.status === 'active'
+  )
+
+  const handleSubmit = () => {
+    setError(null)
+    startTransition(async () => {
+      const result = await submitForReview(project.id)
+      if (result.error) { setError(result.error); return }
+      setSubmitted(true)
+      // Nach 4s zum Dashboard weiterleiten
+      setTimeout(() => router.push('/dashboard'), 4000)
+    })
+  }
+
+  if (submitted) {
+    return (
+      <>
+        <div className="px-8 py-16 flex flex-col items-center text-center space-y-6">
+          {/* Erfolgs-Animation */}
+          <div className="relative">
+            <div className="w-20 h-20 rounded-full bg-[#E8B86D]/10 border border-[#E8B86D]/30 flex items-center justify-center">
+              <span className="text-4xl animate-bounce">🎉</span>
+            </div>
+            <div className="absolute -top-1 -right-1 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center">
+              <Check className="w-3.5 h-3.5 text-white" />
+            </div>
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-white mb-2">Antrag eingereicht!</h2>
+            <p className="text-gray-400 text-sm leading-relaxed max-w-xs">
+              Wir prüfen dein Restaurant und melden uns per E-Mail — in der Regel innerhalb von 24 Stunden.
+            </p>
+          </div>
+          <div className="flex flex-col items-center gap-3 pt-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-[#E8B86D] animate-pulse" />
+            <p className="text-xs text-gray-600">Du wirst gleich zum Dashboard weitergeleitet…</p>
+          </div>
+          <button
+            onClick={() => router.push('/dashboard')}
+            className="flex items-center gap-2 text-sm text-[#E8B86D] hover:text-[#d4a55a] transition-colors mt-2"
+          >
+            Jetzt zum Dashboard <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      </>
+    )
+  }
+
+  return (
+    <>
+      <StepHeader icon="🚀" title="Antrag einreichen" subtitle="Ein letzter Schritt — wir prüfen dein Restaurant und schalten es frei." />
+      <div className="px-8 py-6 space-y-5">
+
+        {/* Checkliste */}
+        <div className="space-y-2">
+          {[
+            { label: 'Restaurantname', done: !!project.name },
+            { label: 'Profil & Adresse', done: !!(project.description || project.address) },
+            { label: 'Web-Adresse (Slug)', done: !!project.slug },
+            { label: 'Bestellkanäle', done: true },
+            { label: 'Willkommensrabatt 10 %', done: !!(project.welcome_discount_enabled) },
+          ].map((item) => (
+            <div key={item.label} className="flex items-center gap-2.5 text-sm">
+              <div className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 ${item.done ? 'bg-emerald-500' : 'bg-white/10'}`}>
+                {item.done && <Check className="w-2.5 h-2.5 text-black" />}
+              </div>
+              <span className={item.done ? 'text-white' : 'text-gray-500'}>{item.label}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Info-Box: Was passiert als nächstes */}
+        <div className="p-4 bg-[#E8B86D]/5 border border-[#E8B86D]/15 rounded-xl space-y-3">
+          <p className="text-xs font-semibold text-[#E8B86D] uppercase tracking-wide">Was passiert als nächstes?</p>
+          <div className="space-y-2">
+            {[
+              { step: '1', text: 'Wir prüfen dein Restaurant (24h)' },
+              { step: '2', text: 'Du bekommst eine Freigabe per E-Mail' },
+              { step: '3', text: 'Du entscheidest selbst wann du online gehst' },
+            ].map(({ step, text }) => (
+              <div key={step} className="flex items-center gap-3 text-sm text-gray-400">
+                <span className="w-5 h-5 rounded-full bg-[#E8B86D]/20 text-[#E8B86D] text-xs font-bold flex items-center justify-center flex-shrink-0">
+                  {step}
+                </span>
+                {text}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="px-8 py-6 border-t border-white/5 flex items-center justify-between gap-4">
+        <button
+          onClick={onBack}
+          className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-white transition-colors px-3 py-2 rounded-lg hover:bg-white/5"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          Zurück
+        </button>
+        <button
+          onClick={handleSubmit}
+          disabled={isPending}
+          className="flex items-center gap-2 bg-gradient-to-r from-[#E8B86D] to-[#d4a55a] hover:from-[#d4a55a] hover:to-[#c09148] text-black font-bold px-8 py-3 rounded-xl text-sm transition-all shadow-lg shadow-[#E8B86D]/20 disabled:opacity-50"
+        >
+          {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : '🚀'}
+          {isPending ? 'Wird eingereicht…' : 'Antrag einreichen'}
+        </button>
+      </div>
+    </>
+  )
+}
+
 
 function Step8Preview({
   project,
@@ -1091,107 +1149,3 @@ function Step8Preview({
 }
 
 // ─── Step 9: Go Live ──────────────────────────────────────────────────────────
-
-function Step9Live({
-  project,
-  onBack,
-  isPending,
-  startTransition,
-  setError,
-}: {
-  project: WizardProject
-  onBack: () => void
-  isPending: boolean
-  startTransition: (fn: () => void) => void
-  setError: (e: string | null) => void
-}) {
-  const router = useRouter()
-
-  const handleGoLive = () => {
-    setError(null)
-    startTransition(async () => {
-      const result = await goLive(project.id)
-      if (result.error) { setError(result.error); return }
-      if (result.url) {
-        window.location.href = result.url
-      }
-    })
-  }
-
-  const isAlreadyLive = project.status === 'active'
-
-  return (
-    <>
-      <StepHeader icon="🚀" title={isAlreadyLive ? 'Du bist already live!' : 'Jetzt live gehen'} subtitle={isAlreadyLive ? 'Dein Restaurant ist bereits öffentlich sichtbar.' : 'Ein letzter Schritt — dann gehst du live.'} />
-      <div className="px-8 py-6 space-y-5">
-        {isAlreadyLive ? (
-          <div className="flex items-center gap-3 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-sm">
-            <Check className="w-5 h-5 flex-shrink-0" />
-            <div>
-              <div className="font-semibold">Live seit {project.live_since ? new Date(project.live_since).toLocaleDateString('de-DE') : 'kürzlich'}</div>
-              <div className="text-xs opacity-70 mt-0.5">Du kannst den Wizard schließen und weiter anpassen.</div>
-            </div>
-          </div>
-        ) : (
-          <>
-            {/* Summary checklist */}
-            <div className="space-y-2">
-              {[
-                { label: 'Restaurantname', done: !!project.name },
-                { label: 'Speisekarte', done: true }, // always true after step 2
-                { label: 'Profil', done: !!(project.description || project.address) },
-                { label: 'Web-Adresse', done: !!project.slug },
-                { label: 'Bestellkanäle', done: true },
-              ].map((item) => (
-                <div key={item.label} className="flex items-center gap-2.5 text-sm">
-                  <div className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 ${item.done ? 'bg-emerald-500' : 'bg-white/10'}`}>
-                    {item.done && <Check className="w-2.5 h-2.5 text-black" />}
-                  </div>
-                  <span className={item.done ? 'text-white' : 'text-gray-500'}>{item.label}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* Price info */}
-            <div className="p-4 bg-[#E8B86D]/5 border border-[#E8B86D]/20 rounded-xl">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium text-white">Bizzn-Plattform — Einmalzahlung</span>
-                <span className="text-lg font-bold text-[#E8B86D]">99 €</span>
-              </div>
-              <p className="text-xs text-gray-500">
-                Keine monatlichen Gebühren. Keine Provision. Du zahlst einmalig und bist dauerhaft dabei.
-              </p>
-            </div>
-          </>
-        )}
-      </div>
-      <div className="px-8 py-6 border-t border-white/5 flex items-center justify-between gap-4">
-        <button
-          onClick={onBack}
-          className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-white transition-colors px-3 py-2 rounded-lg hover:bg-white/5"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          Zurück
-        </button>
-        {isAlreadyLive ? (
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="flex items-center gap-2 bg-[#E8B86D] hover:bg-[#d4a55a] text-black font-semibold px-6 py-2.5 rounded-xl text-sm transition-all"
-          >
-            Zum Dashboard
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        ) : (
-          <button
-            onClick={handleGoLive}
-            disabled={isPending}
-            className="flex items-center gap-2 bg-gradient-to-r from-[#E8B86D] to-[#d4a55a] hover:from-[#d4a55a] hover:to-[#c09148] text-black font-bold px-8 py-3 rounded-xl text-sm transition-all shadow-lg shadow-[#E8B86D]/20 disabled:opacity-50"
-          >
-            {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : '🚀'}
-            {isPending ? 'Wird bearbeitet...' : 'Jetzt live gehen — 99 €'}
-          </button>
-        )}
-      </div>
-    </>
-  )
-}

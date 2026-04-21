@@ -1,9 +1,8 @@
 import { createClient } from '@/utils/supabase/server'
-import { createAdminClient } from '@/lib/supabase-admin'
 import { FolderGit2, Settings, PlusCircle, Wand2 } from 'lucide-react'
 import Link from 'next/link'
 import type { Database } from '@/types/supabase'
-import ManageSubscriptionButton from '@/components/ManageSubscriptionButton'
+import { ProjectStatusBanner } from '@/components/dashboard/ProjectStatusBanner'
 
 type ProjectRow = Database['public']['Tables']['projects']['Row']
 
@@ -23,31 +22,7 @@ export default async function DashboardPage({
   const isCanceled = resolvedParams?.canceled === 'true'
   const isWizardSuccess = resolvedParams?.wizard_success === 'true'
 
-  // ── Fallback: Projekt-Status auf active setzen wenn Stripe-Webhook nicht ankam ──
-  const wizardProjectId = resolvedParams?.project as string | undefined
-  if ((isSuccess || isWizardSuccess) && user && wizardProjectId) {
-    await supabase
-      .from('projects')
-      .update({ status: 'active', live_since: new Date().toISOString() })
-      .eq('id', wizardProjectId)
-      .eq('user_id', user.id)
-      .eq('status', 'draft') // Idempotenz: nur wenn noch draft
-  } else if (isSuccess && user) {
-    const { count } = await supabase
-      .from('projects')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-
-    if ((count ?? 0) === 0) {
-      console.log('[Dashboard] Fallback: Creating project for user', user.id)
-      const admin = createAdminClient()
-      await admin.from('projects').insert({
-        user_id: user.id,
-        name: `Mein Restaurant`,
-        status: 'active',
-      })
-    }
-  }
+  // No more forced status override — status is set by submitForReview → approveProject → goOnline flow
 
   const { data: projectsRaw, error } = await supabase
     .from('projects').select('*').order('created_at', { ascending: false })
@@ -59,9 +34,9 @@ export default async function DashboardPage({
       <div className="max-w-5xl mx-auto space-y-8">
 
         {/* Notifications */}
-        {(isSuccess || isWizardSuccess) && (
+        {isWizardSuccess && (
           <div className="p-4 bg-[#1a2e1a] text-emerald-400 rounded-xl border border-emerald-800/40 text-sm font-medium flex items-center gap-3">
-            🎉 <span>Herzlichen Glückwunsch! Dein Restaurant ist jetzt live auf bizzn.de.</span>
+            🎉 <span>Antrag eingereicht! Wir prüfen dein Restaurant und melden uns per E-Mail.</span>
           </div>
         )}
         {isCanceled && (
@@ -129,32 +104,35 @@ export default async function DashboardPage({
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {projects.map((p) => {
-                const isDraft = p.status === 'draft'
+
+
                 return (
                   <div
                     key={p.id}
-                    className="bg-[#1A1A1A] border border-[#333333] hover:border-[#C7A17A]/30 transition-all rounded-xl p-6 group"
+                    className="bg-[#1A1A1A] border border-[#333333] hover:border-[#C7A17A]/30 transition-all rounded-xl p-6 group space-y-4"
                   >
-                    {/* Status Badge */}
-                    <div className="flex items-center justify-between mb-4">
-                      <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border ${
-                        isDraft
-                          ? 'bg-amber-500/10 border-amber-500/20 text-amber-400'
-                          : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                      }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${isDraft ? 'bg-amber-400' : 'bg-emerald-400 animate-pulse'}`} />
-                        {isDraft ? 'Entwurf' : 'Live'}
-                      </span>
+                    {/* Header: Name + Datum */}
+                    <div className="flex items-center justify-between">
+                      <Link href={`/dashboard/project/${p.id}`}>
+                        <h3 className="font-semibold text-lg text-white group-hover:text-[#C7A17A] transition-colors">
+                          {p.name}
+                        </h3>
+                      </Link>
                       <span className="text-gray-600 text-xs">
                         {new Date(p.created_at).toLocaleDateString('de-DE')}
                       </span>
                     </div>
 
-                    <Link href={`/dashboard/project/${p.id}`}>
-                      <h3 className="font-semibold text-lg text-white mb-4 group-hover:text-[#C7A17A] transition-colors">
-                        {p.name}
-                      </h3>
-                    </Link>
+                    {/* Status Banner */}
+                    <ProjectStatusBanner project={{
+                      id: p.id,
+                      name: p.name,
+                      status: p.status,
+                      slug: p.slug,
+                      custom_monthly_price_cents: (p as Record<string, unknown>).custom_monthly_price_cents as number | null ?? null,
+                      trial_ends_at: (p as Record<string, unknown>).trial_ends_at as string | null ?? null,
+                      live_since: (p as Record<string, unknown>).live_since as string | null ?? null,
+                    }} />
 
                     {/* Actions */}
                     <div className="flex gap-2">
@@ -170,7 +148,7 @@ export default async function DashboardPage({
                         className="flex-1 flex items-center justify-center gap-1.5 text-xs text-[#C7A17A] hover:text-white border border-[#C7A17A]/20 hover:border-[#C7A17A]/50 px-3 py-2 rounded-lg transition-all"
                       >
                         <Wand2 className="w-3.5 h-3.5" />
-                        {isDraft ? 'Setup fortsetzen' : 'Wizard neu starten'}
+                        Wizard
                       </Link>
                     </div>
                   </div>

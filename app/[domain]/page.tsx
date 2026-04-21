@@ -94,10 +94,18 @@ export default async function RestaurantProfilePage({
     notFound()
   }
 
-  // ── Draft-Sperrung: Entwurf ohne gültigen Preview-Token → Kommt-Bald-Seite ──
-  const isDraft = (project as { status?: string }).status === 'draft'
+  // ── Zugriffssperre: Draft und pending_review → Kommt-bald-Seite ───────────
+  const status = (project as { status?: string }).status ?? 'draft'
   const previewToken = searchParams?.preview ?? null
   const validPreview = previewToken && (project as { preview_token?: string }).preview_token === previewToken
+
+  // pending_review: KEIN Preview-Zugang (komplett gesperrt bis Freigabe)
+  if (status === 'pending_review') {
+    return <ComingSoonPage name={project.name} />
+  }
+
+  // draft: Preview-Token erlaubt
+  const isDraft = status === 'draft'
   if (isDraft && !validPreview) {
     return <ComingSoonPage name={project.name} />
   }
