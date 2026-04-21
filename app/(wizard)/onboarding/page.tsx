@@ -1143,7 +1143,7 @@ function Step8Preview({
           </div>
         )}
       </div>
-      <StepFooter onBack={onBack} onNext={onNext} onNextLabel="Weiter zu Live schalten" />
+      <StepFooter onBack={onBack} onNext={onNext} onNextLabel="Weiter zum Abschluss" />
     </>
   )
 }
