@@ -6,6 +6,7 @@ import { Check, ChevronRight, ChevronLeft, Loader2, AlertCircle, Eye, Zap, Globe
 import {
   createDraftProject,
   saveOnboardingProfile,
+  saveOnboardingHours,
   saveOnboardingSlug,
   saveOnboardingChannels,
   saveOnboardingDiscount,
@@ -48,11 +49,12 @@ const STEPS = [
   { id: 1, label: 'Name', icon: '🏪' },
   { id: 2, label: 'Import', icon: '✨' },
   { id: 3, label: 'Profil', icon: '📝' },
-  { id: 4, label: 'Web-Adresse', icon: '🔗' },
-  { id: 5, label: 'Kanäle', icon: '📦' },
-  { id: 6, label: 'Rabatt', icon: '🎁' },
-  { id: 7, label: 'Vorschau', icon: '👁️' },
-  { id: 8, label: 'Live!', icon: '🚀' },
+  { id: 4, label: 'Zeiten', icon: '⏰' },
+  { id: 5, label: 'Web-Adresse', icon: '🔗' },
+  { id: 6, label: 'Kanäle', icon: '📦' },
+  { id: 7, label: 'Rabatt', icon: '🎁' },
+  { id: 8, label: 'Vorschau', icon: '👁️' },
+  { id: 9, label: 'Abschluss', icon: '🚀' },
 ]
 
 // ─── Main Wizard Component ────────────────────────────────────────────────────
@@ -163,7 +165,7 @@ export default function OnboardingPage() {
           />
         )}
         {currentStep === 4 && project && (
-          <Step4Slug
+          <Step4Hours
             project={project}
             onNext={(p) => handleNext(p)}
             onBack={handleBack}
@@ -173,7 +175,7 @@ export default function OnboardingPage() {
           />
         )}
         {currentStep === 5 && project && (
-          <Step5Channels
+          <Step4Slug
             project={project}
             onNext={(p) => handleNext(p)}
             onBack={handleBack}
@@ -183,7 +185,7 @@ export default function OnboardingPage() {
           />
         )}
         {currentStep === 6 && project && (
-          <Step7Discount
+          <Step5Channels
             project={project}
             onNext={(p) => handleNext(p)}
             onBack={handleBack}
@@ -193,13 +195,23 @@ export default function OnboardingPage() {
           />
         )}
         {currentStep === 7 && project && (
+          <Step7Discount
+            project={project}
+            onNext={(p) => handleNext(p)}
+            onBack={handleBack}
+            isPending={isPending}
+            startTransition={startTransition}
+            setError={setError}
+          />
+        )}
+        {currentStep === 8 && project && (
           <Step8Preview
             project={project}
             onNext={() => handleNext()}
             onBack={handleBack}
           />
         )}
-        {currentStep === 8 && project && (
+        {currentStep === 9 && project && (
           <Step8Submit
             project={project}
             onBack={handleBack}
@@ -701,7 +713,152 @@ function Step3Profile({
 }
 
 
-// ─── Step 4: Slug ─────────────────────────────────────────────────────────────
+// ─── Step 4: Öffnungszeiten ───────────────────────────────────────────────────
+
+const DAYS = [
+  { key: 'mo', label: 'Montag' },
+  { key: 'di', label: 'Dienstag' },
+  { key: 'mi', label: 'Mittwoch' },
+  { key: 'do', label: 'Donnerstag' },
+  { key: 'fr', label: 'Freitag' },
+  { key: 'sa', label: 'Samstag' },
+  { key: 'so', label: 'Sonntag' },
+]
+
+function Step4Hours({
+  project,
+  onNext,
+  onBack,
+  isPending,
+  startTransition,
+  setError,
+}: {
+  project: WizardProject
+  onNext: (p: Partial<WizardProject>) => void
+  onBack: () => void
+  isPending: boolean
+  startTransition: (fn: () => void) => void
+  setError: (e: string | null) => void
+}) {
+  const existingHours = (project.opening_hours ?? {}) as Record<string, string>
+
+  // Init: for each day, parse existing value into open/from/to/closed
+  const initDay = (key: string) => {
+    const val = existingHours[key] ?? ''
+    if (!val || val.toLowerCase() === 'geschlossen') {
+      return { closed: true, from: '11:00', to: '22:00' }
+    }
+    // Format: "11:00 - 22:00" or "11:00-22:00"
+    const match = val.match(/(\d{1,2}:\d{2})\s*[-–]\s*(\d{1,2}:\d{2})/)
+    if (match) return { closed: false, from: match[1], to: match[2] }
+    return { closed: false, from: '11:00', to: '22:00' }
+  }
+
+  const [days, setDays] = useState(() =>
+    Object.fromEntries(DAYS.map(d => [d.key, initDay(d.key)]))
+  )
+
+  // Copy Mon–Fri to all
+  const applyWeekday = () => {
+    const mon = days['mo']
+    setDays(prev => ({
+      ...prev,
+      di: { ...mon },
+      mi: { ...mon },
+      do: { ...mon },
+      fr: { ...mon },
+    }))
+  }
+
+  const handleNext = () => {
+    setError(null)
+    startTransition(async () => {
+      const hours: Record<string, string> = {}
+      DAYS.forEach(({ key }) => {
+        const d = days[key]
+        hours[key] = d.closed ? 'Geschlossen' : `${d.from} - ${d.to}`
+      })
+      const result = await saveOnboardingHours(project.id, hours)
+      if (result.error) { setError(result.error); return }
+      onNext({ opening_hours: hours })
+    })
+  }
+
+  const autoFilledCount = Object.keys(existingHours).filter(k => existingHours[k]).length
+
+  return (
+    <>
+      <StepHeader icon="⏰" title="Öffnungszeiten" subtitle="Wann ist dein Restaurant für Gäste geöffnet?" />
+      <div className="px-8 py-6 space-y-4">
+
+        {/* Auto-filled hint */}
+        {autoFilledCount > 0 && (
+          <div className="flex items-center gap-2 px-3 py-2 bg-emerald-500/8 border border-emerald-500/15 rounded-lg text-xs text-emerald-400">
+            <span>✨</span>
+            {autoFilledCount} Zeiten wurden aus deiner Speisekarte importiert — prüfe und passe sie bei Bedarf an.
+          </div>
+        )}
+
+        {/* Quick copy button */}
+        <button
+          onClick={applyWeekday}
+          type="button"
+          className="text-xs text-[#E8B86D] hover:text-[#d4a55a] underline underline-offset-2 transition-colors"
+        >
+          Mo–Fr gleiche Zeiten wie Montag übernehmen
+        </button>
+
+        {/* Day rows */}
+        <div className="space-y-2">
+          {DAYS.map(({ key, label }) => {
+            const d = days[key]
+            return (
+              <div key={key} className="flex items-center gap-3">
+                {/* Closed toggle */}
+                <button
+                  type="button"
+                  onClick={() => setDays(prev => ({ ...prev, [key]: { ...prev[key], closed: !prev[key].closed } }))}
+                  className={`relative w-9 h-5 rounded-full transition-all flex-shrink-0 ${d.closed ? 'bg-white/10' : 'bg-[#E8B86D]'}`}
+                >
+                  <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${d.closed ? 'left-0.5' : 'left-4'}`} />
+                </button>
+
+                {/* Day label */}
+                <span className={`text-sm w-20 flex-shrink-0 ${d.closed ? 'text-gray-600' : 'text-gray-300'}`}>
+                  {label}
+                </span>
+
+                {d.closed ? (
+                  <span className="text-xs text-gray-600 italic">Geschlossen</span>
+                ) : (
+                  <div className="flex items-center gap-2 flex-1">
+                    <input
+                      type="time"
+                      value={d.from}
+                      onChange={e => setDays(prev => ({ ...prev, [key]: { ...prev[key], from: e.target.value } }))}
+                      className="bg-[#0E0E16] border border-white/10 rounded-lg px-2 py-1.5 text-sm text-white focus:outline-none focus:border-[#E8B86D]/50 w-28"
+                    />
+                    <span className="text-gray-600 text-xs">bis</span>
+                    <input
+                      type="time"
+                      value={d.to}
+                      onChange={e => setDays(prev => ({ ...prev, [key]: { ...prev[key], to: e.target.value } }))}
+                      className="bg-[#0E0E16] border border-white/10 rounded-lg px-2 py-1.5 text-sm text-white focus:outline-none focus:border-[#E8B86D]/50 w-28"
+                    />
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+      <StepFooter onBack={onBack} onNext={handleNext} onSkip={() => onNext({})} isPending={isPending} />
+    </>
+  )
+}
+
+// ─── Step 5 (formerly 4): Slug ─────────────────────────────────────────────────
+
 
 function Step4Slug({
   project,

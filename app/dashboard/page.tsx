@@ -63,9 +63,6 @@ export default async function DashboardPage({
               <Settings className="w-4 h-4" />
               Einstellungen
             </Link>
-            <div className="flex-1 md:flex-none">
-              <ManageSubscriptionButton />
-            </div>
             {/* Neues Restaurant → Wizard */}
             <Link
               id="btn-new-project"

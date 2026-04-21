@@ -103,13 +103,22 @@ export async function saveOnboardingProfile(
   return saveOnboardingStep(projectId, 3, profile as Record<string, unknown>)
 }
 
-// ─── Slug speichern (Schritt 4) ───────────────────────────────────────────────
+// ─── Öffnungszeiten speichern (Schritt 4) ─────────────────────────────────────
+
+export async function saveOnboardingHours(
+  projectId: string,
+  hours: Record<string, string>
+): Promise<{ error?: string }> {
+  return saveOnboardingStep(projectId, 4, { opening_hours: hours })
+}
+
+// ─── Slug speichern (Schritt 5) ───────────────────────────────────────────────
 
 export async function saveOnboardingSlug(
   projectId: string,
   slug: string
 ): Promise<{ error?: string }> {
-  return saveOnboardingStep(projectId, 4, { slug: slug.toLowerCase() })
+  return saveOnboardingStep(projectId, 5, { slug: slug.toLowerCase() })
 }
 
 // ─── Bestellkanäle speichern (Schritt 5) ──────────────────────────────────────
