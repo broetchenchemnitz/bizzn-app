@@ -385,6 +385,8 @@ export async function adminApproveProject(
   return { success: true }
 }
 
+// ── Soft-Ablehnen: zurück auf Draft, Gastronom kann korrigieren & erneut einreichen ──
+
 export async function adminRejectProject(
   projectId: string,
   reason: string
@@ -395,11 +397,55 @@ export async function adminRejectProject(
     .from('projects')
     .update({
       status: 'draft',
+      onboarding_step: 7,   // Zurück vor den Abschluss-Step
       superadmin_note: reason,
     })
     .eq('id', projectId)
 
   if (error) return { success: false, error: error.message }
+  return { success: true }
+}
+
+// ── Hard-Ban: Projekt löschen + User-Account dauerhaft sperren ──────────────
+
+export async function adminPermanentBanProject(
+  projectId: string,
+  reason: string
+): Promise<{ success: boolean; error?: string }> {
+  const admin = createAdminClient()
+
+  // 1. Owner des Projekts ermitteln
+  const { data: project } = await admin
+    .from('projects')
+    .select('user_id, name')
+    .eq('id', projectId)
+    .single()
+
+  if (!project) return { success: false, error: 'Projekt nicht gefunden' }
+
+  // 2. Projekt löschen
+  const { error: deleteError } = await admin
+    .from('projects')
+    .delete()
+    .eq('id', projectId)
+
+  if (deleteError) return { success: false, error: deleteError.message }
+
+  // 3. Supabase Auth-Account des Users sperren (10 Jahre = effektiv permanent)
+  const { error: banError } = await admin.auth.admin.updateUserById(project.user_id, {
+    ban_duration: '87600h',  // 10 Jahre
+    user_metadata: {
+      banned_reason: reason,
+      banned_at: new Date().toISOString(),
+    },
+  })
+
+  if (banError) {
+    // Auch wenn Ban fehlschlägt → Projekt ist gelöscht, wir loggen es nur
+    console.error('[adminPermanentBanProject] Ban error:', banError.message)
+    return { success: true }  // Projekt wurde trotzdem gelöscht
+  }
+
   return { success: true }
 }
 

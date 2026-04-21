@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { adminApproveProject, adminRejectProject } from '@/app/actions/admin-actions'
+import { adminApproveProject, adminRejectProject, adminPermanentBanProject } from '@/app/actions/admin-actions'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -44,13 +44,20 @@ interface CardState {
   customPrice: string
   isCustom: boolean
   note: string
+  // Soft reject
   showReject: boolean
   rejectReason: string
+  // Hard ban
+  showBan: boolean
+  banReason: string
   saving: boolean
 }
 
 const defaultCardState = (): CardState => ({
-  price: 9900, customPrice: '', isCustom: false, note: '', showReject: false, rejectReason: '', saving: false
+  price: 9900, customPrice: '', isCustom: false, note: '',
+  showReject: false, rejectReason: '',
+  showBan: false, banReason: '',
+  saving: false
 })
 
 export default function AdminReviewPage() {
@@ -102,6 +109,17 @@ export default function AdminReviewPage() {
     if (!cs?.rejectReason.trim()) return
     setCard(p.id, { saving: true })
     const result = await adminRejectProject(p.id, cs.rejectReason.trim())
+    if (result.success) {
+      setProjects(prev => prev.filter(x => x.id !== p.id))
+    }
+    setCard(p.id, { saving: false })
+  }
+
+  const handleBan = async (p: ReviewProject) => {
+    const cs = cardStates[p.id]
+    if (!cs?.banReason.trim()) return
+    setCard(p.id, { saving: true })
+    const result = await adminPermanentBanProject(p.id, cs.banReason.trim())
     if (result.success) {
       setProjects(prev => prev.filter(x => x.id !== p.id))
     }
@@ -334,59 +352,109 @@ export default function AdminReviewPage() {
                       />
                     </div>
 
-                    {/* Ablehnen-Bereich (aufklappbar) */}
+                    {/* ── Soft-Ablehnen (aufklappbar) ── */}
                     {cs.showReject && (
-                      <div style={{ marginBottom: '16px', padding: '16px', background: 'rgba(239,68,68,0.04)', borderRadius: '12px', border: '1px solid rgba(239,68,68,0.15)' }}>
-                        <div style={{ fontSize: '12px', fontWeight: 700, color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
-                          ✕ Ablehnungsgrund *
+                      <div style={{ marginBottom: '16px', padding: '16px', background: 'rgba(234,179,8,0.04)', borderRadius: '12px', border: '1px solid rgba(234,179,8,0.2)' }}>
+                        <div style={{ fontSize: '12px', fontWeight: 700, color: '#92400e', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>
+                          ↩ Hinweis an den Gastronomen
                         </div>
+                        <p style={{ fontSize: '11px', color: '#78716c', margin: '0 0 10px' }}>
+                          Der Gastronom erhält eine E-Mail mit deinem Feedback und kann den Antrag nach Korrektur neu einreichen.
+                        </p>
                         <textarea
                           value={cs.rejectReason}
                           onChange={e => setCard(p.id, { rejectReason: e.target.value })}
-                          placeholder="z.B. Die Speisekarte ist unvollständig — bitte füge mindestens 5 Gerichte hinzu und reiche den Antrag erneut ein."
+                          placeholder="z.B. Die Speisekarte ist noch leer — bitte füge mindestens 5 Gerichte hinzu. Außerdem fehlt die genaue Adresse."
                           autoFocus
-                          style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', border: '1px solid rgba(239,68,68,0.3)', fontSize: '13px', minHeight: '80px', resize: 'vertical', boxSizing: 'border-box', outline: 'none', color: '#374151', background: '#fff', lineHeight: 1.6 }}
+                          style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', border: '1px solid rgba(234,179,8,0.3)', fontSize: '13px', minHeight: '80px', resize: 'vertical', boxSizing: 'border-box', outline: 'none', color: '#374151', background: '#fff', lineHeight: 1.6 }}
+                        />
+                      </div>
+                    )}
+
+                    {/* ── Hard-Ban (aufklappbar) ── */}
+                    {cs.showBan && (
+                      <div style={{ marginBottom: '16px', padding: '16px', background: 'rgba(127,29,29,0.04)', borderRadius: '12px', border: '2px solid rgba(127,29,29,0.25)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                          <span style={{ fontSize: '16px' }}>🚫</span>
+                          <span style={{ fontSize: '12px', fontWeight: 800, color: '#7f1d1d', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                            Endgültig sperren — nicht rückgängig machbar!
+                          </span>
+                        </div>
+                        <p style={{ fontSize: '11px', color: '#991b1b', margin: '0 0 10px', fontWeight: 500 }}>
+                          Das Projekt wird gelöscht und der Nutzer-Account dauerhaft gesperrt. Keine erneute Registrierung möglich.
+                        </p>
+                        <textarea
+                          value={cs.banReason}
+                          onChange={e => setCard(p.id, { banReason: e.target.value })}
+                          placeholder="z.B. Fake-Anmeldung — kein echtes Restaurant. Kein Impressum, keine verifizierbaren Daten."
+                          autoFocus
+                          style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', border: '2px solid rgba(127,29,29,0.3)', fontSize: '13px', minHeight: '80px', resize: 'vertical', boxSizing: 'border-box', outline: 'none', color: '#374151', background: '#fff', lineHeight: 1.6 }}
                         />
                       </div>
                     )}
 
                     {/* Action-Buttons */}
-                    <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', alignItems: 'center' }}>
-                      {!cs.showReject ? (
-                        <button
-                          onClick={() => setCard(p.id, { showReject: true })}
-                          style={{ padding: '11px 22px', borderRadius: '10px', border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.04)', color: '#dc2626', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
-                          ✕ Ablehnen
-                        </button>
-                      ) : (
-                        <div style={{ display: 'flex', gap: '8px' }}>
+                    <div style={{ display: 'flex', gap: '10px', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
+                      {/* Linke Seite: Ablehnungs-Optionen */}
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        {/* Soft-Ablehnen */}
+                        {!cs.showReject && !cs.showBan && (
                           <button
-                            onClick={() => setCard(p.id, { showReject: false, rejectReason: '' })}
-                            style={{ padding: '11px 18px', borderRadius: '10px', border: '1px solid #e2e8f0', background: '#fff', color: '#6b7280', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
-                            Zurück
+                            onClick={() => setCard(p.id, { showReject: true, showBan: false })}
+                            style={{ padding: '10px 18px', borderRadius: '10px', border: '1px solid rgba(234,179,8,0.35)', background: 'rgba(234,179,8,0.05)', color: '#b45309', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>
+                            ↩ Ablehnen & korrigieren lassen
                           </button>
-                          <button
-                            onClick={() => handleReject(p)}
-                            disabled={!cs.rejectReason.trim() || cs.saving}
-                            style={{ padding: '11px 22px', borderRadius: '10px', border: 'none', background: '#ef4444', color: '#fff', fontSize: '13px', fontWeight: 800, cursor: 'pointer', opacity: !cs.rejectReason.trim() || cs.saving ? 0.5 : 1 }}>
-                            {cs.saving ? '…' : 'Ablehnen bestätigen'}
-                          </button>
-                        </div>
-                      )}
+                        )}
+                        {cs.showReject && (
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            <button onClick={() => setCard(p.id, { showReject: false, rejectReason: '' })}
+                              style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', background: '#fff', color: '#6b7280', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
+                              Zurück
+                            </button>
+                            <button onClick={() => handleReject(p)} disabled={!cs.rejectReason.trim() || cs.saving}
+                              style={{ padding: '10px 18px', borderRadius: '10px', border: 'none', background: '#d97706', color: '#fff', fontSize: '12px', fontWeight: 800, cursor: 'pointer', opacity: !cs.rejectReason.trim() || cs.saving ? 0.5 : 1 }}>
+                              {cs.saving ? '…' : '↩ Ablehnen & Hinweis senden'}
+                            </button>
+                          </div>
+                        )}
 
-                      <button
-                        onClick={() => handleApprove(p)}
-                        disabled={cs.saving || (cs.isCustom && !cs.customPrice.trim())}
-                        style={{
-                          padding: '12px 32px', borderRadius: '10px', border: 'none',
-                          background: cs.saving ? '#9ca3af' : 'linear-gradient(135deg, #22c55e, #16a34a)',
-                          color: '#fff', fontSize: '14px', fontWeight: 900, cursor: 'pointer',
-                          boxShadow: '0 3px 12px rgba(34,197,94,0.35)',
-                          opacity: cs.saving || (cs.isCustom && !cs.customPrice.trim()) ? 0.7 : 1,
-                          transition: 'all 0.15s',
-                        }}>
-                        {cs.saving ? 'Wird gespeichert…' : '✓ Jetzt freigeben'}
-                      </button>
+                        {/* Hard-Ban */}
+                        {!cs.showReject && !cs.showBan && (
+                          <button
+                            onClick={() => setCard(p.id, { showBan: true, showReject: false })}
+                            style={{ padding: '10px 18px', borderRadius: '10px', border: '1px solid rgba(127,29,29,0.3)', background: 'rgba(127,29,29,0.04)', color: '#7f1d1d', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>
+                            🚫 Endgültig sperren
+                          </button>
+                        )}
+                        {cs.showBan && (
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            <button onClick={() => setCard(p.id, { showBan: false, banReason: '' })}
+                              style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', background: '#fff', color: '#6b7280', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
+                              Zurück
+                            </button>
+                            <button onClick={() => handleBan(p)} disabled={!cs.banReason.trim() || cs.saving}
+                              style={{ padding: '10px 18px', borderRadius: '10px', border: 'none', background: '#7f1d1d', color: '#fff', fontSize: '12px', fontWeight: 800, cursor: 'pointer', opacity: !cs.banReason.trim() || cs.saving ? 0.5 : 1 }}>
+                              {cs.saving ? '…' : '🚫 Account endgültig sperren'}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Rechte Seite: Freigeben */}
+                      {!cs.showReject && !cs.showBan && (
+                        <button
+                          onClick={() => handleApprove(p)}
+                          disabled={cs.saving || (cs.isCustom && !cs.customPrice.trim())}
+                          style={{
+                            padding: '12px 32px', borderRadius: '10px', border: 'none',
+                            background: cs.saving ? '#9ca3af' : 'linear-gradient(135deg, #22c55e, #16a34a)',
+                            color: '#fff', fontSize: '14px', fontWeight: 900, cursor: 'pointer',
+                            boxShadow: '0 3px 12px rgba(34,197,94,0.35)',
+                            opacity: cs.saving || (cs.isCustom && !cs.customPrice.trim()) ? 0.7 : 1,
+                          }}>
+                          {cs.saving ? 'Wird gespeichert…' : '✓ Jetzt freigeben'}
+                        </button>
+                      )}
                     </div>
                   </div>
 
