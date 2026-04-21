@@ -28,7 +28,6 @@ export async function submitForReview(projectId: string): Promise<{ error?: stri
     .from('projects')
     .update({
       status: 'pending_review',
-      preview_token: null,   // Vorschau während Prüfung deaktivieren
       onboarding_step: 8,
     })
     .eq('id', projectId)
