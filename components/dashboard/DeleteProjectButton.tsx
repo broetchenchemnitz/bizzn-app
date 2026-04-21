@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { Trash2, Loader2, AlertTriangle } from 'lucide-react'
 import { deleteProject } from '@/app/actions/delete-project'
 
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export function DeleteProjectButton({ projectId, projectName, status }: Props) {
+  const router = useRouter()
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
@@ -26,6 +28,7 @@ export function DeleteProjectButton({ projectId, projectName, status }: Props) {
         return
       }
       setOpen(false)
+      router.refresh()
     })
   }
 
